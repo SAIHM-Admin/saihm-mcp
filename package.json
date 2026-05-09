@@ -1,0 +1,68 @@
+{
+  "name": "@saihm/mcp-server",
+  "version": "0.1.0",
+  "description": "Bare-bones MCP server for the SAIHM protocol — eight tools that connect any MCP-capable AI agent to a SAIHM operator endpoint.",
+  "type": "module",
+  "main": "dist/saihm_mcp_server.js",
+  "types": "dist/saihm_mcp_server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/saihm_mcp_server.d.ts",
+      "import": "./dist/saihm_mcp_server.js"
+    },
+    "./reporting": {
+      "types": "./dist/reporting/index.d.ts",
+      "import": "./dist/reporting/index.js"
+    }
+  },
+  "bin": {
+    "saihm-mcp-server": "dist/saihm_mcp_server.js"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p . && chmod +x dist/saihm_mcp_server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/integration.test.ts",
+    "start": "node dist/saihm_mcp_server.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "saihm",
+    "agent-memory",
+    "sovereign-memory",
+    "claude-code"
+  ],
+  "license": "Apache-2.0",
+  "author": "SAIHM",
+  "homepage": "https://saihm.coti.global",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SAIHM-Admin/saihm-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SAIHM-Admin/saihm-mcp/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@noble/hashes": "^1.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
