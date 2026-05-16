@@ -6,7 +6,7 @@
 
 ## What this is
 
-A bare-bones [Model Context Protocol](https://modelcontextprotocol.io/) server
+A [Model Context Protocol](https://modelcontextprotocol.io/) server
 that exposes eight tools any MCP-capable AI agent (Claude Code, Claude Desktop,
 custom agents) can call to gain a persistent, encrypted memory layer the
 **user** owns:
@@ -18,9 +18,9 @@ custom agents) can call to gain a persistent, encrypted memory layer the
 - `saihm_share` / `saihm_revoke_share` — selectively share a memory with another agent or user
 - `saihm_governance_propose` / `saihm_governance_vote` — protocol governance via gSAIHM
 
-This package is a **thin client**. It holds no crypto, no storage, and no
-protocol runtime. Each tool forwards to a SAIHM operator endpoint that runs
-the full protocol stack on COTI V2 mainnet.
+Each tool forwards to a SAIHM operator endpoint that runs the full protocol
+stack on COTI V2 mainnet. The server itself holds no crypto, no storage, and
+no protocol runtime — those live behind the operator endpoint.
 
 ## Install
 
@@ -43,8 +43,8 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
   their endpoint URLs at <https://saihm.coti.global>.
 - **`SAIHM_AUTH_HEADER`** — the `Authorization` header value the operator
   expects (typically a `Bearer <token>` issued to you after key-bound
-  enrolment). The bare-bones client is authentication-agnostic and **never
-  transmits raw private keys**; the operator's enrolment flow keeps your
+  enrolment). The server is authentication-agnostic and **never transmits
+  raw private keys**; the operator's enrolment flow keeps your
   Wallet C key on your machine.
 
 Place these in a `.env` file alongside the server (the `.gitignore` excludes
@@ -69,7 +69,7 @@ all `.env*` files from any future repo).
 
 ## What gets persisted, where
 
-The bare-bones client itself persists nothing. The operator endpoint runs the
+The server itself persists nothing. The operator endpoint runs the
 full protocol stack: cells are encrypted under a per-cell DEK, sealed by a
 per-agent KEK, persisted to Filecoin, and audited on COTI V2 mainnet. See the
 operator's documentation for tier details.
@@ -137,7 +137,7 @@ In production, replace `InMemoryReportingRuntime` with a runtime that persists a
 
 ## Security
 
-The bare-bones client enforces a small set of defaults so misconfiguration cannot leak the `Authorization` header in transit:
+The server enforces a small set of defaults so misconfiguration cannot leak the `Authorization` header in transit:
 
 - **HTTPS-only endpoints.** `SAIHM_ENDPOINT_URL` must use `https://`. Plain `http://` is rejected at construction time, except for `127.0.0.1` and `localhost` (so a local operator endpoint works during development).
 - **Per-call abort window.** Each request runs under an `AbortController` that aborts after 30s, preventing a hung endpoint from starving the MCP server.
@@ -146,7 +146,7 @@ The bare-bones client enforces a small set of defaults so misconfiguration canno
 - **No filesystem reads.** The package never reads from disk; configuration flows entirely through env vars.
 - **Zero EVM tooling.** No `ethers`, no `eth_*`, no Solidity. If operators inject signature verifiers via `AuthVerifiers`, they should use pure-crypto libraries (`@noble/curves`, `@noble/post-quantum`).
 
-Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against COTI V2 mainnet anchors is out of scope for the bare-bones; consume the `cellId` and `auditCellId` fields and verify against your own SAIHM mainnet read path.
+Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against COTI V2 mainnet anchors is out of scope for this server; consume the `cellId` and `auditCellId` fields and verify against your own SAIHM mainnet read path.
 
 For distribution integrity, the SAIHM publisher signs releases via npm sigstore provenance; verify with `npm view @saihm/mcp-server --json | jq .dist` and `npm audit signatures`.
 

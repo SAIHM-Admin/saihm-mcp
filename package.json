@@ -2,7 +2,7 @@
   "name": "@saihm/mcp-server",
   "version": "0.1.2",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
-  "description": "Bare-bones MCP server for the SAIHM protocol — eight tools that connect any MCP-capable AI agent to a SAIHM operator endpoint.",
+  "description": "Sovereign, encrypted, persistent memory for AI agents. Eight MCP tools — remember, recall, forget (GDPR Art. 17 erasure), share, governance. Anchored on COTI V2 mainnet. Apache-2.0.",
   "type": "module",
   "main": "dist/saihm_mcp_server.js",
   "types": "dist/saihm_mcp_server.d.ts",
