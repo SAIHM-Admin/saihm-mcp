@@ -1,0 +1,28 @@
+# Smithery configuration for @saihm/mcp-server
+# Sovereign, encrypted, sharable, persistent memory protocol for AI agents.
+# https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - saihmEndpointUrl
+      - saihmAuthHeader
+    properties:
+      saihmEndpointUrl:
+        type: string
+        description: Your SAIHM operator endpoint URL (issued at https://saihm.coti.global/join).
+      saihmAuthHeader:
+        type: string
+        description: Authorization header (typically 'Bearer <token>') issued by your operator.
+  commandFunction:
+    |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', '@saihm/mcp-server'],
+      env: {
+        SAIHM_ENDPOINT_URL: config.saihmEndpointUrl,
+        SAIHM_AUTH_HEADER: config.saihmAuthHeader,
+      },
+    })

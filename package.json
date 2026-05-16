@@ -1,6 +1,7 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.2",
+  "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "Bare-bones MCP server for the SAIHM protocol — eight tools that connect any MCP-capable AI agent to a SAIHM operator endpoint.",
   "type": "module",
   "main": "dist/saihm_mcp_server.js",
