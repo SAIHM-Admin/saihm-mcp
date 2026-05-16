@@ -2,7 +2,7 @@
 
 **Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
 
-`v0.1.0` · Apache-2.0 · COTI V2 mainnet
+`v0.1.2` · Apache-2.0 · COTI V2 mainnet
 
 ## What this is
 
