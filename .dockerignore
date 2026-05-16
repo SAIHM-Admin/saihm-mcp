@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.*
+*.log
+burn_in_logs
+.saihm_store
+coverage
+.DS_Store
+*.tsbuildinfo
+Dockerfile
+.dockerignore

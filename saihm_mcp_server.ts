@@ -23,14 +23,18 @@ const server = new McpServer(
   { capabilities: { tools: {} } },
 );
 
-let runtime!: SaihmRuntimeClient;
+let runtime: SaihmRuntimeClient | null = null;
+function getRuntime(): SaihmRuntimeClient {
+  if (!runtime) runtime = SaihmRuntimeClient.bootFromEnv();
+  return runtime;
+}
 
 server.tool(
   "saihm_remember",
   "Store information to SAIHM persistent encrypted memory.",
   { content: z.string().describe("Information to remember") },
   async ({ content }) => {
-    const r = await runtime.remember(content);
+    const r = await getRuntime().remember(content);
     return { content: [{ type: "text" as const, text:
       `REMEMBERED [${r.cellId}] tier=${r.tier} kekV=${r.kekVersion} epoch=${r.epoch} fee=${r.feeNcoti}nCOTI sig=${r.signaturePrefix}…`
     }]};
@@ -42,7 +46,7 @@ server.tool(
   "Retrieve and decrypt memories from SAIHM encrypted store.",
   { query: z.string().optional().describe("Filter by keyword (empty = all)") },
   async ({ query }) => {
-    const cells = await runtime.recall(query);
+    const cells = await getRuntime().recall(query);
     if (cells.length === 0) return { content: [{ type: "text" as const, text: "No memories stored." }] };
     const lines = [`RECALL ${cells.length} memories`];
     for (const c of cells) lines.push(`  [${c.cellId}] ${c.timestamp} (${c.tier}) | ${c.plaintext}`);
@@ -55,7 +59,7 @@ server.tool(
   "Cryptographically erase a memory (GDPR Art. 17 erasure).",
   { id: z.string().describe("Memory entry ID (hex cellId) to erase") },
   async ({ id }) => {
-    const r = await runtime.forget(id);
+    const r = await getRuntime().forget(id);
     if (!r.success) return { content: [{ type: "text" as const, text: `Entry ${id} not found or already destroyed.` }] };
     return { content: [{ type: "text" as const, text:
       `FORGOTTEN [${r.cellId}] DEK destroyed (anchor=${r.destructionAnchor?.slice(0, 32)}…) epoch=${r.epoch}`
@@ -68,7 +72,7 @@ server.tool(
   "Show SAIHM session status (PRS, BFSI, storage by tier, sharing, PHI).",
   {},
   async () => {
-    const d = await runtime.status();
+    const d = await getRuntime().status();
     const tiers = Object.entries(d.storageByTier).map(([t, b]) => `${t}=${b}B`).join(" ");
     return { content: [{ type: "text" as const, text:
       `SAIHM Session\n  agent=${d.agentIdHashHex.slice(0, 16)}…\n  PRS=${d.prsScore} (${d.prsLevel})  BFSI=${d.bfsiScore.toFixed(3)}  feeDiscount=${(d.feeDiscountPct * 100).toFixed(1)}%\n  shards=${d.activeShardCount}  ${tiers}\n  staking=${d.stakingPosition.amountNcoti}nCOTI yield=${d.stakingPosition.accruedYieldNcoti}nCOTI\n  sharing=${d.activeSharingContracts}  PHI=${d.phi.toFixed(3)}  epoch=${d.snapshotEpoch}`
@@ -99,7 +103,7 @@ server.tool(
     const ctype = type === "temporary" ? SharingContractType.TEMPORARY
                 : type === "permanent" ? SharingContractType.PERMANENT
                 : SharingContractType.SYNDICATE;
-    const r = await runtime.share(grantees, shardIds, ctype, scope as SharingContractScope, expiryEpoch ? BigInt(expiryEpoch) : null);
+    const r = await getRuntime().share(grantees, shardIds, ctype, scope as SharingContractScope, expiryEpoch ? BigInt(expiryEpoch) : null);
     return { content: [{ type: "text" as const, text:
       `SHARED contract=${r.contractId} type=${r.type} grantees=${r.granteeCount} fee=${r.creationFeeNcoti}nCOTI epoch=${r.epoch}`
     }]};
@@ -111,7 +115,7 @@ server.tool(
   "Revoke an existing sharing contract by its contractId.",
   { contractId: z.string().describe("Sharing contract ID to revoke") },
   async ({ contractId }) => {
-    const r = await runtime.revokeShare(contractId);
+    const r = await getRuntime().revokeShare(contractId);
     return { content: [{ type: "text" as const, text:
       `REVOKED contract=${contractId} revoked=${r.revoked} epoch=${r.epoch}`
     }]};
@@ -127,7 +131,7 @@ server.tool(
     proposedValue: z.string().optional().describe("Proposed value as string"),
   },
   async ({ scope, paramKey, proposedValue }) => {
-    const p = await runtime.governancePropose({
+    const p = await getRuntime().governancePropose({
       scope,
       paramKey: paramKey ?? null,
       proposedValue: proposedValue ?? null,
@@ -146,7 +150,7 @@ server.tool(
     approve: z.boolean().describe("true = approve, false = reject"),
   },
   async ({ proposalId, approve }) => {
-    const v = await runtime.governanceVote({ proposalId, approve });
+    const v = await getRuntime().governanceVote({ proposalId, approve });
     return { content: [{ type: "text" as const, text:
       `VOTED [${v.proposalId}] voter=${v.voterHash.slice(0, 16)}… approve=${v.approve} weight=${v.weight} epoch=${v.castAtEpoch}`
     }]};
@@ -154,7 +158,6 @@ server.tool(
 );
 
 async function main(): Promise<void> {
-  runtime = SaihmRuntimeClient.bootFromEnv();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
