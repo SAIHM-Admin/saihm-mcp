@@ -319,5 +319,23 @@
   "vulnerability_report_credit_justification": "SECURITY.md §Disclosure commits to crediting the reporter (with permission) in the advisory and release notes. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md",
 
   "vulnerability_response_process_status": "Met",
-  "vulnerability_response_process_justification": "SECURITY.md publishes the response process: 14-day acknowledgment, 30-day initial assessment + fix-or-mitigation-plan target. Disclosure follows a coordinated-disclosure model. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md"
+  "vulnerability_response_process_justification": "SECURITY.md publishes the response process: 14-day acknowledgment, 30-day initial assessment + fix-or-mitigation-plan target. Disclosure follows a coordinated-disclosure model. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md",
+
+  "documentation_architecture_status": "Met",
+  "documentation_architecture_justification": "ARCHITECTURE.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/ARCHITECTURE.md documents the high-level architecture: project scope, system diagram, components (MCP tool surface, runtime client, types, reporting, tests), data envelope, trust model, threat-model summary, build/test/release flow, and anti-overreach principles.",
+
+  "hardening_status": "Met",
+  "hardening_justification": "HARDENING.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/HARDENING.md collects enforced hardening choices: HTTPS-only transport, TLS 1.2+, no Authorization-header echo on errors, 30s abort window, 16 MB Content-Length cap, no filesystem reads, no EVM tooling, signed npm releases (sigstore provenance), pinned dependencies, Dependabot, DCO requirement, signed git tags going forward, eight-tool cap as protocol-invariant surface minimization. Each choice is enforced in code or in the published artifact, not aspirational.",
+
+  "documentation_roadmap_status": "Met",
+  "documentation_roadmap_justification": "README §Roadmap publishes the 12-month roadmap: 2026-Q2 operator-endpoint reference + OpenSSF Silver pursuit; 2026-Q3 first 2-3 external organization deployments + AAIF Project Proposal submission gate; 2026-Q4 NIST AI RMF crosswalk public review + EU AI Act compliance-checklist generator + OpenSSF Silver award target; 2027-Q1 IETF RFC publication + v1.0 reference implementation. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#roadmap",
+
+  "documentation_achievements_status": "Met",
+  "documentation_achievements_justification": "README §Achievements lists the project's current standards-track credentials: OpenSSF BP Passing badge (project 12898, 2026-05-19), IETF ISE draft-saihm-memory-protocol-00 acceptance (2026-05-18), npm registry @saihm/mcp-server@0.1.2 (2026-05-16), MCP Registry / Glama listing (2026-05-16). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#achievements",
+
+  "external_dependencies_status": "Met",
+  "external_dependencies_justification": "README §Dependencies lists the runtime + build dependencies and their licenses (Node.js MIT, @modelcontextprotocol/sdk MIT, TypeScript Apache-2.0, tsx MIT). No copyleft, no proprietary dependencies. Operator-side recommended primitive libraries (@noble/curves MIT, @noble/post-quantum MIT) are also enumerated. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#dependencies",
+
+  "coding_standards_status": "Met",
+  "coding_standards_justification": "CONTRIBUTING.md §Coding conventions documents the project's coding standards: TypeScript with ES modules, strict mode, minimal MCP-server surface (thin forwarding shim), no new cryptographic primitives in this repository, no ninth MCP tool (protocol-invariant cap). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md#coding-conventions"
 }
