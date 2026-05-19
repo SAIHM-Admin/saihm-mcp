@@ -8,35 +8,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Changes since the v0.1.2 release tag. These are documentation,
-governance, and CI improvements added in support of the project's
-standards-track work (IETF ISE, OpenSSF Best Practices). They do not
-change the published npm artifact's runtime behavior and will be
-rolled into the next release.
+## [0.1.3] — 2026-05-19
+
+Standards-track release: OpenSSF Best Practices Passing badge achieved
+(project 12898, 100%); Silver criteria at 95%. Adds governance,
+assurance, CI, and security tooling. Bumps runtime and dev
+dependencies. No change to MCP-server runtime behavior or wire protocol.
 
 ### Added
 - `SECURITY.md` — responsible disclosure policy with private channel
   (`architect@saihm.coti.global`), 14-day acknowledgment / 30-day
-  fix-or-mitigation-plan targets, scope and out-of-scope listing.
+  fix-or-mitigation-plan targets.
 - `CONTRIBUTING.md` — PR process, test policy, eight-tool MCP cap
-  invariant, Apache-2.0 inbound = outbound, security-not-public-issue
-  pointer.
+  invariant, DCO 1.1 `Signed-off-by:` sign-off requirement, regression
+  test mandate for bug-fix PRs.
+- `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1 verbatim.
 - `GOVERNANCE.md` — project governance modeled on the Linux
-  Foundation's Minimum Viable Governance framework: roles, decision
-  process (specification vs implementation vs releases), adding /
-  removing maintainers, conflict resolution, code review, code of
-  conduct, intellectual property and trademark stewardship.
-- `.bestpractices.json` — pre-populated OpenSSF Best Practices badge
-  answers for all 67 Passing-level criteria. Used by the
-  bestpractices.dev Chief automation for first-edit form population.
-- `.github/workflows/ci.yml` — GitHub Actions CI running `npm ci`,
-  `npm run typecheck`, `npm run build`, and `npm test` on every push
-  to `main` and every pull request, against Node 20.x and 22.x.
+  Foundation's Minimum Viable Governance framework.
+- `ARCHITECTURE.md` — system diagram, components, data envelope, trust
+  model, threat-model summary, build/test/release flow.
+- `HARDENING.md` — threat model + eight categories of enforced
+  hardening choices.
+- `ASSURANCE_CASE.md` — Claims-Arguments-Evidence structured argument
+  for credential confidentiality, availability, distribution
+  integrity, cryptographic currency, and process controls.
+- `.bestpractices.json` — 115 `_status` fields (107 Met + 8 N/A) for
+  OpenSSF Best Practices automation.
+- `.github/workflows/ci.yml` — GitHub Actions CI on every push and PR
+  (Node 20.x and 22.x): `npm ci`, lint, format:check, typecheck,
+  build, test (with c8 coverage >= 80%).
+- `.github/dependabot.yml` — weekly Dependabot for npm and
+  github-actions ecosystems.
+- ESLint (typescript-eslint recommended), Prettier, c8 coverage
+  (statement >= 80% enforced; current 81.82%).
 - OpenSSF Best Practices Passing badge in README — project 12898 at
   100% Passing criteria.
 
 ### Changed
-- README references the new CI workflow and Passing badge.
+- `@noble/hashes` 1.8.0 -> 2.2.0 (sha256 import path moved from
+  `@noble/hashes/sha256` to `@noble/hashes/sha2.js`).
+- `zod` 3.25.76 -> 4.4.3.
+- `typescript` 5.9.3 -> 6.0.3 (requires `types: ["node"]` in tsconfig
+  compilerOptions, now set).
+- `@types/node` 20.19.40 -> 25.9.0.
+- `tsx` 4.21.0 -> 4.22.2.
+- GitHub Actions: `checkout` v4 -> v6, `setup-node` v4 -> v6.
 
 ## [0.1.2] — 2026-05-16
 
@@ -91,6 +107,7 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.3
 [0.1.2]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.2
 [0.1.0]: https://github.com/SAIHM-Admin/saihm-mcp/commit/03f1897
