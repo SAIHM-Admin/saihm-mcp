@@ -94,7 +94,7 @@
   "vulnerability_report_process_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md describes the responsible-disclosure process, scope/out-of-scope, and disclosure timelines.",
 
   "vulnerability_report_private_status": "Met",
-  "vulnerability_report_private_justification": "SECURITY.md publishes the private channel: architect@saihm.coti.global. Reports are not handled via public issue tracker.",
+  "vulnerability_report_private_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md publishes the private channel architect@saihm.coti.global. Reports are not handled via the public issue tracker.",
 
   "vulnerability_report_response_status": "Met",
   "vulnerability_report_response_justification": "SECURITY.md commits to 14-day acknowledgment and 30-day initial assessment / fix-or-mitigation-plan target for confirmed vulnerabilities, depending on severity and complexity.",
