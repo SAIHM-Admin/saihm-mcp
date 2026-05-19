@@ -4,6 +4,8 @@
 
 `v0.1.2` · Apache-2.0 · COTI V2 mainnet
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
+
 ## What this is
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server
