@@ -24,12 +24,18 @@ implementation for the SAIHM (Sovereign AI Horizontal Memory) protocol.
 2. Make your change. Keep PRs focused — one logical change per PR.
 3. **Tests.** New non-trivial functionality must include a test. The existing
    suite is in `tests/`. Run `npm test` locally before opening the PR.
-4. **Types.** Run `npm run typecheck`. TypeScript strict mode is enabled.
-5. **Build.** Run `npm run build` to verify the published artefact still
+4. **Regression tests for bug fixes.** Every bug-fix PR must include a
+   regression test that would have caught the bug (i.e., a test that
+   fails on the pre-fix code and passes on the post-fix code). PRs that
+   fix a reported bug without a corresponding regression test will be
+   asked to add one before merge. Documentation-only or
+   metadata-only fixes are exempt.
+5. **Types.** Run `npm run typecheck`. TypeScript strict mode is enabled.
+6. **Build.** Run `npm run build` to verify the published artefact still
    compiles.
-6. Update `README.md` if you change tool behaviour, configuration, or the
+7. Update `README.md` if you change tool behaviour, configuration, or the
    externally-visible interface.
-7. Open a pull request. Describe what changed and why. Link any related
+8. Open a pull request. Describe what changed and why. Link any related
    issues.
 
 ## Coding conventions

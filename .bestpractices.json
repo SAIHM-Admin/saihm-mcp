@@ -337,5 +337,11 @@
   "external_dependencies_justification": "README §Dependencies lists the runtime + build dependencies and their licenses (Node.js MIT, @modelcontextprotocol/sdk MIT, TypeScript Apache-2.0, tsx MIT). No copyleft, no proprietary dependencies. Operator-side recommended primitive libraries (@noble/curves MIT, @noble/post-quantum MIT) are also enumerated. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#dependencies",
 
   "coding_standards_status": "Met",
-  "coding_standards_justification": "CONTRIBUTING.md §Coding conventions documents the project's coding standards: TypeScript with ES modules, strict mode, minimal MCP-server surface (thin forwarding shim), no new cryptographic primitives in this repository, no ninth MCP tool (protocol-invariant cap). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md#coding-conventions"
+  "coding_standards_justification": "CONTRIBUTING.md §Coding conventions documents the project's coding standards: TypeScript with ES modules, strict mode, minimal MCP-server surface (thin forwarding shim), no new cryptographic primitives in this repository, no ninth MCP tool (protocol-invariant cap). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md#coding-conventions",
+
+  "assurance_case_status": "Met",
+  "assurance_case_justification": "ASSURANCE_CASE.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/ASSURANCE_CASE.md presents a Claims-Arguments-Evidence (CAE) structured argument that the project's security claims hold under its documented threat model. Five top-level goals (G1 credential confidentiality, G2 availability under adversarial input, G3 distribution integrity, G4 cryptographic primitives publicly-validated and current, G5 process controls prevent unauthorized changes) each have arguments, evidence rows, and residual-risk acknowledgments. Counterarguments are considered and dismissed or scoped. An independent-reviewer verification checklist is appended.",
+
+  "regression_tests_added50_status": "Met",
+  "regression_tests_added50_justification": "CONTRIBUTING.md §Pull-request process step 4 mandates that every bug-fix PR must include a regression test that would have caught the bug (i.e., fails on the pre-fix code, passes on the post-fix code). PRs that fix a reported bug without a corresponding regression test are asked to add one before merge. Documentation-only and metadata-only fixes are exempt. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md#pull-request-process"
 }
