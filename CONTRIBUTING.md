@@ -44,23 +44,46 @@ implementation for the SAIHM (Sovereign AI Horizontal Memory) protocol.
 - Do not introduce a ninth MCP tool. The eight-tool cap is a protocol
   invariant.
 
-## Licensing
+## Licensing and DCO sign-off
 
 By submitting a contribution, you agree that your contribution is licensed
 under the same [Apache License 2.0](LICENSE) as the rest of the project, and
-that you have the right to grant that license. No CLA is required for typical
-contributions.
+that you have the right to grant that license.
 
-If your contribution is substantial and you would prefer a more formal
-Developer Certificate of Origin (DCO) or CLA process, please open an issue to
-discuss.
+This project uses the **Developer Certificate of Origin (DCO) 1.1**
+(<https://developercertificate.org/>) instead of a CLA. Every commit must
+include a `Signed-off-by:` trailer attesting to the DCO. You can add it
+automatically by passing `-s` to `git commit`:
+
+```bash
+git commit -s -m "Your commit message"
+```
+
+The trailer looks like:
+
+```
+Signed-off-by: Real Name <email@example.com>
+```
+
+Use your real name and an email you can be reached at. By signing off, you
+certify the four points of the DCO 1.1 (origin, license-compatibility, third
+party with permission, and acceptance that the contribution and your sign-off
+become a public record).
+
+PRs whose commits lack `Signed-off-by:` trailers will be asked to rebase
+with sign-off before merge. To retroactively sign off existing commits in a
+branch:
+
+```bash
+git rebase -i HEAD~N --exec "git commit --amend --no-edit -s"
+```
 
 ## Code of conduct
 
-Be civil. Be substantive. We follow the spirit of the
-[Contributor Covenant](https://www.contributor-covenant.org/) without adopting
-its full text. Behaviour that derails contribution or harasses participants
-will be addressed by maintainer action up to and including removal.
+This project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md).
+By participating in this project, you agree to abide by its terms. Reports of
+unacceptable behavior can be sent privately to `architect@saihm.coti.global`,
+as described in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## Questions
 

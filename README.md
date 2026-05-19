@@ -152,6 +152,50 @@ Trust model: this client trusts whatever endpoint the operator configures. Cell 
 
 For distribution integrity, the SAIHM publisher signs releases via npm sigstore provenance; verify with `npm view @saihm/mcp-server --json | jq .dist` and `npm audit signatures`.
 
+## Dependencies
+
+The published npm package has a minimal runtime surface:
+
+| Dependency | License | Role |
+|---|---|---|
+| Node.js (≥ 20.x) | MIT | Runtime |
+| `@modelcontextprotocol/sdk` | MIT | MCP SDK; binds the eight-tool surface |
+| TypeScript | Apache-2.0 | Build-time only |
+| `tsx` | MIT | TypeScript runner for tests + CLI |
+
+No copyleft, no proprietary dependencies. Cryptographic primitives at the
+operator-endpoint layer (ML-DSA-65 / HKDF / Ed25519) are not bundled into
+this MCP server; operators implementing the protocol stack are recommended
+to use `@noble/post-quantum` and `@noble/curves` (MIT) rather than rolling
+custom code.
+
+## Achievements
+
+- **OpenSSF Best Practices Passing badge** — project 12898, 100% Passing
+  criteria (2026-05-19). <https://www.bestpractices.dev/projects/12898>
+- **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-00`
+  accepted into pipeline (2026-05-18).
+  <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
+- **npm registry** — `@saihm/mcp-server@0.1.2` published (2026-05-16).
+- **MCP Registry / Glama** — server listed for discovery (2026-05-16).
+
+## Roadmap
+
+A 12-month roadmap is maintained in the project's
+[AAIF proposal](https://github.com/SAIHM-Admin/saihm-mcp/) and will be
+mirrored to <https://saihm.coti.global/roadmap> with the v0.2.x release.
+Near-term tracks:
+
+- **2026-Q2** — Operator-endpoint reference implementation; OpenSSF Silver
+  pursuit (governance, code-of-conduct, DCO, signed releases, coverage
+  tooling, assurance case).
+- **2026-Q3** — First 2–3 external organization deployments; formal AAIF
+  Project Proposal submission when adoption blockers clear.
+- **2026-Q4** — NIST AI RMF crosswalk public review; EU AI Act
+  compliance-checklist generator. OpenSSF Silver award (target).
+- **2027-Q1** — IETF RFC publication (subject to ISE workflow); v1.0
+  reference implementation.
+
 ## License
 
 Apache-2.0 — see [`LICENSE`](./LICENSE).
@@ -159,4 +203,10 @@ Apache-2.0 — see [`LICENSE`](./LICENSE).
 ## Project
 
 - Site: <https://saihm.coti.global>
-- Issue tracker: see homepage for current contact channel.
+- Issue tracker: <https://github.com/SAIHM-Admin/saihm-mcp/issues>
+- Security: see [`SECURITY.md`](./SECURITY.md) for private vulnerability
+  disclosure
+- Contributing: see [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
+  [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
+- Governance: see [`GOVERNANCE.md`](./GOVERNANCE.md)
+- Changelog: see [`CHANGELOG.md`](./CHANGELOG.md)
