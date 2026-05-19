@@ -126,6 +126,9 @@
   "tests_documented_added_status": "Met",
   "tests_documented_added_justification": "Test policy documented in CONTRIBUTING.md ('Pull-request process' section).",
 
+  "test_continuous_integration_status": "Met",
+  "test_continuous_integration_justification": "GitHub Actions workflow at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/.github/workflows/ci.yml runs `npm ci`, `npm run typecheck`, `npm run build`, and `npm test` on every push to main and every pull request, against Node 20.x and 22.x. Workflow runs visible at https://github.com/SAIHM-Admin/saihm-mcp/actions.",
+
   "warnings_status": "Met",
   "warnings_justification": "TypeScript strict mode (`strict: true` in tsconfig.json) reports type-correctness and null-safety warnings on every build.",
 
