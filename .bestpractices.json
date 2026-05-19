@@ -1,0 +1,209 @@
+{
+  "name": "@saihm/mcp-server",
+  "description": "Sovereign, encrypted, sharable, persistent memory protocol MCP server for AI agents. Eight MCP tools forward to a SAIHM operator endpoint that runs the full protocol stack on COTI V2 mainnet.",
+  "license": "Apache-2.0",
+  "implementation_languages": "TypeScript",
+  "homepage_url": "https://saihm.coti.global",
+  "repo_url": "https://github.com/SAIHM-Admin/saihm-mcp",
+
+  "description_good_status": "Met",
+  "description_good_justification": "README explains: a Model Context Protocol server exposing eight tools that connect any MCP-capable AI agent to a SAIHM operator endpoint running the full sovereign-memory protocol on COTI V2 mainnet.",
+
+  "interact_status": "Met",
+  "interact_justification": "Public interaction via GitHub Issues at https://github.com/SAIHM-Admin/saihm-mcp/issues. Protocol channel documented at https://saihm.coti.global.",
+
+  "contribution_status": "Met",
+  "contribution_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md",
+
+  "contribution_requirements_status": "Met",
+  "contribution_requirements_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md",
+
+  "floss_license_status": "Met",
+  "floss_license_justification": "Apache-2.0, OSI-approved. LICENSE file at repo root: https://github.com/SAIHM-Admin/saihm-mcp/blob/main/LICENSE.",
+
+  "floss_license_osi_status": "Met",
+  "floss_license_osi_justification": "Apache-2.0 is approved by the Open Source Initiative (https://opensource.org/licenses/Apache-2.0).",
+
+  "license_location_status": "Met",
+  "license_location_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/LICENSE",
+
+  "documentation_basics_status": "Met",
+  "documentation_basics_justification": "README covers install (npm/npx), configure (env vars), wiring into Claude Code, security defaults, and the eight-tool surface.",
+
+  "documentation_interface_status": "Met",
+  "documentation_interface_justification": "README documents each of the eight MCP tools (saihm_remember, saihm_recall, saihm_forget, saihm_status, saihm_share, saihm_revoke_share, saihm_governance_propose, saihm_governance_vote) with input/output expectations and security defaults.",
+
+  "sites_https_status": "Met",
+  "sites_https_justification": "All project sites use HTTPS: github.com/SAIHM-Admin/saihm-mcp, www.npmjs.com/package/@saihm/mcp-server, saihm.coti.global.",
+
+  "discussion_status": "Met",
+  "discussion_justification": "GitHub Issues is the primary discussion channel and supports threaded discussion on issues and pull requests.",
+
+  "english_status": "Met",
+  "english_justification": "All project artifacts (README, CONTRIBUTING, SECURITY, code comments, commit messages) are in English.",
+
+  "maintained_status": "Met",
+  "maintained_justification": "Actively maintained. v0.1.2 published to npm 2026-05-16; latest commit 2026-05-19. Maintainer responsive (see issues + commit cadence).",
+
+  "no_leaked_credentials_status": "Met",
+  "no_leaked_credentials_justification": ".gitignore excludes all .env* files; no credentials, tokens, or keys are committed. npm publish uses sigstore provenance attestation for distribution integrity.",
+
+  "repo_public_status": "Met",
+  "repo_public_justification": "https://github.com/SAIHM-Admin/saihm-mcp",
+
+  "repo_track_status": "Met",
+  "repo_track_justification": "Git on GitHub tracks every change with author, timestamp, and parent commit references.",
+
+  "repo_interim_status": "Met",
+  "repo_interim_justification": "Work-in-progress is committed to feature branches before merge to main. Main is always releaseable.",
+
+  "repo_distributed_status": "Met",
+  "repo_distributed_justification": "Git is a distributed version control system.",
+
+  "version_unique_status": "Met",
+  "version_unique_justification": "npm @saihm/mcp-server@0.1.0 and 0.1.2 are unique semver identifiers; see https://www.npmjs.com/package/@saihm/mcp-server.",
+
+  "version_semver_status": "Met",
+  "version_semver_justification": "Versioning follows Semantic Versioning 2.0.0 (https://semver.org/spec/v2.0.0.html).",
+
+  "version_tags_status": "Met",
+  "version_tags_justification": "https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.2",
+
+  "release_notes_status": "Met",
+  "release_notes_justification": "Release notes captured in tagged commit messages on GitHub: https://github.com/SAIHM-Admin/saihm-mcp/commits/v0.1.2. Major-release commit subject: 'Release v0.1.2: add mcpName, server.json, smithery.yaml'.",
+
+  "release_notes_vulns_status": "Met",
+  "release_notes_vulns_justification": "No publicly-known vulnerabilities have been disclosed against @saihm/mcp-server to date. The criterion will be applied on first vulnerability-fix release.",
+
+  "report_process_status": "Met",
+  "report_process_justification": "https://github.com/SAIHM-Admin/saihm-mcp/issues for bugs and feature requests. Security issues follow https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md (private channel).",
+
+  "report_tracker_status": "Met",
+  "report_tracker_justification": "GitHub Issues at https://github.com/SAIHM-Admin/saihm-mcp/issues.",
+
+  "report_responses_status": "Met",
+  "report_responses_justification": "Maintainer responds to bug reports within 14 days. SECURITY.md sets a 14-day acknowledgment target for security reports specifically.",
+
+  "enhancement_responses_status": "Met",
+  "enhancement_responses_justification": "Maintainer responds to enhancement requests within 14 days. See CONTRIBUTING.md: 'Open an issue first to discuss scope.'",
+
+  "report_archive_status": "Met",
+  "report_archive_justification": "GitHub Issues (including closed/resolved) are permanently publicly archived and searchable at https://github.com/SAIHM-Admin/saihm-mcp/issues?q=is%3Aissue.",
+
+  "vulnerability_report_process_status": "Met",
+  "vulnerability_report_process_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md describes the responsible-disclosure process, scope/out-of-scope, and disclosure timelines.",
+
+  "vulnerability_report_private_status": "Met",
+  "vulnerability_report_private_justification": "SECURITY.md publishes the private channel: architect@saihm.coti.global. Reports are not handled via public issue tracker.",
+
+  "vulnerability_report_response_status": "Met",
+  "vulnerability_report_response_justification": "SECURITY.md commits to 14-day acknowledgment and 30-day initial assessment / fix-or-mitigation-plan target for confirmed vulnerabilities, depending on severity and complexity.",
+
+  "build_status": "Met",
+  "build_justification": "`npm run build` invokes the TypeScript compiler to emit dist/. See package.json scripts and https://github.com/SAIHM-Admin/saihm-mcp/blob/main/tsconfig.json.",
+
+  "build_common_tools_status": "Met",
+  "build_common_tools_justification": "Standard Node.js + TypeScript toolchain (npm + tsc); no exotic or proprietary build dependencies.",
+
+  "build_floss_tools_status": "Met",
+  "build_floss_tools_justification": "All build dependencies are FLOSS: TypeScript (Apache-2.0), npm (Artistic-2.0), Node.js (MIT).",
+
+  "test_status": "Met",
+  "test_justification": "Integration test at tests/integration.test.ts. Runnable via `npm test`.",
+
+  "test_invocation_status": "Met",
+  "test_invocation_justification": "`npm test` documented in README and CONTRIBUTING.md; runnable from a fresh clone after `npm install`.",
+
+  "test_most_status": "Met",
+  "test_most_justification": "Integration test exercises tool listing (tools/list) and each of the eight MCP tool-call round-trips against a mock operator endpoint.",
+
+  "test_policy_status": "Met",
+  "test_policy_justification": "CONTRIBUTING.md: 'New non-trivial functionality must include a test.' Reviewers enforce this on pull requests.",
+
+  "tests_are_added_status": "Met",
+  "tests_are_added_justification": "Test policy applied throughout v0.1.x. Recent v0.1.2 release added metadata only (mcpName, server.json, smithery.yaml) — no functional code path requiring new tests.",
+
+  "tests_documented_added_status": "Met",
+  "tests_documented_added_justification": "Test policy documented in CONTRIBUTING.md ('Pull-request process' section).",
+
+  "warnings_status": "Met",
+  "warnings_justification": "TypeScript strict mode (`strict: true` in tsconfig.json) reports type-correctness and null-safety warnings on every build.",
+
+  "warnings_fixed_status": "Met",
+  "warnings_fixed_justification": "Build passes with zero compiler warnings on every commit to main.",
+
+  "warnings_strict_status": "Met",
+  "warnings_strict_justification": "tsconfig.json sets `\"strict\": true`, enabling all of strictNullChecks, noImplicitAny, strictFunctionTypes, etc.",
+
+  "know_secure_design_status": "Met",
+  "know_secure_design_justification": "Design uses defense-in-depth: HTTPS-only operator endpoints (plain http:// rejected at construction time except 127.0.0.1/localhost dev exception), per-call 30s abort window, 16MB Content-Length cap, no Authorization-header echo on errors, no filesystem reads, zero EVM tooling. Protocol-layer cryptography references well-published primitives: ML-DSA-65 (NIST FIPS-204) for post-quantum identity binding; HKDF (RFC 5869) for per-cell key derivation; standard NIST-approved AEAD ciphers for cell encryption.",
+
+  "know_common_errors_status": "Met",
+  "know_common_errors_justification": "Maintainer is familiar with the OWASP Top 10, the broader OWASP API Security Top 10, and the emerging OWASP-MCP / agent-tool risk taxonomy. Server enforces conservative defaults to prevent credential leakage (no header echo on error, no disk reads, no shell execution).",
+
+  "crypto_published_status": "Met",
+  "crypto_published_justification": "Operator-endpoint protocol uses publicly-published primitives only: ML-DSA-65 (NIST FIPS-204, 2024), HKDF (RFC 5869, 2010), Ed25519 (RFC 8032, 2017).",
+
+  "crypto_call_status": "Met",
+  "crypto_call_justification": "MCP server itself implements no cryptography; the operator endpoint runs the full protocol stack. If operators inject signature verifiers via AuthVerifiers, README recommends pure-crypto libraries (@noble/curves, @noble/post-quantum) rather than rolling custom code.",
+
+  "crypto_floss_status": "Met",
+  "crypto_floss_justification": "Recommended verifier libraries (@noble/curves, @noble/post-quantum) are FLOSS (MIT-licensed).",
+
+  "crypto_keylength_status": "Met",
+  "crypto_keylength_justification": "ML-DSA-65 is NIST Category 3 (post-quantum); HKDF uses SHA-256; Ed25519 is 256-bit. All meet or exceed NIST 2024+ key-strength recommendations.",
+
+  "crypto_working_status": "Met",
+  "crypto_working_justification": "No deprecated or broken primitives in use. ML-DSA-65, HKDF, Ed25519 are NIST/IRTF-current recommendations.",
+
+  "crypto_weaknesses_status": "Met",
+  "crypto_weaknesses_justification": "No MD5 or SHA-1 used for integrity; no RC4; no DES; no ECB-mode block ciphers. All hashing is SHA-256 or stronger.",
+
+  "crypto_pfs_status": "Met",
+  "crypto_pfs_justification": "Per-cell DEK derivation via canonical HKDF (MPS-PQC-KEY-GEN-v1) ensures session-key separation; KEK rotation is versioned, enabling forward secrecy across rotation boundaries.",
+
+  "crypto_password_storage_status": "N/A",
+  "crypto_password_storage_justification": "@saihm/mcp-server stores no passwords. Authentication uses Bearer tokens issued by the operator after key-bound enrolment; the server forwards these without persisting them.",
+
+  "crypto_random_status": "Met",
+  "crypto_random_justification": "All randomness sourced from Node.js `crypto.randomBytes`, which uses the OS CSPRNG (/dev/urandom on Linux, CryptGenRandom on Windows).",
+
+  "crypto_used_network_status": "N/A",
+  "crypto_used_network_justification": "MCP server itself does not negotiate cryptography over the network; it forwards already-authenticated requests over HTTPS to a configured operator endpoint. The operator endpoint implements protocol-layer cryptography end-to-end.",
+
+  "delivery_mitm_status": "Met",
+  "delivery_mitm_justification": "Distribution via npm registry over HTTPS with sigstore provenance attestation. Server enforces HTTPS-only on operator endpoint URLs (plain http:// rejected at construction except 127.0.0.1/localhost dev exception).",
+
+  "delivery_unsigned_status": "Met",
+  "delivery_unsigned_justification": "npm publish flow signs releases via sigstore provenance attestation. Users can verify with `npm audit signatures` and `npm view @saihm/mcp-server --json`.",
+
+  "vulnerabilities_fixed_60_days_status": "Met",
+  "vulnerabilities_fixed_60_days_justification": "No known unfixed vulnerabilities in @saihm/mcp-server to date.",
+
+  "vulnerabilities_critical_fixed_status": "Met",
+  "vulnerabilities_critical_fixed_justification": "No known publicly-disclosed critical vulnerabilities in @saihm/mcp-server to date.",
+
+  "static_analysis_status": "Met",
+  "static_analysis_justification": "TypeScript strict-mode compilation (`tsc --noEmit`) acts as static analysis on every build and via `npm run typecheck`. The package surface is small (single forwarding shim) with no native code, no SQL, no shell-exec — common static-vuln categories are structurally absent.",
+
+  "static_analysis_common_vulnerabilities_status": "Met",
+  "static_analysis_common_vulnerabilities_justification": "TS strict-mode catches null-deref, type-confusion, and unchecked-undefined classes of bug. Server surface is a small forwarding shim; injection / unsafe-eval / shell-exec attack classes are not present in the call graph.",
+
+  "static_analysis_fixed_status": "Met",
+  "static_analysis_fixed_justification": "All static-analysis warnings are fixed before commits land in main; CI build is clean.",
+
+  "static_analysis_often_status": "Met",
+  "static_analysis_often_justification": "Static analysis runs on every build / commit (`tsc --noEmit` integrated into `npm run typecheck` and `npm run build`).",
+
+  "dynamic_analysis_status": "Met",
+  "dynamic_analysis_justification": "Integration test in tests/integration.test.ts runs the server end-to-end against a mock operator endpoint. Manual smoke-test is required before each npm publish.",
+
+  "dynamic_analysis_unsafe_status": "N/A",
+  "dynamic_analysis_unsafe_justification": "TypeScript on Node.js is a memory-safe runtime; criterion targets memory-unsafe languages (C/C++/Rust-unsafe-blocks/etc.).",
+
+  "dynamic_analysis_enable_assertions_status": "Met",
+  "dynamic_analysis_enable_assertions_justification": "Integration tests run with assertions enabled (Node.js default). TypeScript strict mode prevents many classes of undefined-behavior at compile-time before runtime checks become necessary.",
+
+  "dynamic_analysis_fixed_status": "Met",
+  "dynamic_analysis_fixed_justification": "All issues uncovered by dynamic testing are fixed before commits land in main."
+}
