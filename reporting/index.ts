@@ -145,7 +145,7 @@ export type {
 // Bespoke template registration (operator-self-serve)
 // ============================================================================
 
-import { sha256 } from '@noble/hashes/sha256';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { validateBespokeTemplate as _validate } from './template_schema.js';
 import { buildTemplateRegistered as _builtRegistered, emitReceipt as _emit } from './receipt.js';
 import type { ReportingRuntime as _RT } from './receipt.js';

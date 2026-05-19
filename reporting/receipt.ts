@@ -14,7 +14,7 @@
  * the framework-smoke kind, for audit-trail clarity.
  */
 
-import { sha256 } from '@noble/hashes/sha256';
+import { sha256 } from '@noble/hashes/sha2.js';
 import {
   HKDF_INDEX_REPORT_RECEIPT,
   HKDF_DOMAIN_REPORT_RECEIPT,
