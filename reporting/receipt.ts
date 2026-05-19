@@ -14,7 +14,7 @@
  * the framework-smoke kind, for audit-trail clarity.
  */
 
-import { sha256 } from "@noble/hashes/sha256";
+import { sha256 } from '@noble/hashes/sha256';
 import {
   HKDF_INDEX_REPORT_RECEIPT,
   HKDF_DOMAIN_REPORT_RECEIPT,
@@ -23,7 +23,7 @@ import {
   type ReportKind,
   type ComplianceFramework,
   type ReportFormat,
-} from "./types.js";
+} from './types.js';
 
 // ============================================================================
 // Re-export receipt-domain constants (single source of truth = types.ts)
@@ -35,7 +35,7 @@ export { HKDF_INDEX_REPORT_RECEIPT, HKDF_DOMAIN_REPORT_RECEIPT };
 // Originator (audit-trail clarity)
 // ============================================================================
 
-export type ReceiptOriginator = "operator-bespoke" | "website-standard" | "framework-smoke";
+export type ReceiptOriginator = 'operator-bespoke' | 'website-standard' | 'framework-smoke';
 
 // ============================================================================
 // Audit-ledger payload envelope
@@ -69,7 +69,7 @@ export interface ReportingRuntime {
 
 export function computeOutputSha256(output: Uint8Array): string {
   const digest = sha256(output);
-  return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function nowIsoZ(): string {
@@ -91,7 +91,7 @@ export function buildReportGenerated(args: {
   authChainSummary: string;
 }): ReportReceipt {
   return {
-    subKind: "report_generated",
+    subKind: 'report_generated',
     kind: args.kind,
     framework: args.framework,
     templateHash: args.templateHash,
@@ -111,7 +111,7 @@ export function buildReportRejected(args: {
   requesterIdHash: string;
 }): ReportReceipt {
   return {
-    subKind: "report_rejected",
+    subKind: 'report_rejected',
     kind: args.kind,
     scope: args.scope,
     reason: args.reason,
@@ -126,7 +126,7 @@ export function buildTemplateRegistered(args: {
   schemaVersion: number;
 }): ReportReceipt {
   return {
-    subKind: "template_registered",
+    subKind: 'template_registered',
     templateHash: args.templateHash,
     operatorIdHash: args.operatorIdHash,
     schemaVersion: args.schemaVersion,
@@ -140,7 +140,7 @@ export function buildTemplateSuperseded(args: {
   operatorIdHash: string;
 }): ReportReceipt {
   return {
-    subKind: "template_superseded",
+    subKind: 'template_superseded',
     oldTemplateHash: args.oldTemplateHash,
     newTemplateHash: args.newTemplateHash,
     operatorIdHash: args.operatorIdHash,
@@ -150,11 +150,11 @@ export function buildTemplateSuperseded(args: {
 
 export function buildErasureChainBroken(args: {
   cellIds: ReadonlyArray<string>;
-  failingStep: "gc3" | "gc4" | "gc5" | "post-forget-recall";
+  failingStep: 'gc3' | 'gc4' | 'gc5' | 'post-forget-recall';
   customerIdHash: string;
 }): ReportReceipt {
   return {
-    subKind: "erasure_chain_broken",
+    subKind: 'erasure_chain_broken',
     cellIds: args.cellIds,
     failingStep: args.failingStep,
     customerIdHash: args.customerIdHash,
@@ -168,7 +168,7 @@ export function buildRateLimitExceeded(args: {
   currentRate: number;
 }): ReportReceipt {
   return {
-    subKind: "rate_limit_exceeded",
+    subKind: 'rate_limit_exceeded',
     requesterIdHash: args.requesterIdHash,
     capLimit: args.capLimit,
     currentRate: args.currentRate,

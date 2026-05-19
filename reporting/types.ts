@@ -12,34 +12,34 @@
 // ============================================================================
 
 export type ReportKind =
-  | "compliance-attestation"
-  | "audit-export"
-  | "erasure-confirmation"
-  | "billing-history"
-  | "bespoke"
-  | "registry-attestation";
+  | 'compliance-attestation'
+  | 'audit-export'
+  | 'erasure-confirmation'
+  | 'billing-history'
+  | 'bespoke'
+  | 'registry-attestation';
 
 export type ComplianceFramework =
-  | "gdpr-art-15"
-  | "gdpr-art-17"
-  | "soc2-t1"
-  | "soc2-t2"
-  | "iso27001"
-  | "aml";
+  | 'gdpr-art-15'
+  | 'gdpr-art-17'
+  | 'soc2-t1'
+  | 'soc2-t2'
+  | 'iso27001'
+  | 'aml';
 
-export type ReportFormat = "pdfa3" | "json" | "csv";
+export type ReportFormat = 'pdfa3' | 'json' | 'csv';
 
 // ============================================================================
 // Authorization paths
 // ============================================================================
 
 export interface AuthPublic {
-  path: "public";
+  path: 'public';
 }
 
 export interface AuthSelf {
-  path: "self";
-  surface: "web" | "mcp";
+  path: 'self';
+  surface: 'web' | 'mcp';
   walletIdHash?: string;
   agentIdHash?: string;
   signature: string;
@@ -48,26 +48,26 @@ export interface AuthSelf {
 }
 
 export interface AuthOperatorSelf {
-  path: "operator-self";
+  path: 'operator-self';
   operatorIdHash: string;
   mldsaSignature: string;
   challenge: string;
 }
 
 export interface AuthOperatorForDownstream {
-  path: "operator-for-downstream";
+  path: 'operator-for-downstream';
   operatorIdHash: string;
   operatorMldsaSignature: string;
   downstream:
     | {
-        type: "customer-grant";
+        type: 'customer-grant';
         customerIdHash: string;
         scope: string;
         expiresAt: string;
         customerSignature: string;
       }
     | {
-        type: "legal-basis";
+        type: 'legal-basis';
         subpoenaHash: string;
         jurisdiction: string;
         publicRecordUrl: string;
@@ -84,13 +84,16 @@ export type AuthorizationPayload =
 // Kind-vs-auth coupling
 // ============================================================================
 
-export const KIND_AUTH_REQUIREMENTS: Record<ReportKind, ReadonlyArray<AuthorizationPayload["path"]>> = {
-  "compliance-attestation": ["self", "operator-self", "operator-for-downstream"],
-  "audit-export": ["self", "operator-self"],
-  "erasure-confirmation": ["self", "operator-for-downstream"],
-  "billing-history": ["self", "operator-self"],
-  "bespoke": ["operator-self", "operator-for-downstream"],
-  "registry-attestation": ["public"],
+export const KIND_AUTH_REQUIREMENTS: Record<
+  ReportKind,
+  ReadonlyArray<AuthorizationPayload['path']>
+> = {
+  'compliance-attestation': ['self', 'operator-self', 'operator-for-downstream'],
+  'audit-export': ['self', 'operator-self'],
+  'erasure-confirmation': ['self', 'operator-for-downstream'],
+  'billing-history': ['self', 'operator-self'],
+  bespoke: ['operator-self', 'operator-for-downstream'],
+  'registry-attestation': ['public'],
 } as const;
 
 // ============================================================================
@@ -114,7 +117,7 @@ export interface BespokeReportTemplate {
   templateVersion: number;
   operatorIdHash: string;
   scope: ReportScope;
-  framework: ComplianceFramework | "audit-export" | "billing-history" | "registry-attestation";
+  framework: ComplianceFramework | 'audit-export' | 'billing-history' | 'registry-attestation';
   fieldProjections: ReadonlyArray<string>;
   filters?: Record<string, unknown>;
   format: ReportFormat;
@@ -125,7 +128,7 @@ export interface BespokeReportTemplate {
 // ============================================================================
 
 export interface ReportRequestBespoke {
-  kind: "bespoke";
+  kind: 'bespoke';
   templateHash: string;
   scope: ReportScope;
   format: ReportFormat;
@@ -133,7 +136,7 @@ export interface ReportRequestBespoke {
 }
 
 export interface ReportRequestRegistryAttestation {
-  kind: "registry-attestation";
+  kind: 'registry-attestation';
   target: { agentIdHash?: string; cellId?: string };
   format: ReportFormat;
   auth: AuthPublic;
@@ -146,22 +149,22 @@ export type ReportRequest = ReportRequestBespoke | ReportRequestRegistryAttestat
 // ============================================================================
 
 export type ReceiptSubKind =
-  | "report_generated"
-  | "report_rejected"
-  | "template_registered"
-  | "template_superseded"
-  | "erasure_chain_broken"
-  | "rate_limit_exceeded";
+  | 'report_generated'
+  | 'report_rejected'
+  | 'template_registered'
+  | 'template_superseded'
+  | 'erasure_chain_broken'
+  | 'rate_limit_exceeded';
 
 export const HKDF_INDEX_REPORT_RECEIPT = 166 as const;
-export const HKDF_DOMAIN_REPORT_RECEIPT = "MPS-REPORT-RECEIPT-v1" as const;
+export const HKDF_DOMAIN_REPORT_RECEIPT = 'MPS-REPORT-RECEIPT-v1' as const;
 
 // ============================================================================
 // Receipt payloads
 // ============================================================================
 
 export interface ReceiptReportGenerated {
-  subKind: "report_generated";
+  subKind: 'report_generated';
   kind: ReportKind;
   framework?: ComplianceFramework;
   templateHash?: string;
@@ -174,7 +177,7 @@ export interface ReceiptReportGenerated {
 }
 
 export interface ReceiptReportRejected {
-  subKind: "report_rejected";
+  subKind: 'report_rejected';
   kind: ReportKind;
   scope?: ReportScope;
   reason: string;
@@ -183,7 +186,7 @@ export interface ReceiptReportRejected {
 }
 
 export interface ReceiptTemplateRegistered {
-  subKind: "template_registered";
+  subKind: 'template_registered';
   templateHash: string;
   operatorIdHash: string;
   schemaVersion: number;
@@ -191,7 +194,7 @@ export interface ReceiptTemplateRegistered {
 }
 
 export interface ReceiptTemplateSuperseded {
-  subKind: "template_superseded";
+  subKind: 'template_superseded';
   oldTemplateHash: string;
   newTemplateHash: string;
   operatorIdHash: string;
@@ -199,15 +202,15 @@ export interface ReceiptTemplateSuperseded {
 }
 
 export interface ReceiptErasureChainBroken {
-  subKind: "erasure_chain_broken";
+  subKind: 'erasure_chain_broken';
   cellIds: ReadonlyArray<string>;
-  failingStep: "gc3" | "gc4" | "gc5" | "post-forget-recall";
+  failingStep: 'gc3' | 'gc4' | 'gc5' | 'post-forget-recall';
   customerIdHash: string;
   brokenAt: string;
 }
 
 export interface ReceiptRateLimitExceeded {
-  subKind: "rate_limit_exceeded";
+  subKind: 'rate_limit_exceeded';
   requesterIdHash: string;
   capLimit: number;
   currentRate: number;

@@ -20,12 +20,28 @@
     "saihm-mcp-server": "dist/saihm_mcp_server.js"
   },
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist coverage",
     "build": "npm run clean && tsc -p . && chmod +x dist/saihm_mcp_server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx tests/integration.test.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "c8 tsx tests/integration.test.ts",
+    "test:nocov": "tsx tests/integration.test.ts",
     "start": "node dist/saihm_mcp_server.js",
     "prepublishOnly": "npm run build && npm test"
+  },
+  "c8": {
+    "reporter": ["text", "lcov", "html"],
+    "include": ["**/*.ts"],
+    "exclude": ["tests/**", "dist/**", "node_modules/**", "coverage/**", "eslint.config.js"],
+    "all": true,
+    "check-coverage": true,
+    "statements": 80,
+    "branches": 65,
+    "lines": 80,
+    "functions": 80
   },
   "files": [
     "dist",
@@ -63,7 +79,11 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "c8": "^11.0.0",
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.59.4"
   }
 }

@@ -21,20 +21,24 @@
  *   MAX_RESPONSE_BYTES  reject responses whose Content-Length exceeds 16 MB
  */
 
-import { SharingContractType, type SharingContractScope } from "./types.js";
+import { SharingContractType, type SharingContractScope } from './types.js';
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 
 function assertEndpointUrl(endpoint: string): void {
   let url: URL;
-  try { url = new URL(endpoint); }
-  catch { throw new Error(`SAIHM_ENDPOINT_URL is not a valid URL: ${endpoint}`); }
-  if (url.protocol === "https:") return;
-  if (url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost")) return;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    throw new Error(`SAIHM_ENDPOINT_URL is not a valid URL: ${endpoint}`);
+  }
+  if (url.protocol === 'https:') return;
+  if (url.protocol === 'http:' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost'))
+    return;
   throw new Error(
     `SAIHM_ENDPOINT_URL must use https:// (got ${url.protocol}//). ` +
-    `Plain http:// is only allowed for 127.0.0.1 or localhost (dev).`,
+      `Plain http:// is only allowed for 127.0.0.1 or localhost (dev).`,
   );
 }
 
@@ -121,7 +125,7 @@ export class SaihmRuntimeClient {
   static bootFromEnv(): SaihmRuntimeClient {
     const endpoint = process.env.SAIHM_ENDPOINT_URL;
     const auth = process.env.SAIHM_AUTH_HEADER;
-    if (!endpoint) throw new Error("SAIHM_ENDPOINT_URL env var required");
+    if (!endpoint) throw new Error('SAIHM_ENDPOINT_URL env var required');
     if (!auth) throw new Error("SAIHM_AUTH_HEADER env var required (per operator's auth scheme)");
     return new SaihmRuntimeClient(endpoint, auth);
   }
@@ -131,9 +135,9 @@ export class SaihmRuntimeClient {
     const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
     try {
       const res = await fetch(this.endpoint, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "content-type": "application/json",
+          'content-type': 'application/json',
           authorization: this.authHeader,
         },
         body: JSON.stringify({ method, params }),
@@ -142,9 +146,11 @@ export class SaihmRuntimeClient {
       if (!res.ok) {
         throw new Error(`SAIHM endpoint ${method} failed: ${res.status} ${res.statusText}`);
       }
-      const cl = Number(res.headers.get("content-length") ?? "0");
+      const cl = Number(res.headers.get('content-length') ?? '0');
       if (cl > MAX_RESPONSE_BYTES) {
-        throw new Error(`SAIHM endpoint ${method} response too large: ${cl}B (max ${MAX_RESPONSE_BYTES}B)`);
+        throw new Error(
+          `SAIHM endpoint ${method} response too large: ${cl}B (max ${MAX_RESPONSE_BYTES}B)`,
+        );
       }
       return (await res.json()) as T;
     } finally {
@@ -153,19 +159,19 @@ export class SaihmRuntimeClient {
   }
 
   remember(content: string): Promise<RememberResult> {
-    return this.call("saihm_remember", { content });
+    return this.call('saihm_remember', { content });
   }
 
   recall(query?: string): Promise<RecalledCell[]> {
-    return this.call("saihm_recall", { query });
+    return this.call('saihm_recall', { query });
   }
 
   forget(id: string): Promise<ForgetResult> {
-    return this.call("saihm_forget", { id });
+    return this.call('saihm_forget', { id });
   }
 
   status(): Promise<StatusSnapshot> {
-    return this.call("saihm_status", {});
+    return this.call('saihm_status', {});
   }
 
   share(
@@ -175,8 +181,8 @@ export class SaihmRuntimeClient {
     scope: SharingContractScope,
     expiryEpoch: bigint | null,
   ): Promise<ShareResult> {
-    const granteeIdHashesHex = granteeIdHashes.map((g) => Buffer.from(g).toString("hex"));
-    return this.call("saihm_share", {
+    const granteeIdHashesHex = granteeIdHashes.map((g) => Buffer.from(g).toString('hex'));
+    return this.call('saihm_share', {
       granteeIdHashesHex,
       shardIds,
       type,
@@ -186,18 +192,18 @@ export class SaihmRuntimeClient {
   }
 
   revokeShare(contractId: string): Promise<RevokeShareResult> {
-    return this.call("saihm_revoke_share", { contractId });
+    return this.call('saihm_revoke_share', { contractId });
   }
 
   governancePropose(args: {
-    scope: "emission_param" | "protocol_upgrade";
+    scope: 'emission_param' | 'protocol_upgrade';
     paramKey: string | null;
     proposedValue: string | null;
   }): Promise<GovernanceProposeResult> {
-    return this.call("saihm_governance_propose", args);
+    return this.call('saihm_governance_propose', args);
   }
 
   governanceVote(args: { proposalId: string; approve: boolean }): Promise<GovernanceVoteResult> {
-    return this.call("saihm_governance_vote", args);
+    return this.call('saihm_governance_vote', args);
   }
 }

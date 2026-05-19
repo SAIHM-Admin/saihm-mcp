@@ -12,23 +12,20 @@
  * `pdfa3` format pending the PDF/A-3 pipeline integration.
  */
 
-import {
-  validateAuthForKind,
-  type AuthVerifiers,
-} from "../auth.js";
+import { validateAuthForKind, type AuthVerifiers } from '../auth.js';
 import {
   buildReportGenerated,
   buildReportRejected,
   emitReceipt,
   type ReportingRuntime,
-} from "../receipt.js";
-import { isFieldInUniverse } from "../field_universe.js";
+} from '../receipt.js';
+import { isFieldInUniverse } from '../field_universe.js';
 import type {
   AuthPublic,
   GenerateReportResult,
   ReportFormat,
   ReportRequestRegistryAttestation,
-} from "../types.js";
+} from '../types.js';
 
 // ============================================================================
 // Public-record projection (curated whitelist)
@@ -62,7 +59,7 @@ export class StubPublicRegistry implements PublicRegistry {
   }
 
   async resolve(target: RegistryAttestationTarget): Promise<RegistryRecord | null> {
-    const key = target.agentIdHash ?? target.cellId ?? "";
+    const key = target.agentIdHash ?? target.cellId ?? '';
     return this.records.get(key) ?? null;
   }
 }
@@ -84,14 +81,12 @@ function renderOutput(record: RegistryRecord, format: ReportFormat): Uint8Array 
     }
   }
   const body = JSON.stringify(projection, null, 2);
-  if (format === "json") {
+  if (format === 'json') {
     return new TextEncoder().encode(body);
   }
-  if (format === "csv") {
-    const rows = Object.entries(projection).map(
-      ([k, v]) => `${k},${JSON.stringify(v)}`,
-    );
-    return new TextEncoder().encode(rows.join("\n"));
+  if (format === 'csv') {
+    const rows = Object.entries(projection).map(([k, v]) => `${k},${JSON.stringify(v)}`);
+    return new TextEncoder().encode(rows.join('\n'));
   }
   const placeholder = `%PDF-A3 PLACEHOLDER (real PDF/A-3 pending)\n${body}\n%%EOF\n`;
   return new TextEncoder().encode(placeholder);
@@ -111,58 +106,58 @@ export async function generateRegistryAttestation(
   request: ReportRequestRegistryAttestation,
   deps: GenerateRegistryAttestationDeps,
 ): Promise<GenerateReportResult> {
-  const auth = await validateAuthForKind("registry-attestation", request.auth, deps.verifiers);
+  const auth = await validateAuthForKind('registry-attestation', request.auth, deps.verifiers);
   if (!auth.ok) {
     const rejected = buildReportRejected({
-      kind: "registry-attestation",
+      kind: 'registry-attestation',
       reason: auth.reason,
-      requesterIdHash: "0".repeat(64),
+      requesterIdHash: '0'.repeat(64),
     });
-    await emitReceipt(rejected, "framework-smoke", deps.runtime);
+    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
     throw new Error(`registry-attestation: auth rejected: ${auth.reason}`);
   }
 
   if (!request.target.agentIdHash && !request.target.cellId) {
     const rejected = buildReportRejected({
-      kind: "registry-attestation",
-      reason: "target must include agentIdHash or cellId",
-      requesterIdHash: "0".repeat(64),
+      kind: 'registry-attestation',
+      reason: 'target must include agentIdHash or cellId',
+      requesterIdHash: '0'.repeat(64),
     });
-    await emitReceipt(rejected, "framework-smoke", deps.runtime);
-    throw new Error("registry-attestation: invalid target");
+    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
+    throw new Error('registry-attestation: invalid target');
   }
 
   const record = await deps.registry.resolve(request.target);
   if (!record) {
     const rejected = buildReportRejected({
-      kind: "registry-attestation",
-      reason: "target not found in public registry",
-      requesterIdHash: "0".repeat(64),
+      kind: 'registry-attestation',
+      reason: 'target not found in public registry',
+      requesterIdHash: '0'.repeat(64),
     });
-    await emitReceipt(rejected, "framework-smoke", deps.runtime);
-    throw new Error("registry-attestation: target not found");
+    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
+    throw new Error('registry-attestation: target not found');
   }
 
   const output = renderOutput(record, request.format);
 
   const generatedReceipt = buildReportGenerated({
-    kind: "registry-attestation",
+    kind: 'registry-attestation',
     scope: {
       customerIdHashes: [request.target.agentIdHash ?? request.target.cellId!],
       timeRange: { from: record.registrationTimestamp, to: new Date().toISOString() },
     },
     format: request.format,
     output,
-    requesterIdHash: "0".repeat(64),
+    requesterIdHash: '0'.repeat(64),
     authChainSummary: auth.chainSummary,
   });
 
-  const emit = await emitReceipt(generatedReceipt, "framework-smoke", deps.runtime);
+  const emit = await emitReceipt(generatedReceipt, 'framework-smoke', deps.runtime);
 
   return {
     output,
     outputSha256:
-      generatedReceipt.subKind === "report_generated" ? generatedReceipt.outputSha256 : "",
+      generatedReceipt.subKind === 'report_generated' ? generatedReceipt.outputSha256 : '',
     receipt: generatedReceipt,
     format: request.format,
     auditCellId: emit.cellId,

@@ -4,9 +4,9 @@
  */
 
 export enum SharingContractType {
-  TEMPORARY = "temporary",
-  PERMANENT = "permanent",
-  SYNDICATE = "syndicate",
+  TEMPORARY = 'temporary',
+  PERMANENT = 'permanent',
+  SYNDICATE = 'syndicate',
 }
 
-export type SharingContractScope = "read" | "write" | "readwrite";
+export type SharingContractScope = 'read' | 'write' | 'readwrite';

@@ -8,12 +8,9 @@
  * bespoke templates.
  */
 
-import { z } from "zod";
-import {
-  FIELD_UNIVERSE_SET,
-  isFieldInUniverse,
-} from "./field_universe.js";
-import type { ValidationResult } from "./types.js";
+import { z } from 'zod';
+import { FIELD_UNIVERSE_SET, isFieldInUniverse } from './field_universe.js';
+import type { ValidationResult } from './types.js';
 
 // ============================================================================
 // Caps
@@ -31,9 +28,7 @@ const HEX_64 = /^[a-f0-9]{64}$/;
 const TEMPLATE_ID = /^[a-zA-Z0-9_-]{1,64}$/;
 
 const ScopeSchema = z.object({
-  customerIdHashes: z.array(z.string().regex(HEX_64))
-    .min(1)
-    .max(MAX_CUSTOMER_IDS_PER_SCOPE),
+  customerIdHashes: z.array(z.string().regex(HEX_64)).min(1).max(MAX_CUSTOMER_IDS_PER_SCOPE),
   timeRange: z.object({
     from: z.string().datetime({ offset: true }),
     to: z.string().datetime({ offset: true }),
@@ -41,18 +36,18 @@ const ScopeSchema = z.object({
 });
 
 const FrameworkSchema = z.enum([
-  "gdpr-art-15",
-  "gdpr-art-17",
-  "soc2-t1",
-  "soc2-t2",
-  "iso27001",
-  "aml",
-  "audit-export",
-  "billing-history",
-  "registry-attestation",
+  'gdpr-art-15',
+  'gdpr-art-17',
+  'soc2-t1',
+  'soc2-t2',
+  'iso27001',
+  'aml',
+  'audit-export',
+  'billing-history',
+  'registry-attestation',
 ]);
 
-const FormatSchema = z.enum(["pdfa3", "json", "csv"]);
+const FormatSchema = z.enum(['pdfa3', 'json', 'csv']);
 
 export const BespokeTemplateSchema = z.object({
   templateId: z.string().regex(TEMPLATE_ID),
@@ -75,7 +70,7 @@ export function validateBespokeTemplate(input: unknown): ValidationResult {
   const parsed = BespokeTemplateSchema.safeParse(input);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
-      errors.push(`${issue.path.join(".")}: ${issue.message}`);
+      errors.push(`${issue.path.join('.')}: ${issue.message}`);
     }
     return { valid: false, errors };
   }
