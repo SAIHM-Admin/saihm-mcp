@@ -12,13 +12,32 @@
  *   Governance (2): saihm_governance_propose, saihm_governance_vote
  */
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { SaihmRuntimeClient } from './saihm_runtime_client.js';
 import { SharingContractType, type SharingContractScope } from './types.js';
 
-const server = new McpServer({ name: 'saihm', version: '0.1.0' }, { capabilities: { tools: {} } });
+// Source the MCP-server version string from package.json so the
+// version reported via `initialize`'s `serverInfo` always matches the
+// npm-published version. The compiled output lives at
+// `dist/saihm_mcp_server.js`; `package.json` is one directory up.
+const PACKAGE_VERSION: string = (
+  JSON.parse(
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'),
+      'utf-8',
+    ),
+  ) as { version: string }
+).version;
+
+const server = new McpServer(
+  { name: 'saihm', version: PACKAGE_VERSION },
+  { capabilities: { tools: {} } },
+);
 
 let runtime: SaihmRuntimeClient | null = null;
 function getRuntime(): SaihmRuntimeClient {
@@ -94,7 +113,7 @@ server.tool(
       content: [
         {
           type: 'text' as const,
-          text: `SAIHM Session\n  agent=${d.agentIdHashHex.slice(0, 16)}…\n  PRS=${d.prsScore} (${d.prsLevel})  BFSI=${d.bfsiScore.toFixed(3)}  feeDiscount=${(d.feeDiscountPct * 100).toFixed(1)}%\n  shards=${d.activeShardCount}  ${tiers}\n  staking=${d.stakingPosition.amountNcoti}nCOTI yield=${d.stakingPosition.accruedYieldNcoti}nCOTI\n  sharing=${d.activeSharingContracts}  PHI=${d.phi.toFixed(3)}  epoch=${d.snapshotEpoch}`,
+          text: `SAIHM Session\n  agent=${d.agentIdHashHex.slice(0, 16)}…\n  PRS=${d.prsScore} (${d.prsLevel})  BFSI=${d.bfsiScore.toFixed(3)}  feeDiscount=${(d.feeDiscountPct * 100).toFixed(1)}%\n  shards=${d.activeShardCount}  ${tiers}\n  staking=${d.stakingPosition.amountNcoti}nCOTI yield=${d.stakingPosition.accruedYieldNcoti}nCOTI\n  sharing=${d.activeSharingContracts}  PHI=${d.phi.toFixed(3)}  epoch=${d.snapshotEpoch}\n  §3.4: prs=${d.prs.toFixed(3)} bfsi=${d.bfsi.toFixed(3)} (R=${d.bfsi_R} M=${d.bfsi_M} win=${d.bfsi_window_start_ts}) contracts=${d.contracts.length} governance=${d.governance.length}`,
         },
       ],
     };

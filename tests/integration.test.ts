@@ -108,6 +108,37 @@ const responder: { for(method: string): unknown } = {
           activeSharingContracts: 3,
           phi: 0.612,
           snapshotEpoch: '493970',
+          // ────────── §3.4 spec-aligned fields ──────────
+          // R=8, M=1 → bfsi = 1 - 1/8 = 0.875 (matches bfsiScore).
+          prs: 0.875,
+          bfsi: 0.875,
+          bfsi_window_start_ts: '1777334400',
+          bfsi_R: '8',
+          bfsi_M: '1',
+          shards: { filecoin: 12, ipfs: 8 },
+          // SYNDICATE mode chosen so that the future expiresAt is
+          // spec-compliant (spec §2.5: TEMPORARY caps expiry at +24h;
+          // PERMANENT requires sentinel 0; SYNDICATE permits any future
+          // timestamp). Two grantees exercise the multi-party aspect.
+          contracts: [
+            {
+              contractId: 'aa'.repeat(32),
+              mode: 'SYNDICATE',
+              granteeIds: ['bb'.repeat(32), 'dd'.repeat(32)],
+              expiresAt: '1782000000',
+            },
+          ],
+          governance: [
+            {
+              propId: 'cc'.repeat(32),
+              scope: 'emission_param',
+              opens_ts: '1777334400',
+              closes_ts: '1779926400',
+              tally_for: '1000',
+              tally_against: '500',
+              tally_abstain: '100',
+            },
+          ],
         };
       case 'saihm_share':
         return {
@@ -209,6 +240,44 @@ async function main() {
   assert(r4.prsScore === 42, 'saihm_status PRS score');
   assert(r4.agentIdHashHex.length === 64, 'saihm_status agentIdHashHex is 64-char hex');
   assert(r4.storageByTier.filecoin === 12345, 'saihm_status tier breakdown');
+  // ── §3.4 spec-aligned fields (added 0.3.0) ──
+  assert(r4.prs === 0.875, 'saihm_status prs (spec §3.4)');
+  assert(r4.prs >= 0 && r4.prs <= 1, 'prs in [0.0, 1.0] (spec §3.4)');
+  assert(r4.bfsi === 0.875, 'saihm_status bfsi (spec §3.4)');
+  assert(r4.bfsi >= 0 && r4.bfsi <= 1, 'bfsi in [0.0, 1.0] (spec §3.4)');
+  assert(/^\d+$/.test(r4.bfsi_R), 'bfsi_R is decimal-digit string (spec §3.4)');
+  assert(/^\d+$/.test(r4.bfsi_M), 'bfsi_M is decimal-digit string (spec §3.4)');
+  assert(/^\d+$/.test(r4.bfsi_window_start_ts), 'bfsi_window_start_ts is decimal string (spec §3.4)');
+  // bfsi formula round-trip: bfsi == 1 - (M/R) when R > 0
+  const recomputedBfsi = 1 - Number(r4.bfsi_M) / Number(r4.bfsi_R);
+  assert(Math.abs(r4.bfsi - recomputedBfsi) < 1e-9, 'bfsi = 1 - (M/R) round-trips (spec §3.4)');
+  assert(r4.shards.filecoin === 12, 'saihm_status shards (spec §3.4)');
+  assert(Array.isArray(r4.contracts) && r4.contracts.length === 1, 'contracts is array (spec §3.4)');
+  assert(
+    /^[0-9a-f]{64}$/.test(r4.contracts[0].contractId),
+    'contracts[].contractId is 32-byte hex (spec §3.4)',
+  );
+  assert(
+    r4.contracts[0].mode === 'TEMPORARY' ||
+      r4.contracts[0].mode === 'PERMANENT' ||
+      r4.contracts[0].mode === 'SYNDICATE',
+    'contracts[].mode is uppercase spec enum (spec §3.4)',
+  );
+  assert(
+    /^[0-9a-f]{64}$/.test(r4.contracts[0].granteeIds[0]),
+    'contracts[].granteeIds[] are 32-byte hex (spec §3.4)',
+  );
+  assert(/^\d+$/.test(r4.contracts[0].expiresAt), 'contracts[].expiresAt decimal (spec §3.4)');
+  assert(
+    Array.isArray(r4.governance) && r4.governance.length === 1,
+    'governance is array (spec §3.4)',
+  );
+  assert(
+    /^[0-9a-f]{64}$/.test(r4.governance[0].propId),
+    'governance[].propId is 32-byte hex (spec §3.4)',
+  );
+  assert(r4.governance[0].scope === 'emission_param', 'governance[].scope (spec §3.4)');
+  assert(/^\d+$/.test(r4.governance[0].tally_for), 'governance[].tally_for decimal (spec §3.4)');
 
   const r5 = await client.share(
     [new Uint8Array([0xab, 0xcd, 0xef])],

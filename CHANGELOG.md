@@ -8,6 +8,143 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-28
+
+Patch release. Fixes a long-standing version-string defect in the
+MCP-server initialization: the `serverInfo.version` returned to MCP
+clients on `initialize` was hardcoded to `"0.1.0"` since the very
+first 0.1.0 release, regardless of the npm-published version
+(observed via post-publish smoke testing of 0.3.0). The fix sources
+the version string from `package.json` at boot so the reported
+version always matches the npm-published version going forward.
+
+### Fixed
+- `serverInfo.version` returned to MCP clients via `initialize` now
+  reflects the actual npm-published version (sourced from
+  `package.json` at server-boot time). Prior to this fix, the value
+  was hardcoded `"0.1.0"` for every release from 0.1.0 through
+  0.3.0, which misrepresented the server's identity to any MCP
+  client inspecting `serverInfo`.
+
+### Changed
+- `saihm_mcp_server.ts` now performs a synchronous `readFileSync`
+  of the bundled `package.json` once at module load and passes the
+  parsed `version` into the `McpServer` constructor. No new
+  third-party dependencies were added (Node built-ins only:
+  `node:fs`, `node:url`, `node:path`).
+
+### Notes
+- This is a metadata-only fix. There is no change to the
+  `StatusSnapshot` shape, the cell tuple, the 8-tool MCP surface,
+  the operator-wire protocol, or any test assertions.
+
+## [0.3.0] — 2026-05-28
+
+Alignment release: the public `StatusSnapshot` response shape returned
+by `saihm_status` is extended to surface the spec-defined fields of
+`draft-saihm-memory-protocol-01` §3.4. This fulfills the deferred
+follow-up commitment recorded in the 0.2.0 "Scope" subsection. The
+change is purely additive (existing consumers reading any of the
+prior `prsScore` / `bfsiScore` / `storageByTier` /
+`stakingPosition` / `activeSharingContracts` / `phi` /
+`snapshotEpoch` fields continue to work unmodified); the version is
+bumped to 0.3.0 because the public interface grew. No wire-protocol
+behavior change at the operator endpoint.
+
+The 0.2.0 "Scope" note named three deferred fields (`bfsi_R`,
+`bfsi_M`, `bfsi_window_start_ts`); this release adds all eight
+spec-defined fields of §3.4 (`prs`, `bfsi`, `bfsi_window_start_ts`,
+`bfsi_R`, `bfsi_M`, `shards`, `contracts`, `governance`) so that the
+full §3.4 surface is aligned in a single release rather than across
+multiple minor versions.
+
+### Added
+- `StatusSnapshot.prs` — IEEE 754 binary64 in [0.0, 1.0], the spec
+  §3.4 Process Reliability Score. Surfaced alongside the existing
+  `prsScore` / `prsLevel` operator-extension fields.
+- `StatusSnapshot.bfsi` — IEEE 754 binary64 in [0.0, 1.0], the spec
+  §3.4 Byzantine Fault Score Index. Surfaced alongside the existing
+  `bfsiScore` operator-extension field.
+- `StatusSnapshot.bfsi_window_start_ts` — decimal-string UNIX epoch
+  seconds, the start of the 30-day rolling window over which `bfsi`
+  (and `prs`) is computed. Per spec §3.4 the bfsi inputs MUST be
+  exposed to the holder so the computation is reproducible.
+- `StatusSnapshot.bfsi_R` — decimal-string count of operator-anchored
+  receipts attributed to the holder over the window. Surfaced as
+  `string` (not `number`) so receipt counts beyond 2^53 - 1 remain
+  exact.
+- `StatusSnapshot.bfsi_M` — decimal-string count of those receipts
+  with no corresponding tool-call event attested in the holder's
+  local event log. Surfaced as `string` for the same precision
+  reason.
+- `StatusSnapshot.shards` — spec-aligned per-tier cell-count map
+  (`Record<string, number>`), per §3.4. The pre-existing
+  `storageByTier` (per-tier byte total) is retained alongside.
+- `StatusSnapshot.contracts` — array of structured sharing-contract
+  entries per §3.4. Each entry has `contractId` (32-byte hex),
+  `mode` (uppercase spec enum `"TEMPORARY"` / `"PERMANENT"` /
+  `"SYNDICATE"`), `granteeIds` (array of 32-byte hex), and
+  `expiresAt` (decimal-string epoch seconds). Surfaced alongside the
+  pre-existing `activeSharingContracts` count.
+- `StatusSnapshot.governance` — array of structured governance-
+  proposal entries per §3.4. Each entry has `propId` (32-byte hex),
+  `scope`, `opens_ts`, `closes_ts`, `tally_for`, `tally_against`,
+  and `tally_abstain`. Tally fields are decimal strings to preserve
+  precision for unbounded vote-weight aggregates.
+- Two new exported interfaces, `ContractEntry` and `GovernanceEntry`,
+  for the new array-shaped fields.
+- Server text-output addition: `saihm_status` now appends a §3.4
+  line: `§3.4: prs=… bfsi=… (R=… M=… win=…) contracts=…
+  governance=…`.
+- Test-suite assertions for the new fields, including: numeric
+  range checks ([0.0, 1.0]) on `prs` and `bfsi`; decimal-digit
+  regex checks on `bfsi_R` / `bfsi_M` / `bfsi_window_start_ts` /
+  `expiresAt` / `tally_for`; 32-byte hex shape checks on
+  `contracts[].contractId` / `contracts[].granteeIds[]` /
+  `governance[].propId`; mode-enum membership on
+  `contracts[].mode`; and a round-trip check that
+  `bfsi == 1 - (M / R)` to within a 1e-9 tolerance.
+
+### Changed
+- `ARCHITECTURE.md` now documents the `saihm_status` schema
+  (`draft-saihm-memory-protocol-01` §3.4) including the `bfsi`
+  formula, the R = 0 convention, and the integrity-threshold note.
+
+### Notes
+- This change is fully forward-compatible. The mock endpoint in
+  `tests/integration.test.ts` was extended to return the new fields
+  with values that satisfy `bfsi == 1 - (M / R)` round-trip
+  (R = 8, M = 1, bfsi = 0.875). All existing assertions continue to
+  pass.
+- Operators implementing the SAIHM endpoint behind
+  `SAIHM_ENDPOINT_URL` SHOULD return all of the new fields on
+  `saihm_status` responses so the TypeScript-declared shape matches
+  the runtime payload. The new fields are declared as required (not
+  optional), reflecting the spec-alignment intent of this release;
+  operators that omit a field will leave consumers reading that
+  field with `undefined` at runtime, diverging from the declared
+  shape. Consumers reading only the pre-0.3.0 fields
+  (`prsScore`, `bfsiScore`, `storageByTier`, `stakingPosition`,
+  `activeSharingContracts`, `phi`, `snapshotEpoch`) will not
+  notice. The narrow class of consumers that *construct* a
+  `StatusSnapshot` value literal (rare — the type is normally
+  received from the operator endpoint) will need to provide the
+  new required fields to satisfy the type checker; this is the
+  only consumer-side compile-time change.
+- The uppercase `"TEMPORARY"` / `"PERMANENT"` / `"SYNDICATE"` form
+  used in `ContractEntry.mode` matches `draft-saihm-memory-
+  protocol-01` §2.5 / §3.4 verbatim. It is independent of the
+  lowercase `SharingContractType` enum (`'temporary'` /
+  `'permanent'` / `'syndicate'`) used by `saihm_share` parameters,
+  which is retained for legacy reasons. Operators are responsible
+  for mapping between the two on the wire.
+- The spec uses `bfsi_R`, `bfsi_M`, `bfsi_window_start_ts`,
+  `opens_ts`, `closes_ts`, `tally_for`, `tally_against`, and
+  `tally_abstain` in snake_case; the TypeScript field names mirror
+  the spec verbatim rather than transforming to camelCase, so JSON
+  wire encoding aligns with the spec without an intermediate
+  serializer.
+
 ## [0.2.0] — 2026-05-28
 
 Alignment release: the public `RememberResult` and `RecalledCell`
@@ -175,7 +312,9 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.1
+[0.3.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.2.0
 [0.1.3]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.3
 [0.1.2]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.2

@@ -218,6 +218,52 @@ unmodifiable to preserve auditability), but is no longer decryptable
 See [GDPR Art.17 crosswalk](https://saihm.coti.global/standards/gdpr-art-17-crosswalk/)
 for the regulator-mapping detail.
 
+### `saihm_status` schema (spec §3.4)
+
+`saihm_status` returns a holder-side dashboard. The full schema is
+defined by `draft-saihm-memory-protocol-01` §3.4. The reference
+`StatusSnapshot` TypeScript shape surfaces both the original
+operator-extension fields (PRS/BFSI scores, fee-discount tier,
+staking position, PHI) and the spec-aligned §3.4 fields added in
+0.3.0:
+
+```
+saihm_status → {
+  prs                   — IEEE 754 binary64 in [0.0, 1.0]
+  bfsi                  — IEEE 754 binary64 in [0.0, 1.0];
+                          bfsi = 1 - (M / R); when R = 0, bfsi = 1.0
+                          by convention (absence of fault evidence,
+                          not positive integrity)
+  bfsi_window_start_ts  — unsigned integer (UNIX epoch seconds);
+                          surfaced as decimal string
+  bfsi_R                — unsigned integer count of operator-
+                          anchored receipts attributed to the
+                          holder over the 30-day rolling window
+                          (decimal string; may exceed 2^53 - 1)
+  bfsi_M                — unsigned integer count of those receipts
+                          with no corresponding holder-side tool-
+                          call event attested in the local event
+                          log (decimal string)
+  shards                — map keyed by tier name → unsigned
+                          integer cell count
+  contracts             — array of { contractId (32-byte hex),
+                          mode ("TEMPORARY" | "PERMANENT" |
+                          "SYNDICATE"), granteeIds (array of
+                          32-byte hex), expiresAt (epoch seconds) }
+  governance            — array of { propId (32-byte hex), scope,
+                          opens_ts, closes_ts, tally_for,
+                          tally_against, tally_abstain }
+}
+```
+
+The `bfsi` value is intentionally NOT opaque: spec §3.4 requires
+that `bfsi_R`, `bfsi_M`, and `bfsi_window_start_ts` MUST be exposed
+to the holder through the same `saihm_status` call, so that any
+holder or auditor can independently reproduce the `bfsi = 1 - (M/R)`
+computation. A `bfsi` value below the operator's published
+operator-integrity threshold (the reference deployment publishes
+0.99) is grounds for migration to another operator.
+
 ## Trust model
 
 - **The agent trusts the user's choice of operator endpoint.** The

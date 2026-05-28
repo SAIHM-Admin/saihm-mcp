@@ -2,7 +2,7 @@
 
 **Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
 
-`v0.2.0` · Apache-2.0 · COTI V2 mainnet
+`v0.3.1` · Apache-2.0 · COTI V2 mainnet
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
@@ -176,11 +176,16 @@ custom code.
 - **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-00`
   accepted into pipeline (2026-05-18).
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — `@saihm/mcp-server@0.2.0` published (2026-05-28),
-  aligning the public response shape with
-  `draft-saihm-memory-protocol-01` §2.1 (8-field cell tuple,
-  cellNonce as 5th field). 0.1.3 was the OpenSSF Best Practices
-  Passing badge release (2026-05-19).
+- **npm registry** — `@saihm/mcp-server@0.3.1` published (2026-05-28),
+  a metadata patch that sources the MCP `serverInfo.version` from
+  `package.json` (was hardcoded `"0.1.0"` from 0.1.0 through 0.3.0).
+  0.3.0 (also 2026-05-28) aligned the `saihm_status` response shape
+  with `draft-saihm-memory-protocol-01` §3.4 (full eight-field
+  schema: `prs`, `bfsi`, `bfsi_window_start_ts`, `bfsi_R`,
+  `bfsi_M`, `shards`, `contracts`, `governance`). 0.2.0 (also
+  2026-05-28) aligned the cell-tuple response shape with §2.1;
+  0.1.3 was the OpenSSF Best Practices Passing badge release
+  (2026-05-19).
 - **MCP Registry / Glama** — server listed for discovery (2026-05-16).
 
 ## Roadmap

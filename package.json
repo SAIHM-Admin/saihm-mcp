@@ -1,6 +1,6 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "Sovereign, encrypted, persistent memory for AI agents. Eight MCP tools — remember, recall, forget (GDPR Art. 17 erasure), share, governance. Anchored on COTI V2 mainnet. Apache-2.0.",
   "type": "module",

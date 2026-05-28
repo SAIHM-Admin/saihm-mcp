@@ -92,7 +92,81 @@ export interface StakingPosition {
   accruedYieldNcoti: string;
 }
 
+/**
+ * One element of the `contracts` array returned by `saihm_status`.
+ * Spec: draft-saihm-memory-protocol-01 §3.4 (a sharing contract
+ * visible to this holder). The spec defines each element as a CBOR
+ * object; on the JSON wire this is the structurally equivalent
+ * JSON object. The spec does not narrow the array to active-only
+ * contracts; operators MAY include expired entries.
+ */
+export interface ContractEntry {
+  /** 32-byte hex contract identifier. Spec §3.4. */
+  contractId: string;
+  /**
+   * Sharing-contract mode. Per spec §2.5 / §3.4 the on-wire string
+   * enum is `"TEMPORARY"`, `"PERMANENT"`, or `"SYNDICATE"`. This
+   * is the spec-aligned uppercase form; it is independent of the
+   * `SharingContractType` enum used by `saihm_share` parameters,
+   * which is lowercase for legacy reasons.
+   */
+  mode: 'TEMPORARY' | 'PERMANENT' | 'SYNDICATE';
+  /** Grantee agent ID hashes (each 32-byte hex). Spec §3.4. */
+  granteeIds: string[];
+  /**
+   * Expiry as UNIX epoch seconds (decimal string). Spec §3.4
+   * specifies an unsigned integer, so the value is surfaced as
+   * `string` to preserve precision for values beyond the JS
+   * Number safe-integer ceiling (2^53 - 1). Per spec §2.5 the
+   * permitted range depends on `mode`: `TEMPORARY` caps expiry at
+   * `timestamp + 86400` seconds (24 hours); `PERMANENT` requires
+   * the sentinel value `"0"` (no time bound); `SYNDICATE` permits
+   * either `"0"` or any future timestamp. Enforcement is the
+   * operator's responsibility.
+   */
+  expiresAt: string;
+}
+
+/**
+ * One element of the `governance` array returned by `saihm_status`.
+ * Spec: draft-saihm-memory-protocol-01 §3.4 (a governance proposal
+ * visible to the holder). The spec defines each element as a CBOR
+ * object; on the JSON wire this is the structurally equivalent
+ * JSON object. Field names use snake_case verbatim from the spec.
+ * The spec does not narrow the array to a particular state
+ * (active / closed / decided); operators MAY include closed
+ * proposals.
+ */
+export interface GovernanceEntry {
+  /** 32-byte hex proposal identifier. Spec §3.4. */
+  propId: string;
+  /**
+   * Proposal scope string. The set of permitted scope values is
+   * defined by the deployment's published governance form (spec
+   * §3.9 item (f)), not by the protocol itself. The reference
+   * deployment uses `"emission_param"` and `"protocol_upgrade"`;
+   * see the `governancePropose` parameter type on
+   * `SaihmRuntimeClient` for that form.
+   */
+  scope: string;
+  /** Voting-window open, UNIX epoch seconds (decimal string). Spec §3.4. */
+  opens_ts: string;
+  /** Voting-window close, UNIX epoch seconds (decimal string). Spec §3.4. */
+  closes_ts: string;
+  /**
+   * Vote-weight tally in favour (decimal string). Spec §3.4
+   * specifies unsigned integer; surfaced as `string` so unbounded
+   * weight aggregates beyond 2^53 - 1 remain exact.
+   */
+  tally_for: string;
+  /** Vote-weight tally against (decimal string). Spec §3.4. */
+  tally_against: string;
+  /** Vote-weight tally abstaining (decimal string). Spec §3.4. */
+  tally_abstain: string;
+}
+
 export interface StatusSnapshot {
+  // ────────── operator-extension fields (0.1.x / 0.2.x; retained) ──────────
   agentIdHashHex: string;
   prsScore: number;
   prsLevel: string;
@@ -104,6 +178,64 @@ export interface StatusSnapshot {
   activeSharingContracts: number;
   phi: number;
   snapshotEpoch: string;
+
+  // ────────── §3.4 spec-aligned fields (added 0.3.0) ──────────
+  /**
+   * Process Reliability Score. Spec §3.4: "IEEE 754 binary64 in
+   * the closed interval [0.0, 1.0]. … the fraction of the
+   * operator's expected tool-call returns delivered within the
+   * operator's published SLA window, computed over a rolling
+   * 30-day window."
+   */
+  prs: number;
+  /**
+   * Byzantine Fault Score Index. Spec §3.4: "IEEE 754 binary64 in
+   * the closed interval [0.0, 1.0]. … the fraction of audit-chain
+   * receipts that match a corresponding holder-side tool-call
+   * event … bfsi = 1 - (M / R) … When R = 0 … bfsi is defined as
+   * 1.0 by convention."
+   */
+  bfsi: number;
+  /**
+   * Start of the rolling 30-day window over which `bfsi` (and
+   * `prs`) is computed, as UNIX epoch seconds (decimal string).
+   * Spec §3.4 specifies unsigned integer; surfaced as `string`
+   * for forward-compat with values beyond 2^53 - 1.
+   */
+  bfsi_window_start_ts: string;
+  /**
+   * Count of operator-anchored receipts on the audit chain
+   * attributed to the holder over the window, as a decimal
+   * string. Spec §3.4 specifies unsigned integer; `string`
+   * preserves precision for unbounded receipt counts.
+   */
+  bfsi_R: string;
+  /**
+   * Count of operator-anchored receipts with no corresponding
+   * tool-call event in the holder's local event log, as a decimal
+   * string. Spec §3.4 specifies unsigned integer; `string`
+   * preserves precision.
+   */
+  bfsi_M: string;
+  /**
+   * Shards held under each tier, keyed by tier name, value = cell
+   * count. Spec §3.4 ("a CBOR map keyed by tier name, value =
+   * unsigned integer count of cells stored under that tier"). On
+   * the JSON wire this is the structurally equivalent JSON
+   * object. This is conceptually a per-cell-count view; the
+   * pre-existing `storageByTier` field surfaces a per-tier byte
+   * total and is retained alongside. The value type is `number`
+   * (not `string`) because a per-tier cell count is bounded in
+   * practice by storage-substrate capacity — well below the JS
+   * Number safe-integer ceiling (2^53 - 1) — and using `number`
+   * here matches the convention of the pre-existing
+   * `storageByTier` field.
+   */
+  shards: Record<string, number>;
+  /** Sharing-contract entries visible to this holder. Spec §3.4. */
+  contracts: ContractEntry[];
+  /** Governance-proposal entries visible to this holder. Spec §3.4. */
+  governance: GovernanceEntry[];
 }
 
 export interface ShareResult {
