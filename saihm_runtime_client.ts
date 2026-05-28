@@ -2,9 +2,9 @@
  * SAIHM MCP — bare-bones runtime client.
  *
  * Forwards MCP tool calls to a SAIHM operator endpoint over HTTPS. The endpoint
- * is operator-supplied and runs the full SAIHM protocol stack (GC-1..GC-14).
+ * is operator-supplied and runs the full SAIHM protocol stack behind the 8 MCP tools.
  * This client holds no crypto and no storage — it signs the JSON-RPC envelope
- * with the operator's Wallet C key and lets the endpoint do the protocol work.
+ * with the operator's signing key and lets the endpoint do the protocol work.
  *
  * Configure via env:
  *   SAIHM_ENDPOINT_URL  HTTPS endpoint, e.g. https://operator.example.com/saihm/v1
@@ -44,6 +44,13 @@ function assertEndpointUrl(endpoint: string): void {
 
 export interface RememberResult {
   cellId: string;
+  /**
+   * 16-byte per-cell nonce (hex). Surfaced to the agent so it can keep
+   * a verifiable record of which nonce was bound to this cell at
+   * creation time. Per draft-saihm-memory-protocol-01 §2.1 the nonce
+   * is a public field of the cell tuple.
+   */
+  cellNonce: string;
   tier: string;
   kekVersion: number;
   epoch: string;
@@ -53,6 +60,21 @@ export interface RememberResult {
 
 export interface RecalledCell {
   cellId: string;
+  /** 16-byte per-cell nonce (hex). See {@link RememberResult.cellNonce}. */
+  cellNonce: string;
+  /** KEK generation that sealed this cell's DEK. Spec §2.1. */
+  kekVersion: number;
+  /** 32-byte hex of the holder's ML-DSA-65 public-key hash. Spec §2.1. */
+  holderIdHex: string;
+  /**
+   * Short prefix (hex) of the holder's ML-DSA-65 signature. Per spec
+   * §2.1 the signature is computed over (cellId ‖ holderId ‖
+   * kekVersion_be32 ‖ timestamp_be64). Full signature is ~3309 bytes;
+   * surfacing the prefix lets agents log a compact integrity-witness
+   * without inflating recall payloads. The signature is verified at
+   * the operator endpoint as part of cell read.
+   */
+  holderSignaturePrefix: string;
   timestamp: string;
   tier: string;
   plaintext: string;

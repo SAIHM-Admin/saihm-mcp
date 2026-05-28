@@ -36,7 +36,7 @@ server.tool(
       content: [
         {
           type: 'text' as const,
-          text: `REMEMBERED [${r.cellId}] tier=${r.tier} kekV=${r.kekVersion} epoch=${r.epoch} fee=${r.feeNcoti}nCOTI sig=${r.signaturePrefix}…`,
+          text: `REMEMBERED [${r.cellId}] nonce=${r.cellNonce} tier=${r.tier} kekV=${r.kekVersion} epoch=${r.epoch} fee=${r.feeNcoti}nCOTI sig=${r.signaturePrefix}…`,
         },
       ],
     };
@@ -53,7 +53,9 @@ server.tool(
       return { content: [{ type: 'text' as const, text: 'No memories stored.' }] };
     const lines = [`RECALL ${cells.length} memories`];
     for (const c of cells)
-      lines.push(`  [${c.cellId}] ${c.timestamp} (${c.tier}) | ${c.plaintext}`);
+      lines.push(
+        `  [${c.cellId}] kekV=${c.kekVersion} nonce=${c.cellNonce} ${c.timestamp} (${c.tier}) | ${c.plaintext}`,
+      );
     return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
   },
 );

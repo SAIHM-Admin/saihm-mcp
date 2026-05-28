@@ -103,7 +103,7 @@ export {
 export type { AuthResult, AuthVerifiers } from './auth.js';
 
 // ============================================================================
-// Receipt emission (HKDF #166)
+// Receipt emission (HKDF-derived signing material)
 // ============================================================================
 
 export {

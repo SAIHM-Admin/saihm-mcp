@@ -2,7 +2,7 @@
 
 **Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
 
-`v0.1.2` · Apache-2.0 · COTI V2 mainnet
+`v0.2.0` · Apache-2.0 · COTI V2 mainnet
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
@@ -47,7 +47,7 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
   expects (typically a `Bearer <token>` issued to you after key-bound
   enrolment). The server is authentication-agnostic and **never transmits
   raw private keys**; the operator's enrolment flow keeps your
-  Wallet C key on your machine.
+  signing key on your machine.
 
 Place these in a `.env` file alongside the server (the `.gitignore` excludes
 all `.env*` files from any future repo).
@@ -176,7 +176,11 @@ custom code.
 - **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-00`
   accepted into pipeline (2026-05-18).
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — `@saihm/mcp-server@0.1.2` published (2026-05-16).
+- **npm registry** — `@saihm/mcp-server@0.2.0` published (2026-05-28),
+  aligning the public response shape with
+  `draft-saihm-memory-protocol-01` §2.1 (8-field cell tuple,
+  cellNonce as 5th field). 0.1.3 was the OpenSSF Best Practices
+  Passing badge release (2026-05-19).
 - **MCP Registry / Glama** — server listed for discovery (2026-05-16).
 
 ## Roadmap

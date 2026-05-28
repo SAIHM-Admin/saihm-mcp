@@ -58,6 +58,7 @@ const responder: { for(method: string): unknown } = {
       case 'saihm_remember':
         return {
           cellId: 'deadbeef'.repeat(8),
+          cellNonce: 'ab'.repeat(16),
           tier: 'filecoin',
           kekVersion: 1,
           epoch: '493970',
@@ -68,12 +69,20 @@ const responder: { for(method: string): unknown } = {
         return [
           {
             cellId: 'aa'.repeat(32),
+            cellNonce: 'cc'.repeat(16),
+            kekVersion: 1,
+            holderIdHex: '11'.repeat(32),
+            holderSignaturePrefix: '22'.repeat(16),
             timestamp: '2026-05-09T00:00:00Z',
             tier: 'filecoin',
             plaintext: 'hello',
           },
           {
             cellId: 'bb'.repeat(32),
+            cellNonce: 'dd'.repeat(16),
+            kekVersion: 1,
+            holderIdHex: '33'.repeat(32),
+            holderSignaturePrefix: '44'.repeat(16),
             timestamp: '2026-05-09T00:01:00Z',
             tier: 'filecoin',
             plaintext: 'world',
@@ -163,6 +172,9 @@ async function main() {
   const r1 = await client.remember('test memory');
   assert(r1.cellId === 'deadbeef'.repeat(8), 'saihm_remember returns cellId');
   assert(r1.tier === 'filecoin', 'saihm_remember returns tier');
+  assert(r1.cellNonce === 'ab'.repeat(16), 'saihm_remember returns cellNonce');
+  assert(/^[0-9a-f]{32}$/.test(r1.cellNonce), 'cellNonce is 16-byte hex (32 chars)');
+  assert(r1.kekVersion === 1, 'saihm_remember returns kekVersion');
   assert(calls[0].method === 'saihm_remember', 'saihm_remember sent correct method');
   assert(
     (calls[0].params as { content: string }).content === 'test memory',
@@ -173,6 +185,19 @@ async function main() {
   const r2 = await client.recall('hello');
   assert(r2.length === 2, 'saihm_recall returns 2 cells');
   assert(r2[0].plaintext === 'hello', 'saihm_recall returns plaintext');
+  assert(r2[0].cellNonce === 'cc'.repeat(16), 'saihm_recall returns cellNonce');
+  assert(/^[0-9a-f]{32}$/.test(r2[0].cellNonce), 'recalled cellNonce is 16-byte hex');
+  assert(r2[0].kekVersion === 1, 'saihm_recall returns kekVersion');
+  assert(r2[0].holderIdHex === '11'.repeat(32), 'saihm_recall returns holderIdHex (32-byte hex)');
+  assert(/^[0-9a-f]{64}$/.test(r2[0].holderIdHex), 'holderIdHex is 32-byte hex (64 chars)');
+  assert(
+    r2[0].holderSignaturePrefix === '22'.repeat(16),
+    'saihm_recall returns holderSignaturePrefix',
+  );
+  assert(
+    /^[0-9a-f]{32}$/.test(r2[0].holderSignaturePrefix),
+    'holderSignaturePrefix is 16-byte hex prefix',
+  );
   assert(calls[1].method === 'saihm_recall', 'saihm_recall method');
   assert((calls[1].params as { query: string }).query === 'hello', 'saihm_recall query forwarded');
 

@@ -170,18 +170,43 @@ the agent provides — encryption happens at the operator. For
 auditability the architecture document captures the protocol-level
 envelope here:
 
+The protocol-level cell is an 8-field tuple. Field names and ordering
+follow `draft-saihm-memory-protocol-01` §2.1:
+
 ```
-Cell {
-  cellId            — 32-byte hex (SHA-256 of canonical content)
-  holderIdentity    — ML-DSA-65 public key hash
-  kekVersion        — KEK rotation generation
-  epoch             — block-anchored time
+Cell (per draft-saihm-memory-protocol-01 §2.1) {
+  cellId            — 32-byte hex; SHA-256(kekVersion_be32 ‖ cellNonce
+                      ‖ ciphertext). Recipients MUST recompute and
+                      reject mismatched cellId.
+  holderId          — ML-DSA-65 public key hash (32-byte hex)
+  kekVersion        — KEK rotation generation (unsigned 32-bit)
   tier              — "filecoin" | "ipfs"
-  receiptId         — public-chain audit-receipt key
-  ciphertext        — AEAD output, DEK derived via HKDF from holder
-                      identity + cell-specific salt + KEK
-  metadata          — small struct (size, MIME hint, label tags)
+  cellNonce         — 16-byte per-cell random; binds DEK derivation
+                      (HKDF info) and cellId derivation
+  ciphertext        — AEAD output (AES-256-GCM); DEK = HKDF(salt =
+                      kekVersion_be32, IKM = identityKey, info =
+                      cellNonce ‖ "MPS-CELL-DEK-v1", L = 32). The
+                      `identityKey` is the holder's 64-byte HKDF-
+                      derived identity material; see spec §2.2 and
+                      §2.3.
+  timestamp         — POSIX seconds, CBOR unsigned integer
+                      (major type 0)
+  holderSignature   — ML-DSA-65 signature over (cellId ‖ holderId ‖
+                      kekVersion_be32 ‖ timestamp_be64); see the
+                      "signature" field definition in spec §2.1.
 }
+```
+
+Operator-side metadata (NOT part of the spec wire-format tuple) is
+separately tracked in the operator's audit ledger and surfaced to the
+client via `RememberResult` and `RecalledCell`:
+
+```
+  epoch                  — block-anchored time at storage commit
+  feeNcoti               — fee charged in nCOTI
+  signaturePrefix        — short prefix of holderSignature for UX
+  holderSignaturePrefix  — same (on RecalledCell)
+  auditCellId            — public-chain audit-receipt key
 ```
 
 `saihm_forget` removes the DEK from the operator's keystore,
@@ -208,7 +233,7 @@ for the regulator-mapping detail.
   transit.** It refuses plain HTTP (except for localhost dev) so that
   the `Authorization` header can never be sniffed.
 - **The operator does not see the user's private key.** The protocol
-  is wallet-bound; the user holds Wallet C, and operator-issued
+  is wallet-bound; the user holds their signing key, and operator-issued
   Bearer tokens reflect a prior key-bound enrolment. Rotating the
   Bearer token rotates the operator-visible auth surface without
   touching the user's wallet key.
