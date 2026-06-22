@@ -1,37 +1,37 @@
 cff-version: 1.2.0
-message: "If you use this software in research, product, or standards work, please cite both the software entry below and the IETF Internet-Draft listed under references."
-title: "SAIHM — Sovereign AI Horizontal Memory"
-abstract: "Sovereign, encrypted, persistent memory protocol for AI agents. Eight Model Context Protocol tools (remember, recall, forget, share, governance) provide ML-DSA-signed AES-256-GCM cells with GDPR Article 17 cryptographic erasure. Anchored on COTI V2 mainnet."
+message: 'If you use this software in research, product, or standards work, please cite both the software entry below and the IETF Internet-Draft listed under references.'
+title: 'SAIHM — Sovereign AI Horizontal Memory'
+abstract: 'Sovereign, encrypted, persistent memory protocol for AI agents. Eight Model Context Protocol tools (remember, recall, forget, share, governance) provide ML-DSA-signed AES-256-GCM cells with GDPR Article 17 cryptographic erasure. Anchored on COTI V2 mainnet.'
 authors:
-  - name: "SAIHM Project"
-    email: "architect@saihm.coti.global"
-    website: "https://saihm.coti.global/"
+  - name: 'SAIHM Project'
+    email: 'architect@saihm.coti.global'
+    website: 'https://saihm.coti.global/'
 type: software
-version: "0.3.1"
-date-released: "2026-05-28"
+version: '0.3.1'
+date-released: '2026-05-28'
 license: Apache-2.0
-url: "https://saihm.coti.global/"
-repository-code: "https://github.com/SAIHM-Admin/saihm-mcp"
-repository-artifact: "https://www.npmjs.com/package/@saihm/mcp-server"
+url: 'https://saihm.coti.global/'
+repository-code: 'https://github.com/SAIHM-Admin/saihm-mcp'
+repository-artifact: 'https://www.npmjs.com/package/@saihm/mcp-server'
 keywords:
-  - "AI agent memory"
-  - "cryptographic erasure"
-  - "GDPR Article 17"
-  - "Model Context Protocol"
-  - "MCP"
-  - "post-quantum cryptography"
-  - "HKDF"
-  - "AES-256-GCM"
-  - "ML-DSA"
-  - "ISO/IEC 19790 zeroization"
-  - "NIST SP 800-88"
-  - "sovereign identity"
+  - 'AI agent memory'
+  - 'cryptographic erasure'
+  - 'GDPR Article 17'
+  - 'Model Context Protocol'
+  - 'MCP'
+  - 'post-quantum cryptography'
+  - 'HKDF'
+  - 'AES-256-GCM'
+  - 'ML-DSA'
+  - 'ISO/IEC 19790 zeroization'
+  - 'NIST SP 800-88'
+  - 'sovereign identity'
 references:
   - type: standard
-    title: "The SAIHM Protocol for Sovereign AI Memory"
+    title: 'The SAIHM Protocol for Sovereign AI Memory'
     authors:
-      - name: "SAIHM Project"
+      - name: 'SAIHM Project'
     institution:
-      name: "Internet Engineering Task Force"
-    url: "https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/"
+      name: 'Internet Engineering Task Force'
+    url: 'https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/'
     year: 2026

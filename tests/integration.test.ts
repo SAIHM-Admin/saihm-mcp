@@ -247,12 +247,18 @@ async function main() {
   assert(r4.bfsi >= 0 && r4.bfsi <= 1, 'bfsi in [0.0, 1.0] (spec §3.4)');
   assert(/^\d+$/.test(r4.bfsi_R), 'bfsi_R is decimal-digit string (spec §3.4)');
   assert(/^\d+$/.test(r4.bfsi_M), 'bfsi_M is decimal-digit string (spec §3.4)');
-  assert(/^\d+$/.test(r4.bfsi_window_start_ts), 'bfsi_window_start_ts is decimal string (spec §3.4)');
+  assert(
+    /^\d+$/.test(r4.bfsi_window_start_ts),
+    'bfsi_window_start_ts is decimal string (spec §3.4)',
+  );
   // bfsi formula round-trip: bfsi == 1 - (M/R) when R > 0
   const recomputedBfsi = 1 - Number(r4.bfsi_M) / Number(r4.bfsi_R);
   assert(Math.abs(r4.bfsi - recomputedBfsi) < 1e-9, 'bfsi = 1 - (M/R) round-trips (spec §3.4)');
   assert(r4.shards.filecoin === 12, 'saihm_status shards (spec §3.4)');
-  assert(Array.isArray(r4.contracts) && r4.contracts.length === 1, 'contracts is array (spec §3.4)');
+  assert(
+    Array.isArray(r4.contracts) && r4.contracts.length === 1,
+    'contracts is array (spec §3.4)',
+  );
   assert(
     /^[0-9a-f]{64}$/.test(r4.contracts[0].contractId),
     'contracts[].contractId is 32-byte hex (spec §3.4)',

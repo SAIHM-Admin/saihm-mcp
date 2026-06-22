@@ -27,10 +27,7 @@ import { SharingContractType, type SharingContractScope } from './types.js';
 // `dist/saihm_mcp_server.js`; `package.json` is one directory up.
 const PACKAGE_VERSION: string = (
   JSON.parse(
-    readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'),
-      'utf-8',
-    ),
+    readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf-8'),
   ) as { version: string }
 ).version;
 
