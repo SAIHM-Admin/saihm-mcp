@@ -7,7 +7,7 @@
  * with the operator's signing key and lets the endpoint do the protocol work.
  *
  * Configure via env:
- *   SAIHM_ENDPOINT_URL  HTTPS endpoint, e.g. https://operator.example.com/saihm/v1
+ *   SAIHM_ENDPOINT_URL  HTTPS endpoint, e.g. https://operator.example.com/mcp
  *                       Must be `https://` unless the host is `127.0.0.1` or
  *                       `localhost` (dev exception). Plain HTTP is rejected at
  *                       call time to prevent Authorization-header leaks over

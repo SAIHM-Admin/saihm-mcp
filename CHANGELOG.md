@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-06-22
+
+Documentation patch. No protocol, wire-format, or runtime code change;
+the published JavaScript is behavior-identical to 0.3.1.
+
+### Fixed
+- Corrected the documented operator-endpoint path from the phantom
+  `/saihm/v1` to the canonical `/mcp` — in the README
+  `SAIHM_ENDPOINT_URL` examples (×2) and the `saihm_runtime_client`
+  configuration comment (×1).
+- Corrected the distribution-integrity note: each release carries the
+  npm registry signature (verify with `npm audit signatures`); the
+  prior wording claimed sigstore provenance, which is not currently
+  produced (no provenance attestation, no CI release workflow).
+
 ## [0.3.1] — 2026-05-28
 
 Patch release. Fixes a long-standing version-string defect in the
@@ -312,7 +327,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.2
 [0.3.1]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.1
 [0.3.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.2.0

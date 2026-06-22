@@ -37,7 +37,7 @@ npx @saihm/mcp-server
 The server needs two env vars:
 
 ```
-SAIHM_ENDPOINT_URL=https://operator.example.com/saihm/v1
+SAIHM_ENDPOINT_URL=https://operator.example.com/mcp
 SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 ```
 
@@ -61,7 +61,7 @@ all `.env*` files from any future repo).
       "command": "npx",
       "args": ["@saihm/mcp-server"],
       "env": {
-        "SAIHM_ENDPOINT_URL": "https://operator.example.com/saihm/v1",
+        "SAIHM_ENDPOINT_URL": "https://operator.example.com/mcp",
         "SAIHM_AUTH_HEADER": "Bearer <token>"
       }
     }
@@ -150,7 +150,7 @@ The server enforces a small set of defaults so misconfiguration cannot leak the 
 
 Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against COTI V2 mainnet anchors is out of scope for this server; consume the `cellId` and `auditCellId` fields and verify against your own SAIHM mainnet read path.
 
-For distribution integrity, the SAIHM publisher signs releases via npm sigstore provenance; verify with `npm view @saihm/mcp-server --json | jq .dist` and `npm audit signatures`.
+For distribution integrity, each release carries the npm registry signature; verify with `npm audit signatures` (and inspect `npm view @saihm/mcp-server --json | jq .dist`).
 
 ## Dependencies
 
@@ -176,9 +176,12 @@ custom code.
 - **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-00`
   accepted into pipeline (2026-05-18).
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — `@saihm/mcp-server@0.3.1` published (2026-05-28),
-  a metadata patch that sources the MCP `serverInfo.version` from
-  `package.json` (was hardcoded `"0.1.0"` from 0.1.0 through 0.3.0).
+- **npm registry** — `@saihm/mcp-server@0.3.2` published (2026-06-22),
+  correcting the documented operator-endpoint path to `/mcp` (the
+  canonical `SAIHM_ENDPOINT_URL` path) across the README and client
+  comments. 0.3.1 (2026-05-28) was a metadata patch that sources the
+  MCP `serverInfo.version` from `package.json` (was hardcoded
+  `"0.1.0"` from 0.1.0 through 0.3.0).
   0.3.0 (also 2026-05-28) aligned the `saihm_status` response shape
   with `draft-saihm-memory-protocol-01` §3.4 (full eight-field
   schema: `prs`, `bfsi`, `bfsi_window_start_ts`, `bfsi_R`,
