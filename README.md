@@ -2,7 +2,7 @@
 
 **Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
 
-`v0.3.3` · Apache-2.0 · COTI V2 mainnet
+`v0.3.4` · Apache-2.0 · COTI V2 mainnet
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
@@ -80,8 +80,57 @@ all `.env*` files from any future repo).
 
 The server itself persists nothing. The operator endpoint runs the
 full protocol stack: cells are encrypted under a per-cell DEK, sealed by a
-per-agent KEK, persisted to Filecoin, and audited on COTI V2 mainnet. See the
-operator's documentation for tier details.
+per-agent KEK, persisted to the operator's configured durable storage, and
+audited on COTI V2 mainnet. See the operator's documentation for tier details,
+and **[Storage is the operator's responsibility (by design)](#storage-is-the-operators-responsibility-by-design)**
+below.
+
+## Storage is the operator's responsibility (by design)
+
+> **For operators — read this first.** SAIHM does **not** hard-wire your
+> durable storage to any single provider, and it does **not** silently
+> provision storage for you. **Choosing and configuring where cells are
+> persisted is your job, on purpose.** This is a deliberate design choice for
+> operator convenience and data sovereignty — not a missing feature. If
+> memory writes fail with a storage error, it almost always means the backend
+> has not been configured yet.
+
+Why it works this way:
+
+- **Provider sovereignty.** You decide where your tenants' encrypted cells
+  live. The protocol never locks you to one vendor or one network.
+- **Local-first, then deep-archive.** A typical operator routes writes to a
+  **local IPFS (Kubo) node first** — fast, authoritative, and under your own
+  control — and then **asynchronously to a Filecoin deep-archive** provider
+  such as Pinata, Synapse, or Lighthouse. The same content addressing spans
+  both tiers.
+- **Your memory and your tenants' take the same path.** Whatever backend you
+  configure serves both the operator's own memory and every tenant's — there
+  is no separate hidden sink hard-coded to one provider.
+
+What you configure (your operator deployment guide lists the exact settings):
+
+- a reachable IPFS / Kubo endpoint (a local node is recommended) for the
+  authoritative low-latency tier, and
+- credentials for at least one Filecoin / IPFS pinning provider for durable
+  deep-archive.
+
+If neither is configured, the endpoint has nowhere durable to put cells and
+will **reject writes rather than lose data**. That refusal is intentional.
+
+### Prefer not to run storage yourself? Join SAIHM.
+
+You have two paths, and either is fine:
+
+1. **Run your own operator endpoint** and configure the storage backend as
+   described above — full sovereignty, your infrastructure.
+2. **Join the hosted SAIHM operator** and let it provide durable storage for
+   you. It runs **blind / non-custodial**: paired with client-side sealing
+   (see [`@saihm/client-pro`](https://www.npmjs.com/package/@saihm/client-pro)
+   and [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)),
+   it only ever stores **ciphertext** and never holds your keys — so you get
+   managed storage without giving up custody. Enrol via **Join SAIHM** at
+   <https://saihm.coti.global> (a paid hosted service).
 
 ## Reporting engine
 
@@ -185,7 +234,10 @@ custom code.
   **not an Internet Standard, is not endorsed by the IETF, and has no formal
   standing in the IETF standards process.**
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — `@saihm/mcp-server@0.3.3` published (2026-06-22),
+- **npm registry** — `@saihm/mcp-server@0.3.4` published (2026-06-22) adds a
+  conspicuous "Storage is the operator's responsibility (by design)" section —
+  documenting BYO storage and the Join-SAIHM hosted, non-custodial option.
+  `0.3.3` (2026-06-22) was
   a documentation release that states the Independent-Submission status
   precisely (no implied IETF endorsement) and cross-references the
   companion package `@saihm/client-pro`. 0.3.2 (2026-06-22) corrected
