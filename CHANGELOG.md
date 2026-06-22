@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-06-22
+
+Documentation release. No protocol, wire-format, or runtime code change;
+the published JavaScript is behavior-identical to 0.3.2.
+
+### Changed
+- Stated the IETF / Independent-Submission status precisely: the protocol
+  is published as `draft-saihm-memory-protocol-01` (2026-05-27), *In ISE
+  Review* in the Independent Submission Stream — not an Internet Standard,
+  not endorsed by the IETF, and with no formal standing in the IETF
+  standards process. Replaced the prior "draft-00 accepted into pipeline"
+  wording (README Achievements) and the roadmap's "IETF RFC publication"
+  with "Independent-stream (ISE) RFC publication."
+- Added a companion-package cross-reference to `@saihm/client-pro`
+  (production client-side post-quantum cryptography) in the README and
+  refreshed the npm `description` to match.
+- Corrected a misleading "Standards-track release" label on the historical
+  0.1.3 entry below; that release was OpenSSF and governance work, unrelated
+  to any standards-track status.
+
 ## [0.3.2] — 2026-06-22
 
 Documentation patch. No protocol, wire-format, or runtime code change;
@@ -230,7 +250,7 @@ release will perform the corresponding `StatusSnapshot` alignment.
 
 ## [0.1.3] — 2026-05-19
 
-Standards-track release: OpenSSF Best Practices Passing badge achieved
+Governance and assurance release: OpenSSF Best Practices Passing badge achieved
 (project 12898, 100%); Silver criteria at 95%. Adds governance,
 assurance, CI, and security tooling. Bumps runtime and dev
 dependencies. No change to MCP-server runtime behavior or wire protocol.
@@ -327,7 +347,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.3
 [0.3.2]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.2
 [0.3.1]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.1
 [0.3.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.0

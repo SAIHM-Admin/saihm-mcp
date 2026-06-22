@@ -2,7 +2,7 @@
 
 **Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
 
-`v0.3.1` · Apache-2.0 · COTI V2 mainnet
+`v0.3.3` · Apache-2.0 · COTI V2 mainnet
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
@@ -23,6 +23,13 @@ custom agents) can call to gain a persistent, encrypted memory layer the
 Each tool forwards to a SAIHM operator endpoint that runs the full protocol
 stack on COTI V2 mainnet. The server itself holds no crypto, no storage, and
 no protocol runtime — those live behind the operator endpoint.
+
+## Companion package
+
+This package speaks MCP. For production **client-side** cryptography —
+post-quantum sealing, authenticated sharing, and provable erasure performed on
+your own machine so the operator stays blind — pair it with
+[`@saihm/client-pro`](https://www.npmjs.com/package/@saihm/client-pro).
 
 ## Install
 
@@ -173,11 +180,16 @@ custom code.
 
 - **OpenSSF Best Practices Passing badge** — project 12898, 100% Passing
   criteria (2026-05-19). <https://www.bestpractices.dev/projects/12898>
-- **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-00`
-  accepted into pipeline (2026-05-18).
+- **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-01`
+  (2026-05-27) is *In ISE Review* in the Independent Submission Stream. It is
+  **not an Internet Standard, is not endorsed by the IETF, and has no formal
+  standing in the IETF standards process.**
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — `@saihm/mcp-server@0.3.2` published (2026-06-22),
-  correcting the documented operator-endpoint path to `/mcp` (the
+- **npm registry** — `@saihm/mcp-server@0.3.3` published (2026-06-22),
+  a documentation release that states the Independent-Submission status
+  precisely (no implied IETF endorsement) and cross-references the
+  companion package `@saihm/client-pro`. 0.3.2 (2026-06-22) corrected
+  the documented operator-endpoint path to `/mcp` (the
   canonical `SAIHM_ENDPOINT_URL` path) across the README and client
   comments. 0.3.1 (2026-05-28) was a metadata patch that sources the
   MCP `serverInfo.version` from `package.json` (was hardcoded
@@ -205,8 +217,9 @@ Near-term tracks:
   Project Proposal submission when adoption blockers clear.
 - **2026-Q4** — NIST AI RMF crosswalk public review; EU AI Act
   compliance-checklist generator. OpenSSF Silver award (target).
-- **2027-Q1** — IETF RFC publication (subject to ISE workflow); v1.0
-  reference implementation.
+- **2027-Q1** — Independent-stream (ISE) RFC publication, subject to
+  RFC-Editor review — not an IETF-consensus standard; v1.0 reference
+  implementation.
 
 ## License
 
