@@ -1,6 +1,6 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "The open MCP client for SAIHM sovereign agent memory — eight tools (remember · recall · forget · share · govern) any MCP agent uses to reach a SAIHM operator endpoint. Implements the publicly documented SAIHM memory protocol (Independent-Submission Internet-Draft; not an IETF standard). For production client-side post-quantum sealing, pair with @saihm/client-pro. Apache-2.0.",
   "type": "module",
@@ -33,9 +33,21 @@
     "prepublishOnly": "npm run build && npm test"
   },
   "c8": {
-    "reporter": ["text", "lcov", "html"],
-    "include": ["**/*.ts"],
-    "exclude": ["tests/**", "dist/**", "node_modules/**", "coverage/**", "eslint.config.js"],
+    "reporter": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "include": [
+      "**/*.ts"
+    ],
+    "exclude": [
+      "tests/**",
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "eslint.config.js"
+    ],
     "all": true,
     "check-coverage": true,
     "statements": 80,
