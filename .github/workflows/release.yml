@@ -23,12 +23,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # NOTE: deliberately NO registry-url — setup-node's registry-url writes an
+      # .npmrc with a placeholder NODE_AUTH_TOKEN that shadows OIDC (npm then never
+      # reaches trusted publishing). Omitting it leaves no auth line, so npm engages
+      # OIDC on the default registry. access:public comes from package.json.
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '22'            # >= 22.14.0 required for OIDC
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '24'            # >= 22.14.0 required for OIDC
 
       - name: Use npm >= 11.5.1 (required for OIDC trusted publishing)
         run: npm install -g npm@latest
