@@ -1,0 +1,56 @@
+name: release
+
+# Publishes to npm with provenance via OIDC trusted publishing when a GitHub
+# Release is published. No npm token is used — authentication is OIDC, and npm
+# generates provenance attestations automatically under trusted publishing.
+#
+# PREREQUISITE (one-time, on npmjs.com): register this repo+workflow as a
+# Trusted Publisher for @saihm/mcp-server — package Settings -> Trusted Publisher:
+#   Organization or user : SAIHM-Admin
+#   Repository           : saihm-mcp
+#   Workflow filename    : release.yml
+#   Allowed actions      : npm publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write   # required for OIDC trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'            # >= 22.14.0 required for OIDC
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Use npm >= 11.5.1 (required for OIDC trusted publishing)
+        run: npm install -g npm@latest
+
+      - name: Verify package version matches the release tag
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "package.json=$PKG  release-tag=$TAG"
+          test "$PKG" = "$TAG" || { echo "::error::version mismatch ($PKG != $TAG)"; exit 1; }
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Test
+        run: npm test
+
+      - name: Publish (OIDC trusted publishing — provenance is automatic)
+        run: npm publish
