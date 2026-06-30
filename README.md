@@ -77,6 +77,13 @@ SAIHM_ENDPOINT_URL=https://operator.example.com/mcp
 SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 ```
 
+> **Don't have an endpoint and token yet?** They're issued by a SAIHM *operator*.
+> Two ways to get them: **join the hosted SAIHM service** at
+> <https://saihm.coti.global> (managed, non-custodial storage — see
+> [Join SAIHM](#prefer-not-to-run-storage-yourself-join-saihm) below), or
+> **run your own operator endpoint**. Until one is configured, the tools have
+> nowhere to reach and will return an error.
+
 - **`SAIHM_ENDPOINT_URL`** — the SAIHM operator endpoint. Operators publish
   their endpoint URLs at <https://saihm.coti.global>.
 - **`SAIHM_AUTH_HEADER`** — the `Authorization` header value the operator
