@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "saihm": {
+      "command": "npx",
+      "args": ["-y", "@saihm/mcp-server"],
+      "env": {
+        "SAIHM_ENDPOINT_URL": "https://operator.example.com/mcp",
+        "SAIHM_AUTH_HEADER": "Bearer <token>"
+      }
+    }
+  }
+}
