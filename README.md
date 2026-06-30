@@ -2,7 +2,7 @@
 
 **Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
 
-`v0.3.4` · Apache-2.0 · COTI V2 mainnet
+[![npm version](https://img.shields.io/npm/v/@saihm/mcp-server)](https://www.npmjs.com/package/@saihm/mcp-server) · Apache-2.0 · COTI V2 mainnet
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
