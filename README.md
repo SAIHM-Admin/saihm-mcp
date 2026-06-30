@@ -24,6 +24,21 @@ Each tool forwards to a SAIHM operator endpoint that runs the full protocol
 stack on COTI V2 mainnet. The server itself holds no crypto, no storage, and
 no protocol runtime — those live behind the operator endpoint.
 
+## Tool reference
+
+| Tool | Title | Behavior |
+|---|---|---|
+| `saihm_remember` | Remember | writes a new memory cell |
+| `saihm_recall` | Recall | read-only; safe to repeat |
+| `saihm_forget` | Forget (GDPR erasure) | **destructive** — irreversible erasure |
+| `saihm_status` | Status | read-only |
+| `saihm_share` | Share | writes a sharing contract |
+| `saihm_revoke_share` | Revoke share | withdraws a grant |
+| `saihm_governance_propose` | Propose (governance) | opens a proposal |
+| `saihm_governance_vote` | Vote (governance) | casts a vote |
+
+Each tool carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) and a human-readable `title`, so MCP hosts can gate confirmations and agents can select the right tool at reasoning time.
+
 ## Companion package
 
 This package speaks MCP. For production **client-side** cryptography —
@@ -170,7 +185,7 @@ import {
 - **Field universe** (`FIELD_UNIVERSE`) — 280 fields (262 framework + 18 ledger). Templates that project a field outside this set are rejected at validation.
 - **Bespoke template schema** — zod validator + universe-membership check + scope/cap enforcement.
 - **Authorization path validators** — 4 paths: `public` / `self` / `operator-self` / `operator-for-downstream`.
-- **Receipt emission** — 6 sub-kinds (`report_generated` / `report_rejected` / `template_registered` / `template_superseded` / `erasure_chain_broken` / `rate_limit_exceeded`) under a stable HKDF receipt domain.
+- **Receipt emission** — 6 sub-kinds (`report_generated` / `report_rejected` / `template_registered` / `template_superseded` / `erasure_chain_broken` / `rate_limit_exceeded`) under a stable, domain-separated receipt namespace.
 - **Framework smoke** — `registry-attestation` (public auth) for end-to-end plumbing verification.
 
 ### Constraints
@@ -234,7 +249,7 @@ The published npm package has a minimal runtime surface:
 | `tsx` | MIT | TypeScript runner for tests + CLI |
 
 No copyleft, no proprietary dependencies. Cryptographic primitives at the
-operator-endpoint layer (ML-DSA-65 / HKDF / Ed25519) are not bundled into
+operator-endpoint layer (ML-DSA-65 / Ed25519 / key derivation) are not bundled into
 this MCP server; operators implementing the protocol stack are recommended
 to use `@noble/post-quantum` and `@noble/curves` (MIT) rather than rolling
 custom code.

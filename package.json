@@ -1,6 +1,6 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "The open MCP client for SAIHM sovereign agent memory — eight tools (remember · recall · forget · share · govern) any MCP agent uses to reach a SAIHM operator endpoint. Implements the publicly documented SAIHM memory protocol (Independent-Submission Internet-Draft; not an IETF standard). For production client-side post-quantum sealing, pair with @saihm/client-pro. Apache-2.0.",
   "type": "module",
@@ -66,10 +66,16 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "mcp-server",
     "saihm",
     "agent-memory",
     "sovereign-memory",
-    "claude-code"
+    "persistent-memory",
+    "ai-agents",
+    "claude-code",
+    "claude-desktop",
+    "cursor",
+    "gdpr"
   ],
   "license": "Apache-2.0",
   "author": "SAIHM",

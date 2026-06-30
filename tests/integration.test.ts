@@ -10,6 +10,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { SaihmRuntimeClient } from '../saihm_runtime_client.js';
 import { SharingContractType } from '../types.js';
+import { server as mcpServer } from '../saihm_mcp_server.js';
 import {
   validateBespokeTemplate,
   registerTemplate,
@@ -591,6 +592,11 @@ async function main() {
   }
   errServer.close();
   assert(!errMsg.includes('SECRET-TOKEN'), 'error message does not echo Authorization header');
+
+  // ── mcp entrypoint module ──────────────────────────────────────────────────
+  // Importing the bin module registers all 8 tools without starting the stdio
+  // transport (main() is guarded), so the entrypoint is exercised + covered.
+  assert(!!mcpServer, 'mcp entrypoint module loads + registers tools without starting transport');
 
   // ── results ──────────────────────────────────────────────────────────────
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);

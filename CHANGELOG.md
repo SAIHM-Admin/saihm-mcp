@@ -8,6 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-06-30
+
+Discovery release. No protocol or wire-format change; the published JavaScript
+adds machine-readable tool output and a session-bootstrap prompt.
+
+### Added
+
+- **Structured tool output.** `saihm_remember`, `saihm_recall`, and
+  `saihm_status` now advertise an `outputSchema` and return matching
+  `structuredContent`, so MCP hosts and agents can consume typed results instead
+  of parsing prose.
+- **`saihm_session_bootstrap` prompt.** A new MCP prompt (the `prompts`
+  capability is now advertised) that instructs an agent to load its SAIHM memory
+  via `saihm_recall` at the start of a session.
+- README tool-reference table and additional npm `keywords` (`mcp-server`,
+  `persistent-memory`, `ai-agents`, `claude-desktop`, `cursor`, `gdpr`) for
+  discovery.
+
+### Changed
+
+- `server.json` MCP-registry manifest: trimmed the `description` to the
+  registry's length limit, added `websiteUrl`, and synced `version`.
+- Generalized two README references to the receipt and key-derivation internals
+  to describe them by class rather than by construction.
+
+## [0.3.5] — 2026-06-27
+
+Documentation release. No protocol, wire-format, or runtime code change.
+
+### Added
+
+- A "See it run" README section linking the offline cross-model demos and the
+  open token benchmark.
+
+## [0.3.4] — 2026-06-22
+
+Documentation release. No protocol, wire-format, or runtime code change.
+
+### Added
+
+- A prominent "storage is the operator's responsibility (by design)" README
+  section: operators choose and configure their durable backend (a local
+  IPFS/Kubo node first, then a Filecoin deep-archive provider), and may instead
+  Join SAIHM to use the hosted, non-custodial operator (ciphertext only).
+
+### Changed
+
+- Softened the legacy "persisted to Filecoin" wording to operator-configured
+  durable storage.
+
 ## [0.3.3] — 2026-06-22
 
 Documentation release. No protocol, wire-format, or runtime code change;
