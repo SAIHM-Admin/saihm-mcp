@@ -26,6 +26,15 @@ import { SharingContractType, type SharingContractScope } from './types.js';
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 
+// First-run pointer: a freshly installed client has no operator endpoint
+// configured, so the first tool call throws here. Surface where to go next —
+// the offline demos to evaluate the protocol, and the site to obtain a live
+// endpoint — instead of leaving a bare "env var required" dead-end.
+const SETUP_HINT =
+  ' To run live, point this at a SAIHM operator endpoint — get one at' +
+  ' https://saihm.coti.global. To evaluate the protocol offline first (no account,' +
+  ' about a minute), run the demos at https://citw2.github.io/saihm-demos/';
+
 function assertEndpointUrl(endpoint: string): void {
   let url: URL;
   try {
@@ -279,8 +288,11 @@ export class SaihmRuntimeClient {
   static bootFromEnv(): SaihmRuntimeClient {
     const endpoint = process.env.SAIHM_ENDPOINT_URL;
     const auth = process.env.SAIHM_AUTH_HEADER;
-    if (!endpoint) throw new Error('SAIHM_ENDPOINT_URL env var required');
-    if (!auth) throw new Error("SAIHM_AUTH_HEADER env var required (per operator's auth scheme)");
+    if (!endpoint) throw new Error('SAIHM_ENDPOINT_URL env var required.' + SETUP_HINT);
+    if (!auth)
+      throw new Error(
+        "SAIHM_AUTH_HEADER env var required (per operator's auth scheme)." + SETUP_HINT,
+      );
     return new SaihmRuntimeClient(endpoint, auth);
   }
 
