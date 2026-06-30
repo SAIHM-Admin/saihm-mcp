@@ -9,3 +9,7 @@ node_modules/
 /coverage/
 .DS_Store
 .claude/
+# MCP registry publishing (mcp-publisher) — CI-downloaded binary + local auth token
+/mcp-publisher
+/mcp-publisher_*.tar.gz
+.mcpregistry_token

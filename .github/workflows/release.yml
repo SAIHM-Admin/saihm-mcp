@@ -1,8 +1,13 @@
 name: release
 
-# Publishes to npm with provenance via OIDC trusted publishing when a GitHub
-# Release is published. No npm token is used — authentication is OIDC, and npm
-# generates provenance attestations automatically under trusted publishing.
+# On a published GitHub Release this workflow:
+#   1. Publishes the npm package @saihm/mcp-server with provenance via OIDC
+#      trusted publishing. No npm token is used — authentication is OIDC, and npm
+#      generates provenance attestations automatically under trusted publishing.
+#   2. Publishes server.json to the MCP registry (registry.modelcontextprotocol.io)
+#      via GitHub Actions OIDC. The io.github.SAIHM-Admin/* namespace is proven by
+#      the workflow's OIDC claim (repo owner = SAIHM-Admin), so no token or one-time
+#      registry registration is needed — only the id-token:write permission below.
 #
 # PREREQUISITE (one-time, on npmjs.com): register this repo+workflow as a
 # Trusted Publisher for @saihm/mcp-server — package Settings -> Trusted Publisher:
@@ -36,12 +41,16 @@ jobs:
       - name: Use npm >= 11.5.1 (required for OIDC trusted publishing)
         run: npm install -g npm@latest
 
-      - name: Verify package version matches the release tag
+      - name: Verify package + manifest versions match the release tag
         run: |
-          PKG="$(node -p "require('./package.json').version")"
           TAG="${GITHUB_REF_NAME#v}"
-          echo "package.json=$PKG  release-tag=$TAG"
-          test "$PKG" = "$TAG" || { echo "::error::version mismatch ($PKG != $TAG)"; exit 1; }
+          PKG="$(node -p "require('./package.json').version")"
+          SRV="$(node -p "require('./server.json').version")"
+          SRVPKG="$(node -p "require('./server.json').packages[0].version")"
+          echo "package.json=$PKG  server.json=$SRV  server.json.packages[0]=$SRVPKG  release-tag=$TAG"
+          test "$PKG" = "$TAG"    || { echo "::error::package.json version mismatch ($PKG != $TAG)"; exit 1; }
+          test "$SRV" = "$TAG"    || { echo "::error::server.json version mismatch ($SRV != $TAG)"; exit 1; }
+          test "$SRVPKG" = "$TAG" || { echo "::error::server.json packages[0].version mismatch ($SRVPKG != $TAG)"; exit 1; }
 
       - name: Install
         run: npm ci
@@ -57,3 +66,28 @@ jobs:
 
       - name: Publish (OIDC trusted publishing — provenance is automatic)
         run: npm publish
+
+      # Publish the server.json manifest to the MCP registry. Runs AFTER npm publish
+      # because the registry verifies that the npm package carries our `mcpName`.
+      # mcp-publisher is pinned by version + sha256; auth is GitHub Actions OIDC.
+      - name: Publish server.json to the MCP registry (GitHub OIDC)
+        run: |
+          set -euo pipefail
+          PUBLISHER_VERSION=v1.7.9
+          SHA256=ab128162b0616090b47cf245afe0a23f3ef08936fdce19074f5ba0a4469281ac
+          TARBALL=mcp-publisher_linux_amd64.tar.gz
+          curl -fsSL -o "$TARBALL" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${PUBLISHER_VERSION}/${TARBALL}"
+          echo "${SHA256}  ${TARBALL}" | sha256sum -c -
+          tar -xzf "$TARBALL" mcp-publisher
+          chmod +x mcp-publisher
+          ./mcp-publisher login github-oidc
+          # npm publish may still be propagating to the registry mcp-publisher reads
+          # to verify the package carries our mcpName — retry a few times before failing.
+          n=0
+          until ./mcp-publisher publish; do
+            n=$((n + 1))
+            if [ "$n" -ge 5 ]; then echo "::error::MCP registry publish failed after $n attempts"; exit 1; fi
+            echo "registry publish attempt $n failed (npm may still be propagating); retrying in 15s..."
+            sleep 15
+          done
