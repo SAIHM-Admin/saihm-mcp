@@ -24,12 +24,26 @@ import { SharingContractType, type SharingContractScope } from './types.js';
 // Source the MCP-server version string from package.json so the
 // version reported via `initialize`'s `serverInfo` always matches the
 // npm-published version. The compiled output lives at
-// `dist/saihm_mcp_server.js`; `package.json` is one directory up.
-const PACKAGE_VERSION: string = (
-  JSON.parse(
-    readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf-8'),
-  ) as { version: string }
-).version;
+// `dist/saihm_mcp_server.js`, so `package.json` is one directory up — but
+// when this module is imported as TypeScript source (tests/coverage) that
+// relative path points above the repo root, so fall back to the cwd copy and
+// finally a safe placeholder. Importing the module must never throw.
+function readPackageVersion(): string {
+  const candidates = [
+    join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), // shipped: dist/ -> package root
+    join(process.cwd(), 'package.json'), // source run from repo root (tests)
+  ];
+  for (const p of candidates) {
+    try {
+      const v = (JSON.parse(readFileSync(p, 'utf-8')) as { version?: string }).version;
+      if (typeof v === 'string' && v) return v;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return '0.0.0-dev';
+}
+const PACKAGE_VERSION: string = readPackageVersion();
 
 const server = new McpServer(
   { name: 'saihm', version: PACKAGE_VERSION },
