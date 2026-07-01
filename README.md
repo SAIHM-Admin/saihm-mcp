@@ -6,6 +6,8 @@
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
+> **Evaluate it offline first:** runnable demos across every major model, no account needed — **[See it run](#see-it-run)**.
+
 ## What this is
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server
