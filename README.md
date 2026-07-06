@@ -80,12 +80,13 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 ```
 
 > **Don't have an endpoint and token yet?** They're issued by a SAIHM *operator*.
-> The quickest path is the **free tier** — sign in with GitHub, no card (see
-> [Start free](#start-free-sign-in-with-github) below). Otherwise **join the
-> hosted SAIHM service** at <https://saihm.coti.global> (managed, non-custodial
-> storage — see [Join SAIHM](#prefer-not-to-run-storage-yourself-join-saihm)
-> below), or **run your own operator endpoint**. Until one is configured, the
-> tools have nowhere to reach and will return an error.
+> The quickest path is a **free trial** — sign in with GitHub, no card, for
+> testing on real infrastructure (see [Free trial](#free-trial-sign-in-with-github)
+> below). Otherwise **join the hosted SAIHM service** at
+> <https://saihm.coti.global> (managed, non-custodial storage — see
+> [Join SAIHM](#prefer-not-to-run-storage-yourself-join-saihm) below), or
+> **run your own operator endpoint**. Until one is configured, the tools have
+> nowhere to reach and will return an error.
 
 - **`SAIHM_ENDPOINT_URL`** — the SAIHM operator endpoint. Operators publish
   their endpoint URLs at <https://saihm.coti.global>.
@@ -98,11 +99,11 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 Place these in a `.env` file alongside the server (the `.gitignore` excludes
 all `.env*` files from any future repo).
 
-## Start free (sign in with GitHub)
+## Free trial (sign in with GitHub)
 
-You don't need a paid endpoint to run SAIHM for real. Activate a **free tier** —
-a one-time, lifetime memory allowance, no card — by proving you're a unique
-person once through a GitHub device sign-in. This runs through the non-custodial
+Want to test SAIHM on real infrastructure before you pay? Start a **free trial**
+— for testing purposes, no card — by proving you're a unique person once through
+a GitHub device sign-in. It runs through the non-custodial
 [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)
 client, which seals cells on your own machine so the operator stays blind:
 
@@ -115,10 +116,11 @@ It prints a short code and a link: open <https://github.com/login/device> in
 your browser and enter the code. The sign-in stays in your browser — this
 client never sees or holds your GitHub token; it is exchanged server-side and
 kept ephemeral. When `free-join` returns, start the server normally (drop
-`free-join`) and it self-onboards on the free tier.
+`free-join`) and it self-onboards on the free trial. **No card, and nothing to
+cancel** — it's a fixed, one-time allowance, not an auto-renewing subscription.
 
-When you outgrow the free allowance, upgrade in place to a **monthly** plan —
-same signing key, same memories, no re-onboarding.
+Ready for production? Upgrade in place to a **monthly** plan — same signing key,
+same memories, no re-onboarding.
 
 ## Wire into Claude Code
 
