@@ -80,6 +80,10 @@
   "license": "Apache-2.0",
   "author": "SAIHM",
   "homepage": "https://saihm.coti.global",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/SAIHM-Admin"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SAIHM-Admin/saihm-mcp.git"

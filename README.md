@@ -336,6 +336,14 @@ Near-term tracks:
   RFC-Editor review — not an IETF-consensus standard; v1.0 reference
   implementation.
 
+## Support
+
+SAIHM is developed and maintained by a solo founder. If it's useful to you or
+your organization, please consider
+**[sponsoring the project](https://github.com/sponsors/SAIHM-Admin)** — it funds
+continued protocol, client, and open-standards work and keeps this open
+reference implementation maintained.
+
 ## License
 
 Apache-2.0 — see [`LICENSE`](./LICENSE).
