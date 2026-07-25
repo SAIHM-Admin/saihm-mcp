@@ -292,10 +292,13 @@ custom code.
 
 - **OpenSSF Best Practices Passing badge** — project 12898, 100% Passing
   criteria (2026-05-19). <https://www.bestpractices.dev/projects/12898>
-- **IETF Independent Submission Stream** — `draft-saihm-memory-protocol-01`
-  (2026-05-27) is *In ISE Review* in the Independent Submission Stream. It is
+- **IETF** — `draft-saihm-memory-protocol-01` (2026-05-27) was submitted to the
+  Independent Submission Stream; on 2026-07-25 the ISE concluded its consideration
+  and released it from the queue (datatracker stream now None), directing the work
+  toward IETF working-group activity (the `agentproto` effort). It is
   **not an Internet Standard, is not endorsed by the IETF, and has no formal
-  standing in the IETF standards process.**
+  standing in the IETF standards process.** The `-01` draft remains available on
+  the datatracker as the current reference text.
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
 - **npm registry** — `@saihm/mcp-server@0.3.4` published (2026-06-22) adds a
   conspicuous "Storage is the operator's responsibility (by design)" section —
