@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] — 2026-07-28
+
+Onboarding release. Documentation and first-run guidance only — no protocol,
+wire-format, or tool-surface change, and this package remains crypto-free.
+
+### Fixed
+
+- **The first-run error was a dead end.** A fresh install has no operator
+  endpoint, so the first tool call throws — and the message offered only a
+  website and the offline demos. It now names the free path explicitly
+  (`npx -y @saihm/mcp-server-pro free-join`) alongside the operator route and
+  the demos, so an agent that hits the error can act on it.
+- **The documented free-trial command could not work.** The quickstart omitted
+  `SAIHM_ENDPOINT_URL` and the master secret, so it failed with
+  `SAIHM_ENDPOINT_URL env var required`. Corrected to a working sequence,
+  including how to generate the secret.
+
+### Changed
+
+- **"Companion package" pointed only at `@saihm/client-pro`**, a library. It now
+  names `@saihm/mcp-server-pro` first — the drop-in MCP server that performs the
+  client-side cryptography itself and can self-onboard, including the free
+  trial — and describes `@saihm/client-pro` as the embeddable library.
+- The free trial is now surfaced at the top of the README, ahead of the offline
+  demos, instead of below the configuration section that assumes an endpoint.
+
 ## [0.3.6] — 2026-06-30
 
 Discovery release. No protocol or wire-format change; the published JavaScript

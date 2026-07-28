@@ -6,7 +6,10 @@
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 
-> **Evaluate it offline first:** runnable demos across every major model, no account needed — **[See it run](#see-it-run)**.
+> **Start free, no card** — on real infrastructure, via a GitHub sign-in:
+> **[Free trial](#free-trial-sign-in-with-github)**.
+> Or **evaluate it offline first:** runnable demos across every major model, no
+> account needed — **[See it run](#see-it-run)**.
 
 ## What this is
 
@@ -43,10 +46,17 @@ Each tool carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempoten
 
 ## Companion package
 
-This package speaks MCP. For production **client-side** cryptography —
-post-quantum sealing, authenticated sharing, and provable erasure performed on
-your own machine so the operator stays blind — pair it with
-[`@saihm/client-pro`](https://www.npmjs.com/package/@saihm/client-pro).
+This package speaks MCP and holds no cryptography, so it always needs an
+operator endpoint and token. Two companions cover the rest:
+
+- **[`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)**
+  — a drop-in MCP server that performs the client-side cryptography itself and
+  can **self-onboard**, including the free tier. This is the package to use if
+  you have no endpoint yet — see [Free trial](#free-trial-sign-in-with-github).
+- **[`@saihm/client-pro`](https://www.npmjs.com/package/@saihm/client-pro)** —
+  the same client-side cryptography as a library, for embedding in your own
+  application: post-quantum sealing, authenticated sharing, and provable
+  erasure performed on your own machine so the operator stays blind.
 
 ## See it run
 
@@ -105,9 +115,20 @@ Want to test SAIHM on real infrastructure before you pay? Start a **free trial**
 — for testing purposes, no card — by proving you're a unique person once through
 a GitHub device sign-in. It runs through the non-custodial
 [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)
-client, which seals cells on your own machine so the operator stays blind:
+client, which seals cells on your own machine so the operator stays blind.
+
+First generate your master secret — it never leaves your machine, and it is the
+only key to your memory:
 
 ```bash
+openssl rand -hex 32 > saihm-master.key && chmod 600 saihm-master.key
+```
+
+Then activate:
+
+```bash
+SAIHM_ENDPOINT_URL=https://saihm.coti.global/mcp \
+SAIHM_MASTER_SECRET_FILE=./saihm-master.key \
 SAIHM_TIER=FREE \
   npx -y @saihm/mcp-server-pro free-join
 ```

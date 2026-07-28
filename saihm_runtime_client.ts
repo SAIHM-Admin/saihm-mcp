@@ -27,13 +27,17 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 
 // First-run pointer: a freshly installed client has no operator endpoint
-// configured, so the first tool call throws here. Surface where to go next —
-// the offline demos to evaluate the protocol, and the site to obtain a live
-// endpoint — instead of leaving a bare "env var required" dead-end.
+// configured, so the first tool call throws here. Surface every onward path —
+// the free tier (which activates through the non-custodial companion client,
+// since this package stays crypto-free), an operator endpoint for this client,
+// and the offline demos — instead of a bare "env var required" dead-end.
 const SETUP_HINT =
-  ' To run live, point this at a SAIHM operator endpoint — get one at' +
-  ' https://saihm.coti.global. To evaluate the protocol offline first (no account,' +
-  ' about a minute), run the demos at https://citw2.github.io/saihm-demos/';
+  ' Start free, no card: `npx -y @saihm/mcp-server-pro free-join` — the' +
+  ' non-custodial companion client, which seals on your own machine; see its' +
+  ' README for the one-time setup. To use THIS client against an operator' +
+  ' instead, set SAIHM_ENDPOINT_URL and SAIHM_AUTH_HEADER; endpoints are issued' +
+  ' at https://saihm.coti.global. To evaluate the protocol offline first (no' +
+  ' account, about a minute), run the demos at https://citw2.github.io/saihm-demos/';
 
 function assertEndpointUrl(endpoint: string): void {
   let url: URL;
