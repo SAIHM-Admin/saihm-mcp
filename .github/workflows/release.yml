@@ -32,7 +32,7 @@ jobs:
       # .npmrc with a placeholder NODE_AUTH_TOKEN that shadows OIDC (npm then never
       # reaches trusted publishing). Omitting it leaves no auth line, so npm engages
       # OIDC on the default registry. access:public comes from package.json.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
