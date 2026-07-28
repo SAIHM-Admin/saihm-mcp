@@ -34,9 +34,12 @@ const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 const SETUP_HINT =
   ' Start free, no card: `npx -y @saihm/mcp-server-pro free-join` — the' +
   ' non-custodial companion client, which seals on your own machine; see its' +
-  ' README for the one-time setup. To use THIS client against an operator' +
-  ' instead, set SAIHM_ENDPOINT_URL and SAIHM_AUTH_HEADER; endpoints are issued' +
-  ' at https://saihm.coti.global. To evaluate the protocol offline first (no' +
+  ' README for the one-time setup. That is also the client for the hosted SAIHM' +
+  ' service at https://saihm.coti.global: it is non-custodial and stores only' +
+  ' ciphertext, so this crypto-free client cannot read memory held there. To use' +
+  ' THIS client, set SAIHM_ENDPOINT_URL and SAIHM_AUTH_HEADER for a custodial' +
+  ' operator that performs cryptography server-side. To evaluate the protocol' +
+  ' offline first (no' +
   ' account, about a minute), run the demos at https://citw2.github.io/saihm-demos/';
 
 function assertEndpointUrl(endpoint: string): void {
@@ -181,6 +184,14 @@ export interface GovernanceEntry {
 export interface StatusSnapshot {
   // ────────── operator-extension fields (0.1.x / 0.2.x; retained) ──────────
   agentIdHashHex: string;
+  /**
+   * The operator's custody model, when it declares one. `"non-custodial"` means
+   * the operator holds ciphertext and no keys — it therefore cannot report
+   * stored-byte totals or return plaintext, and the fields below that depend on
+   * reading cell contents will be absent. Optional: operators that predate this
+   * field, or that are custodial, simply omit it.
+   */
+  custody?: string;
   prsScore: number;
   prsLevel: string;
   bfsiScore: number;

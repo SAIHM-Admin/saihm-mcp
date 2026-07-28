@@ -90,16 +90,26 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 ```
 
 > **Don't have an endpoint and token yet?** They're issued by a SAIHM *operator*.
-> The quickest path is a **free trial** — sign in with GitHub, no card, for
-> testing on real infrastructure (see [Free trial](#free-trial-sign-in-with-github)
-> below). Otherwise **join the hosted SAIHM service** at
-> <https://saihm.coti.global> (managed, non-custodial storage — see
-> [Join SAIHM](#prefer-not-to-run-storage-yourself-join-saihm) below), or
-> **run your own operator endpoint**. Until one is configured, the tools have
-> nowhere to reach and will return an error.
+> This package is deliberately **crypto-free**, so it needs a **custodial**
+> operator — one that performs cryptography server-side and returns plaintext.
+>
+> **The hosted SAIHM service at <https://saihm.coti.global> is not one.** It is
+> non-custodial by design: it stores only ciphertext and never holds your keys,
+> so cells sealed there can only be opened by a client that holds them. To use
+> the hosted service — including the **free trial** (sign in with GitHub, no
+> card) — use
+> **[`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)**,
+> which seals and opens on your own machine. See
+> [Free trial](#free-trial-sign-in-with-github) and
+> [Join SAIHM](#prefer-not-to-run-storage-yourself-join-saihm) below.
+>
+> Use *this* package against a custodial operator you run or subscribe to.
+> Until one is configured, the tools have nowhere to reach and will return an
+> error.
 
-- **`SAIHM_ENDPOINT_URL`** — the SAIHM operator endpoint. Operators publish
-  their endpoint URLs at <https://saihm.coti.global>.
+- **`SAIHM_ENDPOINT_URL`** — the endpoint of the **custodial** SAIHM operator you
+  run or subscribe to. Not the hosted service at <https://saihm.coti.global>,
+  which is non-custodial — see the note above.
 - **`SAIHM_AUTH_HEADER`** — the `Authorization` header value the operator
   expects (typically a `Bearer <token>` issued to you after key-bound
   enrolment). The server is authentication-agnostic and **never transmits

@@ -11,6 +11,8 @@ import type { AddressInfo } from 'node:net';
 import { SaihmRuntimeClient } from '../saihm_runtime_client.js';
 import { SharingContractType } from '../types.js';
 import { server as mcpServer } from '../saihm_mcp_server.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import {
   validateBespokeTemplate,
   registerTemplate,
@@ -597,6 +599,157 @@ async function main() {
   // Importing the bin module registers all 8 tools without starting the stdio
   // transport (main() is guarded), so the entrypoint is exercised + covered.
   assert(!!mcpServer, 'mcp entrypoint module loads + registers tools without starting transport');
+
+  // ── operator custody profiles ─────────────────────────────────────────────
+  // An operator answers only what its custody model lets it see. A non-custodial
+  // one holds ciphertext and no keys, so it reports no stored-byte totals and
+  // returns no plaintext. Before 0.3.10 that surfaced as a raw
+  // "Cannot convert undefined or null to object" from Object.entries() on status,
+  // and as an output-schema violation on recall — both useless to a user. They
+  // must now be accurate and actionable, and a custodial operator must be
+  // entirely unaffected (the degradation is additive, never a rewrite).
+  group('operator custody profiles');
+
+  const [clientTx, serverTx] = InMemoryTransport.createLinkedPair();
+  const mcpClient = new Client({ name: 'custody-profile-test', version: '0' });
+  await Promise.all([mcpClient.connect(clientTx), mcpServer.connect(serverTx)]);
+
+  const textOf = (r: { content?: unknown }): string => {
+    const parts = (r.content ?? []) as Array<{ type: string; text?: string }>;
+    return parts.map((p) => p.text ?? '').join('\n');
+  };
+
+  const savedResponder = responder.for;
+
+  // Field-for-field the shape the non-custodial operator returns: no storageByTier,
+  // no stakingPosition, no phi, no prsScore/prsLevel/bfsiScore/feeDiscountPct.
+  responder.for = (m) =>
+    m === 'saihm_status'
+      ? {
+          agentIdHashHex: 'f0'.repeat(32),
+          tier: 'FREE',
+          activeShardCount: 86,
+          activeSharingContracts: 11,
+          bfsi: 1.0,
+          bfsi_R: '0',
+          bfsi_M: '0',
+          prsInstrumented: false,
+          snapshotEpoch: '495909',
+          custody: 'non-custodial',
+        }
+      : // recall from a blind operator: sealed cells, no plaintext for us to show
+        [{ cellId: 'aa'.repeat(32), cellNonce: 'cc'.repeat(16), kekVersion: 1 }];
+
+  const ncStatus = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const ncText = textOf(ncStatus);
+  assert(ncStatus.isError !== true, 'non-custodial status does not error');
+  assert(
+    ncText.includes('custody=non-custodial') && ncText.includes('shards=86'),
+    'non-custodial status reports what the operator does provide',
+  );
+  assert(
+    ncText.includes('PRS: not reported by this operator'),
+    'non-custodial status names PRS as unreported rather than silently dropping it',
+  );
+  assert(
+    ncText.includes('@saihm/mcp-server-pro'),
+    'non-custodial status points at the client that can read the memory',
+  );
+
+  const ncRecall = await mcpClient.callTool({ name: 'saihm_recall', arguments: {} });
+  const ncRecallText = textOf(ncRecall);
+  assert(ncRecall.isError === true, 'recall from a non-custodial operator is a clear failure');
+  assert(
+    ncRecallText.includes('non-custodial') && ncRecallText.includes('@saihm/mcp-server-pro'),
+    'recall failure explains why and names the client that works',
+  );
+  assert(
+    !/Cannot convert undefined|Output validation error/.test(ncRecallText),
+    'recall failure is an explanation, not a raw runtime or schema error',
+  );
+
+  // Degenerate case: an operator that answers status with nothing at all. The point
+  // of the change is that a thin client survives a thin response, so this must still
+  // produce usable output rather than a runtime or schema error.
+  responder.for = () => ({});
+  const bare = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const bareText = textOf(bare);
+  assert(bare.isError !== true, 'status survives an empty operator response');
+  assert(
+    !/shards=0|sharing=0|epoch=n\/a/.test(bareText),
+    'an empty status response invents no zero counts or placeholder epoch',
+  );
+
+  // A PARTIALLY sealed response is a different fault from a non-custodial operator.
+  // Blaming custody for it would send the user to the wrong fix, so it must report
+  // the shortfall instead.
+  responder.for = () => [
+    { cellId: 'aa'.repeat(32), cellNonce: 'cc'.repeat(16), kekVersion: 1, plaintext: 'readable' },
+    { cellId: 'bb'.repeat(32), cellNonce: 'dd'.repeat(16), kekVersion: 1 },
+  ];
+  const partial = await mcpClient.callTool({ name: 'saihm_recall', arguments: {} });
+  const partialText = textOf(partial);
+  assert(partial.isError === true, 'partially sealed recall is a failure');
+  assert(
+    partialText.includes('1 of 2 cells without plaintext'),
+    'partially sealed recall reports the shortfall precisely',
+  );
+  assert(
+    !partialText.includes('non-custodial'),
+    'a partial shortfall is not misdiagnosed as a non-custodial operator',
+  );
+
+  // Custodial regression: every field present ⇒ output identical to pre-0.3.10,
+  // with none of the degradation notices leaking in.
+  responder.for = (m) =>
+    m === 'saihm_status'
+      ? {
+          agentIdHashHex: 'f0'.repeat(32),
+          prsScore: 0.97,
+          prsLevel: 'HIGH',
+          bfsiScore: 0.9312,
+          feeDiscountPct: 0.15,
+          activeShardCount: 86,
+          storageByTier: { FILECOIN: 1234567 },
+          stakingPosition: { amountNcoti: '5000', accruedYieldNcoti: '42' },
+          activeSharingContracts: 11,
+          phi: 0.5,
+          snapshotEpoch: '495909',
+          prs: 0.97,
+          bfsi: 0.9312,
+          bfsi_window_start_ts: '1700000000',
+          bfsi_R: '3',
+          bfsi_M: '44',
+          shards: { FILECOIN: 86 },
+          contracts: [],
+          governance: [],
+        }
+      : savedResponder(m);
+
+  const cuStatus = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const cuText = textOf(cuStatus);
+  assert(
+    cuText.includes('PRS=0.97 (HIGH)') && cuText.includes('FILECOIN=1234567B'),
+    'custodial status still renders the full snapshot',
+  );
+  assert(
+    cuText.includes('staking=5000nCOTI') && cuText.includes('PHI=0.500'),
+    'custodial status still renders staking and PHI',
+  );
+  assert(
+    !/non-custodial|not reported by this operator/.test(cuText),
+    'no degradation notice leaks into a custodial operator response',
+  );
+
+  const cuRecall = await mcpClient.callTool({ name: 'saihm_recall', arguments: {} });
+  assert(cuRecall.isError !== true, 'custodial recall still succeeds');
+  assert(
+    textOf(cuRecall).includes('hello'),
+    'custodial recall still returns operator-decrypted plaintext',
+  );
+
+  responder.for = savedResponder;
+  await mcpClient.close();
 
   // ── results ──────────────────────────────────────────────────────────────
   console.log(`\n=== ${pass} passed, ${fail} failed ===`);

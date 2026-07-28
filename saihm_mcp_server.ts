@@ -18,7 +18,7 @@ import { dirname, join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { SaihmRuntimeClient } from './saihm_runtime_client.js';
+import { SaihmRuntimeClient, type StatusSnapshot } from './saihm_runtime_client.js';
 import { SharingContractType, type SharingContractScope } from './types.js';
 
 // Source the MCP-server version string from package.json so the
@@ -132,6 +132,32 @@ server.registerTool(
   },
   async ({ query }) => {
     const cells = await getRuntime().recall(query);
+
+    // A non-custodial operator returns sealed cells and expects the CLIENT to open
+    // them. This package is deliberately crypto-free, so it holds no keys and there
+    // is no plaintext to return. Say so precisely and name the client that can — a
+    // permissive fallback here would report empty or sealed "memories" as if the
+    // recall had succeeded, which is worse than a clear refusal.
+    //
+    // Distinguish ALL-sealed from SOME-sealed: only the former is diagnostic of a
+    // non-custodial operator. A custodial operator that omits plaintext on part of a
+    // response (a tombstoned or unreadable cell, say) is a different fault, and
+    // blaming custody for it would send the user to the wrong fix.
+    const sealed = cells.filter((c) => typeof c.plaintext !== 'string');
+    if (sealed.length > 0 && sealed.length === cells.length)
+      throw new Error(
+        'This operator is non-custodial: it stores only ciphertext and this client' +
+          ' holds no decryption keys, so it cannot read your memories. Use' +
+          ' @saihm/mcp-server-pro, which seals and opens cells on your own machine:' +
+          ' npx -y @saihm/mcp-server-pro free-join',
+      );
+    if (sealed.length > 0)
+      throw new Error(
+        `Operator returned ${sealed.length} of ${cells.length} cells without plaintext` +
+          ` (first: ${sealed[0].cellId}). This client cannot decrypt, so the recall is` +
+          ' incomplete; report this to your operator.',
+      );
+
     const memories = cells.map((c) => ({
       cellId: c.cellId,
       kekVersion: String(c.kekVersion),
@@ -194,18 +220,23 @@ server.registerTool(
   {
     title: 'Status',
     description:
-      'Show SAIHM session status (PRS, BFSI, storage by tier, sharing, PHI). Use this to check the agent identity, reputation, storage, and sharing state of the current SAIHM session.',
+      'Show SAIHM session status (PRS, BFSI, storage by tier, sharing, PHI), as far as the operator reports them — a non-custodial operator cannot see stored-byte totals. Use this to check the agent identity, reputation, storage, and sharing state of the current SAIHM session.',
     inputSchema: {},
+    // Which of these an operator can answer depends on its custody model, so every
+    // field a non-custodial operator cannot see is optional. Only the four an
+    // operator reports whatever its model — identity, shard count, sharing count and
+    // epoch — stay required. See the handler for why absence is not an error.
     outputSchema: {
       agentIdHash: z.string(),
-      prsScore: z.string(),
-      prsLevel: z.string(),
-      bfsiScore: z.number(),
-      feeDiscountPct: z.number(),
-      activeShardCount: z.number(),
-      activeSharingContracts: z.number(),
-      phi: z.number(),
-      snapshotEpoch: z.string(),
+      custody: z.string().optional(),
+      prsScore: z.string().optional(),
+      prsLevel: z.string().optional(),
+      bfsiScore: z.number().optional(),
+      feeDiscountPct: z.number().optional(),
+      activeShardCount: z.number().optional(),
+      activeSharingContracts: z.number().optional(),
+      phi: z.number().optional(),
+      snapshotEpoch: z.string().optional(),
     },
     annotations: {
       title: 'Status',
@@ -216,27 +247,85 @@ server.registerTool(
     },
   },
   async () => {
-    const d = await getRuntime().status();
-    const tiers = Object.entries(d.storageByTier)
+    // StatusSnapshot describes a fully custodial operator. A non-custodial one holds
+    // ciphertext and no keys, so per-tier byte totals, staking, PHI and PRS do not
+    // exist on its side at all — their absence is the honest answer, not a fault.
+    // Read the response as partial so the compiler forces a check on every field
+    // rather than trusting the interface: the wire decides what is present.
+    const d = (await getRuntime().status()) as Partial<StatusSnapshot>;
+
+    const lines = ['SAIHM Session'];
+    lines.push(
+      `  agent=${(d.agentIdHashHex ?? '').slice(0, 16)}…` +
+        (d.custody ? `  custody=${d.custody}` : ''),
+    );
+
+    // PRS/BFSI/fee discount: report each only where the operator actually supplies it.
+    const rep: string[] = [];
+    if (d.prsScore !== undefined) rep.push(`PRS=${d.prsScore} (${d.prsLevel ?? 'n/a'})`);
+    if (d.bfsiScore !== undefined) rep.push(`BFSI=${d.bfsiScore.toFixed(3)}`);
+    else if (d.bfsi !== undefined) rep.push(`BFSI=${d.bfsi.toFixed(3)}`);
+    if (d.feeDiscountPct !== undefined)
+      rep.push(`feeDiscount=${(d.feeDiscountPct * 100).toFixed(1)}%`);
+    if (rep.length > 0) lines.push(`  ${rep.join('  ')}`);
+
+    const tiers = Object.entries(d.storageByTier ?? {})
       .map(([t, b]) => `${t}=${b}B`)
       .join(' ');
+    const shardBits: string[] = [];
+    if (d.activeShardCount !== undefined) shardBits.push(`shards=${d.activeShardCount}`);
+    if (tiers) shardBits.push(tiers);
+    if (shardBits.length > 0) lines.push(`  ${shardBits.join('  ')}`);
+
+    if (d.stakingPosition)
+      lines.push(
+        `  staking=${d.stakingPosition.amountNcoti}nCOTI yield=${d.stakingPosition.accruedYieldNcoti}nCOTI`,
+      );
+
+    const sessionBits: string[] = [];
+    if (d.activeSharingContracts !== undefined)
+      sessionBits.push(`sharing=${d.activeSharingContracts}`);
+    if (d.phi !== undefined) sessionBits.push(`PHI=${d.phi.toFixed(3)}`);
+    if (d.snapshotEpoch !== undefined) sessionBits.push(`epoch=${d.snapshotEpoch}`);
+    if (sessionBits.length > 0) lines.push(`  ${sessionBits.join('  ')}`);
+
+    if (d.prs !== undefined || d.contracts || d.governance)
+      lines.push(
+        `  §3.4: prs=${d.prs?.toFixed(3) ?? 'n/a'} bfsi=${d.bfsi?.toFixed(3) ?? 'n/a'}` +
+          ` (R=${d.bfsi_R ?? 'n/a'} M=${d.bfsi_M ?? 'n/a'} win=${d.bfsi_window_start_ts ?? 'n/a'})` +
+          ` contracts=${d.contracts?.length ?? 0} governance=${d.governance?.length ?? 0}`,
+      );
+
+    // Name what this operator structurally cannot answer, so an absent PRS reads as a
+    // property of its custody model rather than as a client that failed to display it.
+    if (d.prsScore === undefined)
+      lines.push('  PRS: not reported by this operator');
+    if (d.custody === 'non-custodial')
+      lines.push(
+        '  This operator is non-custodial: it stores only ciphertext, so it cannot' +
+          ' report stored-byte totals or read your memories. Use @saihm/mcp-server-pro' +
+          ' to read memory held by a non-custodial operator.',
+      );
+
     return {
-      content: [
-        {
-          type: 'text' as const,
-          text: `SAIHM Session\n  agent=${d.agentIdHashHex.slice(0, 16)}…\n  PRS=${d.prsScore} (${d.prsLevel})  BFSI=${d.bfsiScore.toFixed(3)}  feeDiscount=${(d.feeDiscountPct * 100).toFixed(1)}%\n  shards=${d.activeShardCount}  ${tiers}\n  staking=${d.stakingPosition.amountNcoti}nCOTI yield=${d.stakingPosition.accruedYieldNcoti}nCOTI\n  sharing=${d.activeSharingContracts}  PHI=${d.phi.toFixed(3)}  epoch=${d.snapshotEpoch}\n  §3.4: prs=${d.prs.toFixed(3)} bfsi=${d.bfsi.toFixed(3)} (R=${d.bfsi_R} M=${d.bfsi_M} win=${d.bfsi_window_start_ts}) contracts=${d.contracts.length} governance=${d.governance.length}`,
-        },
-      ],
+      content: [{ type: 'text' as const, text: lines.join('\n') }],
       structuredContent: {
-        agentIdHash: d.agentIdHashHex,
-        prsScore: String(d.prsScore),
-        prsLevel: String(d.prsLevel),
-        bfsiScore: d.bfsiScore,
-        feeDiscountPct: d.feeDiscountPct,
-        activeShardCount: Number(d.activeShardCount),
-        activeSharingContracts: Number(d.activeSharingContracts),
-        phi: d.phi,
-        snapshotEpoch: String(d.snapshotEpoch),
+        agentIdHash: d.agentIdHashHex ?? '',
+        ...(d.custody !== undefined ? { custody: d.custody } : {}),
+        ...(d.prsScore !== undefined ? { prsScore: String(d.prsScore) } : {}),
+        ...(d.prsLevel !== undefined ? { prsLevel: String(d.prsLevel) } : {}),
+        ...(d.bfsiScore !== undefined ? { bfsiScore: d.bfsiScore } : {}),
+        ...(d.feeDiscountPct !== undefined ? { feeDiscountPct: d.feeDiscountPct } : {}),
+        // Omit rather than default: a fabricated 0 reads as "you have no shards"
+        // and an empty epoch reads as fact. Absence is the truthful signal.
+        ...(d.activeShardCount !== undefined
+          ? { activeShardCount: Number(d.activeShardCount) }
+          : {}),
+        ...(d.activeSharingContracts !== undefined
+          ? { activeSharingContracts: Number(d.activeSharingContracts) }
+          : {}),
+        ...(d.phi !== undefined ? { phi: d.phi } : {}),
+        ...(d.snapshotEpoch !== undefined ? { snapshotEpoch: String(d.snapshotEpoch) } : {}),
       },
     };
   },

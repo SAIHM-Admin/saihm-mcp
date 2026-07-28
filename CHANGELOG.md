@@ -8,6 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.10] — 2026-07-28
+
+### Fixed
+
+- **`saihm_status` and `saihm_recall` no longer fail against a non-custodial
+  operator.** An operator only reports what its custody model lets it see: one
+  that holds ciphertext and no keys has no stored-byte totals to report and no
+  plaintext to return. `saihm_status` assumed every field was always present and
+  crashed with `Cannot convert undefined or null to object` on the first absent
+  one; `saihm_recall` returned cells with no `plaintext` and failed its own
+  output schema. `saihm_status` now reports whatever the operator does provide
+  and names what it cannot, and `saihm_recall` explains that the operator is
+  non-custodial and points to
+  [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro),
+  which seals and opens cells on your own machine. A partially sealed response is
+  reported as its own distinct fault rather than blamed on custody. Output for a
+  fully custodial operator is unchanged.
+- **Absent fields are omitted, never defaulted.** A fabricated `shards=0` reads
+  as "you have no memories"; an empty epoch reads as fact. Both are now left out.
+
+### Changed
+
+- **Corrected setup guidance that pointed this client at an incompatible
+  service.** The README and the first-run hint directed readers to the hosted
+  SAIHM service at <https://saihm.coti.global> for an endpoint and token. That
+  service is non-custodial by design and cannot serve this deliberately
+  crypto-free client. Both now state that plainly and route hosted-service users
+  — including the free trial — to `@saihm/mcp-server-pro`, and describe
+  `SAIHM_ENDPOINT_URL` as a **custodial** operator you run or subscribe to.
+
+### Added
+
+- `StatusSnapshot.custody` (optional) — the operator's declared custody model.
+
 ## [0.3.9] — 2026-07-28
 
 Onboarding release. Documentation and first-run guidance only — no protocol,
@@ -477,7 +511,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.9...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.10...HEAD
+[0.3.10]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.10
 [0.3.9]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.9
 [0.3.8]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.8
 [0.3.7]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.7
