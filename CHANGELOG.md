@@ -34,6 +34,60 @@ wire-format, or tool-surface change, and this package remains crypto-free.
 - The free trial is now surfaced at the top of the README, ahead of the offline
   demos, instead of below the configuration section that assumes an endpoint.
 
+## [0.3.8] — 2026-07-01
+
+Discovery release. Registry and README metadata only — no protocol,
+wire-format, or runtime code change, and this package remains crypto-free.
+
+### Changed
+
+- **The offline demos are now visible before the install decision.** Someone
+  reading the npm or MCP-registry listing had no signal that the protocol can
+  be evaluated without an account. A one-line evaluate-it-offline pointer was
+  added at the top of the README (above "What this is"), to the npm
+  `description`, and to the `server.json` registry `description`.
+- The `server.json` description was rewritten to fit the registry's length
+  limit while making room for the demos: dropped "Post-quantum" and shortened
+  "persistent memory" to "memory", producing
+  `Sovereign encrypted memory for AI agents. 8 MCP tools. GDPR erasure. Runnable offline demos.`
+
+## [0.3.7] — 2026-06-30
+
+Distribution and first-run release. Adds registry/directory metadata and
+automates MCP-registry publishing; the only runtime change is the text of two
+configuration error messages. No protocol or wire-format change, and this
+package remains crypto-free.
+
+### Added
+
+- **`.mcp.json`** — a standard MCP client-configuration file at the repo root
+  so cursor.directory auto-detects the server instead of requiring a manual
+  listing.
+- **`glama.json`** — declares `maintainers: ["SAIHM-Admin"]` so the Glama
+  registry ownership claim can be verified from the repo.
+- **`assets/saihm-mcp-logo-400.png`** — a 400x400 project logo, the size MCP
+  directory listings request.
+- **Automated MCP-registry publishing.** `release.yml` now fetches
+  `mcp-publisher`, authenticates with `login github-oidc`, and publishes
+  `server.json` after the npm publish, so the registry entry no longer has to
+  be pushed by hand. The `io.github.SAIHM-Admin/*` namespace is proven by the
+  workflow's OIDC claim — no registry token is stored.
+
+### Changed
+
+- **The first-run error was a bare dead end.** A fresh install has no operator
+  endpoint, so the first tool call threw `SAIHM_ENDPOINT_URL env var required`
+  with nowhere to go. Both `bootFromEnv()` errors now append a setup hint
+  naming the two next steps: obtain a live endpoint at
+  <https://saihm.coti.global>, or evaluate the protocol offline first via the
+  runnable demos.
+- **The README Configure section assumed you already had credentials.** It now
+  states that the endpoint and token are issued by an *operator* and gives both
+  routes — join the hosted service, or run your own endpoint — plus the
+  consequence of configuring neither.
+- The README version line was a hardcoded `v0.3.4`, three releases stale. It is
+  now a dynamic npm version badge, so it cannot drift again.
+
 ## [0.3.6] — 2026-06-30
 
 Discovery release. No protocol or wire-format change; the published JavaScript
@@ -423,7 +477,13 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.9...HEAD
+[0.3.9]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.9
+[0.3.8]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.8
+[0.3.7]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.7
+[0.3.6]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.6
+[0.3.5]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.5
+[0.3.4]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.4
 [0.3.3]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.3
 [0.3.2]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.2
 [0.3.1]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.1
