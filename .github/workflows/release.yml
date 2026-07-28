@@ -34,7 +34,7 @@ jobs:
       # OIDC on the default registry. access:public comes from package.json.
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'            # >= 22.14.0 required for OIDC
 
