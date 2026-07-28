@@ -26,7 +26,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reported as its own distinct fault rather than blamed on custody. Output for a
   fully custodial operator is unchanged.
 - **Absent fields are omitted, never defaulted.** A fabricated `shards=0` reads
-  as "you have no memories"; an empty epoch reads as fact. Both are now left out.
+  as "you have no memories"; an empty epoch reads as fact. Both are now left out,
+  as are `contracts` and `governance` counts for an operator that sent no such
+  arrays — `contracts=0` is an answer when the operator returns an empty list and
+  a fabrication when it returns nothing.
+- **A field being present no longer implies it has the declared type.** The
+  operator's JSON is cast, not validated, so `bfsi` arriving as `"1.0"` instead of
+  `1.0` — ordinary for a protocol that already carries `bfsi_R`, `bfsi_M` and
+  `snapshotEpoch` as strings — crashed `saihm_status` with `d.bfsi.toFixed is not
+  a function`. Numeric fields are now read through a check that accepts a numeric
+  string, treats `NaN`, `Infinity` and non-numbers as not reported, and keeps
+  unusable values out of the `z.number()` slots in structured output. Printed
+  fields are read the same way, so a value that arrives as an object no longer
+  renders as `[object Object]`; an `agentIdHashHex` that is not a string used to
+  take the whole tool down on its first line with `.slice is not a function`. A
+  `storageByTier` that is not an object is no longer enumerated character by
+  character, a non-array `contracts` is no longer counted, and a `saihm_recall`
+  response that is not a list is diagnosed instead of failing as
+  `cells.filter is not a function`.
+- **`saihm_remember` no longer reports an unconfirmed write as stored.** A
+  receipt carrying no `cellId` confirms nothing and leaves nothing for
+  `saihm_forget` to erase later, so it is now an explained failure rather than a
+  `REMEMBERED` line. Receipt fields the operator did not send are left out
+  instead of being rendered as the literal `undefined` — `String(undefined)` is
+  a valid string, so the output schema could not catch it. `saihm_recall` treats
+  absent cell metadata the same way. A full receipt renders exactly as before.
+- **PRS carried as the §3.4 `prs` field is no longer announced as unreported.**
+  It is reported either as the `prsScore` operator extension or as the spec's
+  `prs`; the notice now requires both to be absent, so status can no longer print
+  a PRS value and deny having one in the same breath. The §3.4 line likewise
+  renders whichever of `bfsi`, `bfsi_R`, `bfsi_M` and the window start an
+  operator sends, instead of being skipped unless `prs` was among them.
 
 ### Changed
 
@@ -34,9 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   service.** The README and the first-run hint directed readers to the hosted
   SAIHM service at <https://saihm.coti.global> for an endpoint and token. That
   service is non-custodial by design and cannot serve this deliberately
-  crypto-free client. Both now state that plainly and route hosted-service users
-  — including the free trial — to `@saihm/mcp-server-pro`, and describe
-  `SAIHM_ENDPOINT_URL` as a **custodial** operator you run or subscribe to.
+  crypto-free client. The README, the first-run hint and the `SAIHM_ENDPOINT_URL`
+  description in the MCP registry listing now state that plainly and route
+  hosted-service users — including the free trial — to `@saihm/mcp-server-pro`,
+  and describe `SAIHM_ENDPOINT_URL` as a **custodial** operator you run or
+  subscribe to.
 
 ### Added
 

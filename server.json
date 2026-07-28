@@ -17,7 +17,7 @@
       "environmentVariables": [
         {
           "name": "SAIHM_ENDPOINT_URL",
-          "description": "Your SAIHM operator endpoint URL (issued at https://saihm.coti.global/join).",
+          "description": "Endpoint URL of the custodial SAIHM operator you run or subscribe to. Not the hosted service at https://saihm.coti.global, which is non-custodial: use @saihm/mcp-server-pro for that.",
           "isRequired": true,
           "format": "string"
         },

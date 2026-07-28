@@ -680,6 +680,146 @@ async function main() {
     'an empty status response invents no zero counts or placeholder epoch',
   );
 
+  // An operator that speaks only the §3.4 spec fields: PRS arrives as `prs`, not as
+  // the `prsScore` operator extension, and it reports no contract or governance
+  // arrays at all. Both halves are traps — saying PRS is unreported while printing it
+  // one line above contradicts itself, and counting absent arrays as zero states
+  // "you have no sharing contracts" on no evidence.
+  responder.for = () => ({
+    agentIdHashHex: 'ab'.repeat(32),
+    prs: 0.812,
+    bfsi: 0.44,
+    bfsi_R: '2',
+    bfsi_M: '9',
+    activeShardCount: 4,
+    snapshotEpoch: '12',
+  });
+  const spec = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const specText = textOf(spec);
+  assert(spec.isError !== true, 'a §3.4-only status response does not error');
+  assert(specText.includes('§3.4: prs=0.812'), 'a §3.4-only operator still reports PRS');
+  assert(
+    !specText.includes('PRS: not reported by this operator'),
+    'PRS reported as the §3.4 field is not also announced as unreported',
+  );
+  assert(
+    !/contracts=|governance=/.test(specText),
+    'arrays the operator never sent are not counted as zero',
+  );
+  assert(
+    specText.includes('(R=2 M=9)') && !specText.includes('n/a'),
+    'the BFSI window is reported from what was sent, with no placeholders',
+  );
+
+  // Present is not the same as numeric. The client casts the operator's JSON without
+  // validating it, and an operator that serialises numbers as strings is normal here
+  // — bfsi_R, bfsi_M and snapshotEpoch are declared as strings. Calling .toFixed() on
+  // one crashed the tool with "d.bfsi.toFixed is not a function".
+  responder.for = () => ({
+    agentIdHashHex: 'f0'.repeat(32),
+    bfsi: '1.0',
+    prs: '0.97',
+    feeDiscountPct: '0.15',
+    phi: '0.5',
+    activeShardCount: '86',
+    custody: 'non-custodial',
+  });
+  const stringy = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const stringyText = textOf(stringy);
+  assert(stringy.isError !== true, 'numerics sent as strings do not crash status');
+  assert(
+    stringyText.includes('BFSI=1.000') && stringyText.includes('shards=86'),
+    'numeric strings are read as the numbers they are',
+  );
+  assert(
+    !/is not a function|NaN/.test(stringyText),
+    'status reports values rather than a runtime error or NaN',
+  );
+
+  // Present but unusable: a number-shaped slot holding something that is not a
+  // number must read as unreported, never as a value.
+  responder.for = () => ({
+    agentIdHashHex: 'f0'.repeat(32),
+    bfsi: { nested: true },
+    phi: 'not-a-number',
+    activeShardCount: [],
+    storageByTier: 'FILECOIN',
+    contracts: 7,
+    stakingPosition: 'none',
+  });
+  const junk = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const junkText = textOf(junk);
+  assert(junk.isError !== true, 'unusable field values do not crash status');
+  assert(
+    !/NaN|undefined|\[object Object\]|contracts=7/.test(junkText),
+    'unusable values are left out rather than rendered as garbage',
+  );
+  assert(
+    !/0=F 1=I|shards=/.test(junkText),
+    'a non-object storageByTier is not enumerated character by character',
+  );
+
+  // The identity line is rendered before every other field, so an agent id that is
+  // not a string took the whole tool down with it: `.slice is not a function`.
+  responder.for = () => ({ agentIdHashHex: 12345, activeShardCount: 3 });
+  const badId = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
+  const badIdText = textOf(badId);
+  assert(badId.isError !== true, 'a non-string agent id does not crash status');
+  assert(
+    badIdText.includes('agent: not reported by this operator') && badIdText.includes('shards=3'),
+    'an unusable agent id is named as unreported and the rest still renders',
+  );
+
+  responder.for = () => ({ not: 'a list' });
+  const malformed = await mcpClient.callTool({ name: 'saihm_recall', arguments: {} });
+  assert(malformed.isError === true, 'a non-list recall response is a failure');
+  assert(
+    /malformed recall response/.test(textOf(malformed)) &&
+      !/is not a function/.test(textOf(malformed)),
+    'a malformed recall response is diagnosed, not thrown as a stack trace',
+  );
+
+  // A write is the one place a false success really costs something: the user is told
+  // the memory is safe and stops trying. `String(undefined)` is the string
+  // "undefined", so the output schema cannot catch a thin receipt — the handler has to.
+  responder.for = () => ({ cellId: 'ab'.repeat(32), accepted: true });
+  const thin = await mcpClient.callTool({
+    name: 'saihm_remember',
+    arguments: { content: 'hello' },
+  });
+  const thinText = textOf(thin);
+  assert(thin.isError !== true, 'a confirmed write with a thin receipt still succeeds');
+  assert(
+    !thinText.includes('undefined'),
+    'receipt fields the operator never sent are not rendered as "undefined"',
+  );
+  assert(
+    thinText.includes(`REMEMBERED [${'ab'.repeat(32)}]`),
+    'a thin receipt still reports the cell id the write is confirmed by',
+  );
+
+  responder.for = () => ({ accepted: true });
+  const unconfirmed = await mcpClient.callTool({
+    name: 'saihm_remember',
+    arguments: { content: 'hello' },
+  });
+  const unconfirmedText = textOf(unconfirmed);
+  assert(unconfirmed.isError === true, 'a write with no cell id is not reported as stored');
+  assert(
+    /unconfirmed/.test(unconfirmedText) && !/Output validation error/.test(unconfirmedText),
+    'an unconfirmed write is explained, not dumped as a schema error',
+  );
+
+  // Same fabrication, read side: a cell that arrives with plaintext but no metadata.
+  responder.for = () => [{ cellId: 'cd'.repeat(32), plaintext: 'readable' }];
+  const thinCell = await mcpClient.callTool({ name: 'saihm_recall', arguments: {} });
+  const thinCellText = textOf(thinCell);
+  assert(thinCell.isError !== true, 'a cell with plaintext but no metadata still recalls');
+  assert(
+    thinCellText.includes('readable') && !thinCellText.includes('undefined'),
+    'absent cell metadata is left out rather than rendered as "undefined"',
+  );
+
   // A PARTIALLY sealed response is a different fault from a non-custodial operator.
   // Blaming custody for it would send the user to the wrong fix, so it must report
   // the shortfall instead.

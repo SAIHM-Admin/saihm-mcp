@@ -56,6 +56,42 @@ function getRuntime(): SaihmRuntimeClient {
   return runtime;
 }
 
+/**
+ * Read a numeric field off an operator response.
+ *
+ * The declared types describe what an operator SHOULD send; the wire decides what
+ * it actually sends, and the client casts the JSON without validating it. Present
+ * is therefore not the same as numeric: an operator that serialises numbers as
+ * strings is entirely normal here — `bfsi_R`, `bfsi_M` and `snapshotEpoch` are
+ * declared as strings for exactly that reason — and calling `.toFixed()` on one
+ * crashes the tool with `d.bfsi.toFixed is not a function`, which tells the user
+ * nothing. So accept a numeric string, and treat anything else (including `NaN`
+ * and `Infinity`, which would print as fact) as not reported.
+ */
+function asNumber(v: unknown): number | undefined {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Read a field that is printed rather than computed with.
+ *
+ * Same reasoning as {@link asNumber}, for the other half of the response: an object
+ * interpolates as `[object Object]` and an array as its comma-joined contents, both
+ * of which read as real values. Anything that is not a primitive is treated as not
+ * reported, so it is left out instead of printed as garbage.
+ */
+function asScalar(v: unknown): string | undefined {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : undefined;
+  if (typeof v === 'bigint' || typeof v === 'boolean') return String(v);
+  return undefined;
+}
+
 server.registerTool(
   'saihm_remember',
   {
@@ -63,14 +99,18 @@ server.registerTool(
     description:
       'Store information to SAIHM persistent encrypted memory. Use this when an agent or user wants a fact, decision, or piece of context to persist across sessions.',
     inputSchema: { content: z.string().describe('Information to remember') },
+    // The cell id is the whole receipt: it is what confirms the write and what
+    // saihm_forget needs later. The rest is detail an operator may or may not
+    // return, so requiring it here would not catch a thin receipt anyway —
+    // `String(undefined)` is the string "undefined", which satisfies z.string().
     outputSchema: {
       cellId: z.string(),
-      cellNonce: z.string(),
-      tier: z.string(),
-      kekVersion: z.string(),
-      epoch: z.string(),
-      feeNcoti: z.string(),
-      signaturePrefix: z.string(),
+      cellNonce: z.string().optional(),
+      tier: z.string().optional(),
+      kekVersion: z.string().optional(),
+      epoch: z.string().optional(),
+      feeNcoti: z.string().optional(),
+      signaturePrefix: z.string().optional(),
     },
     annotations: {
       title: 'Remember',
@@ -82,21 +122,51 @@ server.registerTool(
   },
   async ({ content }) => {
     const r = await getRuntime().remember(content);
+
+    // A receipt with no cell id does not confirm a write: there is nothing to quote
+    // back and nothing to hand saihm_forget later. Reporting it as REMEMBERED would
+    // tell the user their memory is safe on the strength of an acknowledgement the
+    // operator never actually gave.
+    if (typeof r.cellId !== 'string' || r.cellId.length === 0)
+      throw new Error(
+        'The operator returned no cell id, so this write is unconfirmed and the' +
+          ' memory could not be erased later even if it was stored. Treat it as not' +
+          ' stored and report this to your operator.',
+      );
+
+    // Everything else is receipt detail. Render only what came back: a rendered
+    // `tier=undefined` reads to a user as a real value, and the output schema cannot
+    // catch it because `String(undefined)` is a perfectly valid string.
+    const nonce = asScalar(r.cellNonce);
+    const tier = asScalar(r.tier);
+    const kekVersion = asScalar(r.kekVersion);
+    const epoch = asScalar(r.epoch);
+    const feeNcoti = asScalar(r.feeNcoti);
+    const signaturePrefix = asScalar(r.signaturePrefix);
+
+    const detail: string[] = [];
+    if (nonce !== undefined) detail.push(`nonce=${nonce}`);
+    if (tier !== undefined) detail.push(`tier=${tier}`);
+    if (kekVersion !== undefined) detail.push(`kekV=${kekVersion}`);
+    if (epoch !== undefined) detail.push(`epoch=${epoch}`);
+    if (feeNcoti !== undefined) detail.push(`fee=${feeNcoti}nCOTI`);
+    if (signaturePrefix !== undefined) detail.push(`sig=${signaturePrefix}…`);
+
     return {
       content: [
         {
           type: 'text' as const,
-          text: `REMEMBERED [${r.cellId}] nonce=${r.cellNonce} tier=${r.tier} kekV=${r.kekVersion} epoch=${r.epoch} fee=${r.feeNcoti}nCOTI sig=${r.signaturePrefix}…`,
+          text: `REMEMBERED [${r.cellId}]` + (detail.length > 0 ? ` ${detail.join(' ')}` : ''),
         },
       ],
       structuredContent: {
         cellId: r.cellId,
-        cellNonce: String(r.cellNonce),
-        tier: String(r.tier),
-        kekVersion: String(r.kekVersion),
-        epoch: String(r.epoch),
-        feeNcoti: String(r.feeNcoti),
-        signaturePrefix: String(r.signaturePrefix),
+        ...(nonce !== undefined ? { cellNonce: nonce } : {}),
+        ...(tier !== undefined ? { tier } : {}),
+        ...(kekVersion !== undefined ? { kekVersion } : {}),
+        ...(epoch !== undefined ? { epoch } : {}),
+        ...(feeNcoti !== undefined ? { feeNcoti } : {}),
+        ...(signaturePrefix !== undefined ? { signaturePrefix } : {}),
       },
     };
   },
@@ -111,13 +181,16 @@ server.registerTool(
     inputSchema: { query: z.string().optional().describe('Filter by keyword (empty = all)') },
     outputSchema: {
       count: z.number(),
+      // The id and the plaintext are what a recall is for; the surrounding metadata
+      // is whatever the operator chose to send with it. See the handler: absent
+      // metadata is left out rather than rendered as the string "undefined".
       memories: z.array(
         z.object({
           cellId: z.string(),
-          kekVersion: z.string(),
-          cellNonce: z.string(),
-          timestamp: z.string(),
-          tier: z.string(),
+          kekVersion: z.string().optional(),
+          cellNonce: z.string().optional(),
+          timestamp: z.string().optional(),
+          tier: z.string().optional(),
           plaintext: z.string(),
         }),
       ),
@@ -132,6 +205,15 @@ server.registerTool(
   },
   async ({ query }) => {
     const cells = await getRuntime().recall(query);
+
+    // The response is cast, not validated, so a non-list would reach `.filter` below
+    // and fail as `cells.filter is not a function` — a stack trace where a diagnosis
+    // belongs.
+    if (!Array.isArray(cells))
+      throw new Error(
+        'The operator returned a malformed recall response: expected a list of cells.' +
+          ' Report this to your operator.',
+      );
 
     // A non-custodial operator returns sealed cells and expects the CLIENT to open
     // them. This package is deliberately crypto-free, so it holds no keys and there
@@ -158,24 +240,40 @@ server.registerTool(
           ' incomplete; report this to your operator.',
       );
 
-    const memories = cells.map((c) => ({
-      cellId: c.cellId,
-      kekVersion: String(c.kekVersion),
-      cellNonce: String(c.cellNonce),
-      timestamp: String(c.timestamp),
-      tier: String(c.tier),
-      plaintext: c.plaintext,
-    }));
+    const memories = cells.map((c) => {
+      const kekVersion = asScalar(c.kekVersion);
+      const cellNonce = asScalar(c.cellNonce);
+      const timestamp = asScalar(c.timestamp);
+      const tier = asScalar(c.tier);
+      return {
+        cellId: c.cellId,
+        ...(kekVersion !== undefined ? { kekVersion } : {}),
+        ...(cellNonce !== undefined ? { cellNonce } : {}),
+        ...(timestamp !== undefined ? { timestamp } : {}),
+        ...(tier !== undefined ? { tier } : {}),
+        plaintext: c.plaintext,
+      };
+    });
     if (cells.length === 0)
       return {
         content: [{ type: 'text' as const, text: 'No memories stored.' }],
         structuredContent: { count: 0, memories },
       };
     const lines = [`RECALL ${cells.length} memories`];
-    for (const c of cells)
+    for (const c of cells) {
+      const meta: string[] = [];
+      const kekVersion = asScalar(c.kekVersion);
+      const cellNonce = asScalar(c.cellNonce);
+      const timestamp = asScalar(c.timestamp);
+      const tier = asScalar(c.tier);
+      if (kekVersion !== undefined) meta.push(`kekV=${kekVersion}`);
+      if (cellNonce !== undefined) meta.push(`nonce=${cellNonce}`);
+      if (timestamp !== undefined) meta.push(timestamp);
+      if (tier !== undefined) meta.push(`(${tier})`);
       lines.push(
-        `  [${c.cellId}] kekV=${c.kekVersion} nonce=${c.cellNonce} ${c.timestamp} (${c.tier}) | ${c.plaintext}`,
+        `  [${c.cellId}]` + (meta.length > 0 ? ` ${meta.join(' ')}` : '') + ` | ${c.plaintext}`,
       );
+    }
     return {
       content: [{ type: 'text' as const, text: lines.join('\n') }],
       structuredContent: { count: cells.length, memories },
@@ -223,9 +321,9 @@ server.registerTool(
       'Show SAIHM session status (PRS, BFSI, storage by tier, sharing, PHI), as far as the operator reports them — a non-custodial operator cannot see stored-byte totals. Use this to check the agent identity, reputation, storage, and sharing state of the current SAIHM session.',
     inputSchema: {},
     // Which of these an operator can answer depends on its custody model, so every
-    // field a non-custodial operator cannot see is optional. Only the four an
-    // operator reports whatever its model — identity, shard count, sharing count and
-    // epoch — stay required. See the handler for why absence is not an error.
+    // field a non-custodial operator cannot see is optional. Only the agent identity
+    // — which every operator reports whatever its model — stays required. See the
+    // handler for why absence is not an error.
     outputSchema: {
       agentIdHash: z.string(),
       custody: z.string().optional(),
@@ -254,51 +352,96 @@ server.registerTool(
     // rather than trusting the interface: the wire decides what is present.
     const d = (await getRuntime().status()) as Partial<StatusSnapshot>;
 
+    // Identity is the one field every operator reports whatever its custody model,
+    // but reported is not the same as usable: `.slice` on a non-string crashed the
+    // tool on its very first line, before any of the checks below could run.
+    const agentId = typeof d.agentIdHashHex === 'string' ? d.agentIdHashHex : '';
+    const custody = asScalar(d.custody);
+
     const lines = ['SAIHM Session'];
     lines.push(
-      `  agent=${(d.agentIdHashHex ?? '').slice(0, 16)}…` +
-        (d.custody ? `  custody=${d.custody}` : ''),
+      (agentId ? `  agent=${agentId.slice(0, 16)}…` : '  agent: not reported by this operator') +
+        (custody ? `  custody=${custody}` : ''),
     );
+
+    // Read every numeric through asNumber: present is not the same as numeric, and a
+    // field that is present but unusable is not reported rather than crashed on.
+    const bfsiScore = asNumber(d.bfsiScore);
+    const bfsi = asNumber(d.bfsi);
+    const feeDiscountPct = asNumber(d.feeDiscountPct);
+    const shardCount = asNumber(d.activeShardCount);
+    const sharingCount = asNumber(d.activeSharingContracts);
+    const phi = asNumber(d.phi);
+    const prs = asNumber(d.prs);
+    const prsScore = asScalar(d.prsScore);
+    const prsLevel = asScalar(d.prsLevel);
+    const snapshotEpoch = asScalar(d.snapshotEpoch);
 
     // PRS/BFSI/fee discount: report each only where the operator actually supplies it.
     const rep: string[] = [];
-    if (d.prsScore !== undefined) rep.push(`PRS=${d.prsScore} (${d.prsLevel ?? 'n/a'})`);
-    if (d.bfsiScore !== undefined) rep.push(`BFSI=${d.bfsiScore.toFixed(3)}`);
-    else if (d.bfsi !== undefined) rep.push(`BFSI=${d.bfsi.toFixed(3)}`);
-    if (d.feeDiscountPct !== undefined)
-      rep.push(`feeDiscount=${(d.feeDiscountPct * 100).toFixed(1)}%`);
+    if (prsScore !== undefined) rep.push(`PRS=${prsScore} (${prsLevel ?? 'n/a'})`);
+    if (bfsiScore !== undefined) rep.push(`BFSI=${bfsiScore.toFixed(3)}`);
+    else if (bfsi !== undefined) rep.push(`BFSI=${bfsi.toFixed(3)}`);
+    if (feeDiscountPct !== undefined) rep.push(`feeDiscount=${(feeDiscountPct * 100).toFixed(1)}%`);
     if (rep.length > 0) lines.push(`  ${rep.join('  ')}`);
 
-    const tiers = Object.entries(d.storageByTier ?? {})
-      .map(([t, b]) => `${t}=${b}B`)
-      .join(' ');
+    // Object.entries on a string enumerates its characters, so a storageByTier that
+    // arrives as anything but an object would print per-character garbage as storage.
+    const tiers =
+      typeof d.storageByTier === 'object' && d.storageByTier !== null
+        ? Object.entries(d.storageByTier)
+            .map(([t, b]) => `${t}=${b}B`)
+            .join(' ')
+        : '';
     const shardBits: string[] = [];
-    if (d.activeShardCount !== undefined) shardBits.push(`shards=${d.activeShardCount}`);
+    if (shardCount !== undefined) shardBits.push(`shards=${shardCount}`);
     if (tiers) shardBits.push(tiers);
     if (shardBits.length > 0) lines.push(`  ${shardBits.join('  ')}`);
 
-    if (d.stakingPosition)
-      lines.push(
-        `  staking=${d.stakingPosition.amountNcoti}nCOTI yield=${d.stakingPosition.accruedYieldNcoti}nCOTI`,
-      );
+    const staking = d.stakingPosition;
+    if (typeof staking === 'object' && staking !== null) {
+      const stakeBits: string[] = [];
+      const amount = asScalar(staking.amountNcoti);
+      const yieldNcoti = asScalar(staking.accruedYieldNcoti);
+      if (amount !== undefined) stakeBits.push(`staking=${amount}nCOTI`);
+      if (yieldNcoti !== undefined) stakeBits.push(`yield=${yieldNcoti}nCOTI`);
+      if (stakeBits.length > 0) lines.push(`  ${stakeBits.join(' ')}`);
+    }
 
     const sessionBits: string[] = [];
-    if (d.activeSharingContracts !== undefined)
-      sessionBits.push(`sharing=${d.activeSharingContracts}`);
-    if (d.phi !== undefined) sessionBits.push(`PHI=${d.phi.toFixed(3)}`);
-    if (d.snapshotEpoch !== undefined) sessionBits.push(`epoch=${d.snapshotEpoch}`);
+    if (sharingCount !== undefined) sessionBits.push(`sharing=${sharingCount}`);
+    if (phi !== undefined) sessionBits.push(`PHI=${phi.toFixed(3)}`);
+    if (snapshotEpoch !== undefined) sessionBits.push(`epoch=${snapshotEpoch}`);
     if (sessionBits.length > 0) lines.push(`  ${sessionBits.join('  ')}`);
 
-    if (d.prs !== undefined || d.contracts || d.governance)
-      lines.push(
-        `  §3.4: prs=${d.prs?.toFixed(3) ?? 'n/a'} bfsi=${d.bfsi?.toFixed(3) ?? 'n/a'}` +
-          ` (R=${d.bfsi_R ?? 'n/a'} M=${d.bfsi_M ?? 'n/a'} win=${d.bfsi_window_start_ts ?? 'n/a'})` +
-          ` contracts=${d.contracts?.length ?? 0} governance=${d.governance?.length ?? 0}`,
-      );
+    // The §3.4 spec fields, assembled from only the parts the operator actually sent.
+    // `contracts=0` is a real answer when the operator returns an empty list and a
+    // fabrication when it returns nothing at all, so an absent array is left out
+    // rather than counted as zero. With every field present this renders exactly as
+    // it did before 0.3.10.
+    const spec: string[] = [];
+    if (prs !== undefined) spec.push(`prs=${prs.toFixed(3)}`);
+    if (bfsi !== undefined) spec.push(`bfsi=${bfsi.toFixed(3)}`);
+    const bfsiWindow: string[] = [];
+    const bfsiR = asScalar(d.bfsi_R);
+    const bfsiM = asScalar(d.bfsi_M);
+    const bfsiWin = asScalar(d.bfsi_window_start_ts);
+    if (bfsiR !== undefined) bfsiWindow.push(`R=${bfsiR}`);
+    if (bfsiM !== undefined) bfsiWindow.push(`M=${bfsiM}`);
+    if (bfsiWin !== undefined) bfsiWindow.push(`win=${bfsiWin}`);
+    if (bfsiWindow.length > 0) spec.push(`(${bfsiWindow.join(' ')})`);
+    // Array.isArray, not truthiness: a `contracts` that arrives as a number or an
+    // object has no length, and `contracts=undefined` is worse than saying nothing.
+    if (Array.isArray(d.contracts)) spec.push(`contracts=${d.contracts.length}`);
+    if (Array.isArray(d.governance)) spec.push(`governance=${d.governance.length}`);
+    if (spec.length > 0) lines.push(`  §3.4: ${spec.join(' ')}`);
 
     // Name what this operator structurally cannot answer, so an absent PRS reads as a
     // property of its custody model rather than as a client that failed to display it.
-    if (d.prsScore === undefined)
+    // PRS travels either as the `prsScore` operator extension or as the §3.4 `prs`
+    // field; claiming it is unreported while the §3.4 line shows it would contradict
+    // the line above, so both have to be absent before saying so.
+    if (prsScore === undefined && prs === undefined)
       lines.push('  PRS: not reported by this operator');
     if (d.custody === 'non-custodial')
       lines.push(
@@ -310,22 +453,21 @@ server.registerTool(
     return {
       content: [{ type: 'text' as const, text: lines.join('\n') }],
       structuredContent: {
-        agentIdHash: d.agentIdHashHex ?? '',
-        ...(d.custody !== undefined ? { custody: d.custody } : {}),
-        ...(d.prsScore !== undefined ? { prsScore: String(d.prsScore) } : {}),
-        ...(d.prsLevel !== undefined ? { prsLevel: String(d.prsLevel) } : {}),
-        ...(d.bfsiScore !== undefined ? { bfsiScore: d.bfsiScore } : {}),
-        ...(d.feeDiscountPct !== undefined ? { feeDiscountPct: d.feeDiscountPct } : {}),
+        agentIdHash: agentId,
+        ...(custody !== undefined ? { custody } : {}),
+        ...(prsScore !== undefined ? { prsScore } : {}),
+        ...(prsLevel !== undefined ? { prsLevel } : {}),
+        // The numeric fields go out as the values that were actually usable. Passing
+        // the raw field through would put a string or a NaN into a z.number() slot
+        // and turn a thin response into an output-validation error.
+        ...(bfsiScore !== undefined ? { bfsiScore } : {}),
+        ...(feeDiscountPct !== undefined ? { feeDiscountPct } : {}),
         // Omit rather than default: a fabricated 0 reads as "you have no shards"
         // and an empty epoch reads as fact. Absence is the truthful signal.
-        ...(d.activeShardCount !== undefined
-          ? { activeShardCount: Number(d.activeShardCount) }
-          : {}),
-        ...(d.activeSharingContracts !== undefined
-          ? { activeSharingContracts: Number(d.activeSharingContracts) }
-          : {}),
-        ...(d.phi !== undefined ? { phi: d.phi } : {}),
-        ...(d.snapshotEpoch !== undefined ? { snapshotEpoch: String(d.snapshotEpoch) } : {}),
+        ...(shardCount !== undefined ? { activeShardCount: shardCount } : {}),
+        ...(sharingCount !== undefined ? { activeSharingContracts: sharingCount } : {}),
+        ...(phi !== undefined ? { phi } : {}),
+        ...(snapshotEpoch !== undefined ? { snapshotEpoch } : {}),
       },
     };
   },
