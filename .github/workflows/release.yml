@@ -64,13 +64,13 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Publish (OIDC trusted publishing — provenance is automatic)
-        run: npm publish
-
-      # Publish the server.json manifest to the MCP registry. Runs AFTER npm publish
-      # because the registry verifies that the npm package carries our `mcpName`.
-      # mcp-publisher is pinned by version + sha256; auth is GitHub Actions OIDC.
-      - name: Publish server.json to the MCP registry (GitHub OIDC)
+      # Fetch mcp-publisher and validate the manifest BEFORE the irreversible npm
+      # publish. The sibling repo learned this the hard way at v0.2.0: a
+      # schema-invalid server.json surfaced only after npm had already published,
+      # leaving that version live but unlisted, which re-cutting the release cannot
+      # repair (npm rejects a duplicate version). Validating first makes it a clean
+      # pre-flight failure with npm untouched.
+      - name: Fetch mcp-publisher (pinned by version + sha256)
         run: |
           set -euo pipefail
           PUBLISHER_VERSION=v1.7.9
@@ -81,6 +81,20 @@ jobs:
           echo "${SHA256}  ${TARBALL}" | sha256sum -c -
           tar -xzf "$TARBALL" mcp-publisher
           chmod +x mcp-publisher
+
+      - name: Validate server.json against the registry schema
+        run: ./mcp-publisher validate
+
+      - name: Publish (OIDC trusted publishing — provenance is automatic)
+        run: npm publish
+
+      # Runs AFTER npm publish because the registry verifies that the npm package
+      # carries our `mcpName`. Auth is GitHub Actions OIDC. If this step fails, the
+      # npm version is ALREADY LIVE — do not re-cut the release. Fix server.json on
+      # main and dispatch registry-publish.yml.
+      - name: Publish server.json to the MCP registry (GitHub OIDC)
+        run: |
+          set -euo pipefail
           ./mcp-publisher login github-oidc
           # npm publish may still be propagating to the registry mcp-publisher reads
           # to verify the package carries our mcpName — retry a few times before failing.

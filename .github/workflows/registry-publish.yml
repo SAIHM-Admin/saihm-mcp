@@ -1,0 +1,56 @@
+name: registry-publish
+
+# Publishes server.json to the MCP registry on its own, without touching npm.
+#
+# Recovery path. release.yml publishes to npm first (irreversible) and only then
+# to the registry, because the registry verifies that the npm package carries our
+# `mcpName`. If that last step fails, the npm version is already live but the
+# registry entry is missing — and re-cutting the release cannot fix it, since npm
+# rejects a duplicate version. Fix server.json on main, then dispatch this.
+#
+# No npm publish here, so it is safe to re-run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref holding the server.json to publish (branch, tag, or SHA)'
+        required: false
+        default: main
+
+permissions:
+  contents: read
+  id-token: write   # required for GitHub OIDC login to the registry
+
+jobs:
+  registry-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Fetch mcp-publisher (pinned by version + sha256)
+        run: |
+          set -euo pipefail
+          PUBLISHER_VERSION=v1.7.9
+          SHA256=ab128162b0616090b47cf245afe0a23f3ef08936fdce19074f5ba0a4469281ac
+          TARBALL=mcp-publisher_linux_amd64.tar.gz
+          curl -fsSL -o "$TARBALL" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${PUBLISHER_VERSION}/${TARBALL}"
+          echo "${SHA256}  ${TARBALL}" | sha256sum -c -
+          tar -xzf "$TARBALL" mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: Validate server.json against the registry schema
+        run: ./mcp-publisher validate
+
+      - name: Show what will be published
+        run: |
+          node -p "'publishing ' + require('./server.json').name + ' v' + require('./server.json').version + ' -> npm ' + require('./server.json').packages[0].identifier + '@' + require('./server.json').packages[0].version"
+
+      - name: Publish server.json to the MCP registry (GitHub OIDC)
+        run: |
+          set -euo pipefail
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
