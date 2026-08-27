@@ -6,13 +6,19 @@ startCommand:
   type: stdio
   configSchema:
     type: object
-    required:
-      - saihmEndpointUrl
-      - saihmAuthHeader
+    # Deliberately empty. Both values below are needed to USE the server, but marking them
+    # `required` blocked Smithery's tool scanner from ever launching it, so the listing showed
+    # no tools at all. The server enumerates its eight tools with no environment set (boot is
+    # lazy; a missing endpoint surfaces as a typed error on first call, not a crash), so leaving
+    # these optional lets the scanner enumerate while the fields are still prompted for in the UI.
+    required: []
     properties:
       saihmEndpointUrl:
         type: string
-        description: Your SAIHM operator endpoint URL (issued at https://saihm.coti.global/join).
+        description: >-
+          Endpoint URL of the custodial SAIHM operator you run or subscribe to.
+          Not the hosted service at https://saihm.coti.global, which is
+          non-custodial: use @saihm/mcp-server-pro for that.
       saihmAuthHeader:
         type: string
         description: Authorization header (typically 'Bearer <token>') issued by your operator.

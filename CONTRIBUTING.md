@@ -13,10 +13,12 @@ implementation for the SAIHM (Sovereign AI Horizontal Memory) protocol.
 - **Documentation fixes.** Pull requests against `README.md` are welcome.
 - **Feature ideas.** Open an issue first to discuss scope, especially around
   the eight-tool MCP cap, which is an invariant of the protocol.
-- **Standards-track feedback.** The protocol itself is being progressed via
-  the IETF Independent Submission Stream as
-  `draft-saihm-memory-protocol`. Standards-level comments are welcome
-  there or via issue here.
+- **Standards-level feedback.** The protocol itself is published as the
+  Internet-Draft `draft-saihm-memory-protocol-01`. It was submitted to the
+  IETF Independent Submission Stream; on 2026-07-25 the ISE concluded its
+  consideration and released it from the queue, so the draft is on no IETF
+  stream today and is not an Internet Standard. Standards-level comments
+  are welcome via an issue here.
 
 ## Pull-request process
 

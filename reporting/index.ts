@@ -92,12 +92,21 @@ export {
 
 export {
   REPLAY_WINDOW_MS,
+  UNVERIFIED_MARKERS,
+  chainSummaryIsUnverified,
   checkKindAuthCoupling,
   validateAuthPublic,
   validateAuthSelf,
   validateAuthOperatorSelf,
   validateAuthOperatorForDownstream,
   validateAuthForKind,
+  // Exported because an operator has to sign the same bytes this module verifies;
+  // without them the canonical encoding would have to be reimplemented by hand on
+  // the signing side, and any divergence shows up as a signature that never verifies.
+  operatorDownstreamMessage,
+  customerGrantMessage,
+  selfChallengeMessage,
+  operatorSelfChallengeMessage,
 } from './auth.js';
 
 export type { AuthResult, AuthVerifiers } from './auth.js';
@@ -131,7 +140,13 @@ export type {
 // Registry-attestation (framework smoke)
 // ============================================================================
 
-export { generateRegistryAttestation, StubPublicRegistry } from './kinds/registry_attestation.js';
+// resolveTargetSubject is exported so an operator's own PublicRegistry resolves a
+// target by the same rule the generator uses to record it in the receipt scope.
+export {
+  generateRegistryAttestation,
+  StubPublicRegistry,
+  resolveTargetSubject,
+} from './kinds/registry_attestation.js';
 
 export type {
   PublicRegistry,
@@ -146,10 +161,40 @@ export type {
 // ============================================================================
 
 import { sha256 } from '@noble/hashes/sha2.js';
-import { validateBespokeTemplate as _validate } from './template_schema.js';
+import {
+  BespokeTemplateSchema as _Schema,
+  validateBespokeTemplate as _validate,
+} from './template_schema.js';
 import { buildTemplateRegistered as _builtRegistered, emitReceipt as _emit } from './receipt.js';
 import type { ReportingRuntime as _RT } from './receipt.js';
 import type { BespokeReportTemplate, ReportReceipt, ValidationResult } from './types.js';
+
+/**
+ * Deterministic JSON with keys sorted at EVERY level.
+ *
+ * The template hash was computed as `JSON.stringify(template, Object.keys(template).sort())`.
+ * An array second argument to JSON.stringify is not a key ORDER — it is a property
+ * ALLOWLIST applied at every nesting depth. Only the top-level key names were in it, so
+ * `scope` and `filters` both serialized as `{}` and the hash committed to neither.
+ * Two templates differing only in customerIdHashes, timeRange and filters produced the
+ * SAME templateHash, and that hash is the durable identity of the registration — it is
+ * what `template_registered` records and what both halves of `template_superseded`
+ * reference. The audit ledger could not distinguish a template scoped to one customer
+ * for one day from one scoped to 10,000 customers for a year, nor show that a supersede
+ * had widened the scope. Committing to the whole structure is the point of hashing it.
+ *
+ * It also made the hashed shape depend on fields nobody validated: an unrelated extra
+ * top-level key happening to be named `customerIdHashes` would put that name in the
+ * allowlist and un-strip the nested one.
+ */
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+}
 
 export async function registerTemplate(
   template: BespokeReportTemplate,
@@ -162,7 +207,23 @@ export async function registerTemplate(
   if (!v.valid) {
     return { ok: false, errors: v.errors };
   }
-  const canonical = JSON.stringify(template, Object.keys(template).sort());
+  // The hash commits to the VALIDATED projection, not to the raw argument. A zod object
+  // parse strips unknown keys, so validation ran against a narrower shape than the one
+  // being hashed: a template carrying arbitrary extra keys validated clean and still
+  // changed templateHash. That hash is the durable identity of the registration — what
+  // `template_registered` records and what both halves of `template_superseded`
+  // reference — so it was committing to content that nothing validated, capped or read,
+  // while every field that IS validated is capped. It also forked identity on data that
+  // is not part of the template, which is the same invariant the suite already pins for
+  // an explicitly-undefined optional: something that is not part of what was registered
+  // must not change what the registration is called.
+  //
+  // Re-parsing, rather than threading the value out of validateBespokeTemplate, leaves
+  // that function's exported ValidationResult contract alone. It cannot throw here —
+  // `valid` is only returned after the same safeParse has already succeeded — and a
+  // template that was already conformant hashes to exactly what it did before, because
+  // canonicalJson sorts keys at every level and drops undefined either way.
+  const canonical = canonicalJson(_Schema.parse(template));
   const digest = sha256(new TextEncoder().encode(canonical));
   const templateHash = Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');
   const receipt = _builtRegistered({

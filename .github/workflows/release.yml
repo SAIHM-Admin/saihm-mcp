@@ -59,7 +59,7 @@ jobs:
         run: npm run build
 
       - name: Typecheck
-        run: npm run typecheck --if-present
+        run: npm run typecheck
 
       - name: Test
         run: npm test

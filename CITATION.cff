@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: 'If you use this software in research, product, or standards work, please cite both the software entry below and the IETF Internet-Draft listed under references.'
+message: 'If you use this software in research, product, or standards work, please cite the software entry below. The Internet-Draft under references is the protocol specification text; it is an Internet-Draft only — not an Internet Standard, not endorsed by the IETF, and on no IETF stream since 2026-07-25. Please cite it as work in progress.'
 title: 'SAIHM — Sovereign AI Horizontal Memory'
 abstract: 'Sovereign, encrypted, persistent memory protocol for AI agents. Eight Model Context Protocol tools (remember, recall, forget, share, governance) provide ML-DSA-signed AES-256-GCM cells with GDPR Article 17 cryptographic erasure. Anchored on COTI V2 mainnet.'
 authors:
@@ -7,8 +7,8 @@ authors:
     email: 'architect@saihm.coti.global'
     website: 'https://saihm.coti.global/'
 type: software
-version: '0.3.1'
-date-released: '2026-05-28'
+version: '0.3.11'
+date-released: '2026-08-26'
 license: Apache-2.0
 url: 'https://saihm.coti.global/'
 repository-code: 'https://github.com/SAIHM-Admin/saihm-mcp'
@@ -27,11 +27,10 @@ keywords:
   - 'NIST SP 800-88'
   - 'sovereign identity'
 references:
-  - type: standard
-    title: 'The SAIHM Protocol for Sovereign AI Memory'
+  - type: report
+    title: 'The SAIHM Protocol for Sovereign AI Memory (draft-saihm-memory-protocol-01)'
     authors:
       - name: 'SAIHM Project'
-    institution:
-      name: 'Internet Engineering Task Force'
     url: 'https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/'
     year: 2026
+    notes: 'Internet-Draft, work in progress. Submitted to the IETF Independent Submission Stream; the ISE concluded its consideration on 2026-07-25 and released it from the queue, so the draft is on no IETF stream. It is not an Internet Standard and is not endorsed by the IETF. Deliberately typed "report", not "standard", so citation managers do not render it as a published standard.'

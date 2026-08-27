@@ -200,7 +200,33 @@ export async function emitReceipt(
   runtime: ReportingRuntime,
 ): Promise<AuditEmitResult> {
   const payload = buildAuditPayload(receipt, originator);
-  return runtime.emitAudit(payload);
+  // emitAudit is operator-supplied, so its return value is a claim, not a fact. The
+  // cellId and sealHex it hands back are the only evidence that the audit record was
+  // written at all — generateRegistryAttestation copies them straight into the result
+  // it returns to the requester. An implementation that returned nothing therefore
+  // produced a report carrying `auditCellId: undefined`: an anchor asserted but never
+  // created, which is the one thing an audit trail must not do. Checked here rather
+  // than at the call site so every caller, including later ones, inherits it.
+  const res: unknown = await runtime.emitAudit(payload);
+  if (res === null || typeof res !== 'object' || Array.isArray(res)) {
+    throw new Error(
+      `Audit emission for a ${receipt.subKind} receipt returned no result object, so it` +
+        ' is unknown whether the record was written. Treat the receipt as unrecorded.',
+    );
+  }
+  const { cellId, sealHex } = res as Partial<AuditEmitResult>;
+  if (
+    typeof cellId !== 'string' ||
+    cellId === '' ||
+    typeof sealHex !== 'string' ||
+    sealHex === ''
+  ) {
+    throw new Error(
+      `Audit emission for a ${receipt.subKind} receipt returned no usable cellId/sealHex,` +
+        ' so the receipt cannot be anchored or later found. Treat it as unrecorded.',
+    );
+  }
+  return { cellId, sealHex };
 }
 
 // ============================================================================
@@ -220,6 +246,13 @@ export class InMemoryReportingRuntime implements ReportingRuntime {
     return { cellId, sealHex };
   }
 
+  /**
+   * The captured payloads, for assertions that need their contents and not merely
+   * their number. Deliberately not part of ReportingRuntime — that interface is
+   * emitAudit alone — so this is a convenience of the in-memory double, and a real
+   * runtime is not expected to offer it. ReadonlyArray is a compile-time guarantee
+   * only: this hands back the live array, so read the result, never edit it.
+   */
   audit(): ReadonlyArray<AuditPayload> {
     return this.emitted;
   }

@@ -18,9 +18,15 @@ campaign).
 
 The project consists of:
 
-- The **SAIHM protocol specification**, progressed via the IETF
-  Independent Submission Stream as
+- The **SAIHM protocol specification**, published as the Internet-Draft
   [`draft-saihm-memory-protocol`](https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/).
+  The `-01` revision (2026-05-27) was submitted to the IETF Independent
+  Submission Stream; on 2026-07-25 the ISE concluded its consideration
+  and released it from the queue, and the datatracker stream is now
+  None. The draft is **not** an Internet Standard, is not endorsed by
+  the IETF, and has no formal standing in the IETF standards process.
+  The `-01` text remains available on the datatracker as the current
+  reference text.
 - The **reference MCP server**, published to npm as
   [`@saihm/mcp-server`](https://www.npmjs.com/package/@saihm/mcp-server)
   and to GitHub at
@@ -55,8 +61,8 @@ expected to:
   (eight-tool MCP cap; HTTPS-only operator endpoints; no EVM tooling;
   Apache-2.0 inbound = outbound).
 - Follow the code-review process described below.
-- Uphold the code of conduct described in
-  [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- Uphold the code of conduct in
+  [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ### Founding maintainer
 
@@ -112,18 +118,24 @@ must obey.
   ratification (or, once formed, a TSC supermajority), and a
   version-major bump in the specification draft.
 
-Specification work currently happens in two surfaces in parallel:
+Specification work has one surface of record:
 
-- The IETF ISE draft track (`draft-saihm-memory-protocol`),
-  publicly visible on IETF Datatracker.
-- The reference implementation repository
-  (`SAIHM-Admin/saihm-mcp`), where the spec text lives in the
-  `standards-campaign/` area of the project and is mirrored into the
-  IETF draft on each version bump.
+- The published Internet-Draft `draft-saihm-memory-protocol-01` on the
+  IETF Datatracker is the specification text of record. It sits on no
+  IETF stream today (see *Project scope* above) and carries the normal
+  Internet-Draft expiry. The project's intent is to re-anchor the
+  normative reference on a working-group document once one exists that
+  can be cited.
 
-When a Working Group or independent track formalizes the
-specification at a SDO (W3C, IETF, AAIF), that body's process
-supersedes the process above for the surfaces it governs.
+This repository holds the reference implementation, **not** the
+specification text — a point `ARCHITECTURE.md` makes explicitly. Draft
+revisions are prepared and submitted to the datatracker separately;
+there is no copy of the specification in this repository to keep in
+sync.
+
+When a Working Group or other body formalizes the specification at an
+SDO (W3C, IETF, AAIF), that body's process supersedes the process above
+for the surfaces it governs.
 
 ### Implementation decisions
 
@@ -156,8 +168,12 @@ Releases follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html)
   specification process above plus a 30-day deprecation window for
   any removed behavior.
 
-Releases are signed via npm sigstore provenance attestation; users
-can verify with `npm audit signatures`.
+Releases from `0.3.6` onward are published from GitHub Actions over
+OIDC trusted publishing and carry an npm sigstore provenance
+attestation; users can verify with `npm audit signatures`. Earlier
+versions (`0.1.0`–`0.3.5`) were published by hand and carry no
+attestation. Release tags are not signed — see `HARDENING.md`
+§"Distribution integrity", which records that as a gap.
 
 ### Adding and removing maintainers
 
@@ -226,27 +242,34 @@ should be flagged in a public issue.
 
 ## Code of conduct
 
-The project follows the spirit of the
-[Contributor Covenant](https://www.contributor-covenant.org/) without
-adopting its full text. The expectation is straightforward: be civil,
-be substantive, and uphold each other's right to participate.
+The project adopts the
+[Contributor Covenant v2.1](CODE_OF_CONDUCT.md) **in full**; its text is
+committed to this repository as
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) restates that adoption for
+contributors who arrive there first.
 
-Maintainers may take action up to and including removing disruptive
-participants from the project's public spaces, as described in
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+Enforcement — up to and including removing disruptive participants from
+the project's public spaces — follows the *Enforcement* and *Enforcement
+Guidelines* sections of that document. Reports go privately to
+`architect@saihm.coti.global`.
 
 ## Intellectual property
 
 - The reference implementation is licensed under the
   [Apache License 2.0](LICENSE).
 - Inbound contributions are accepted under the same Apache 2.0
-  license, with no CLA required for typical contributions. A DCO
-  process may be requested for substantial contributions; see
-  [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- The specification is being progressed through the IETF Independent
-  Submission Stream; the IETF Trust Legal Provisions apply to the
-  draft text as published on IETF Datatracker. The Apache-2.0 license
-  applies to the specification text as published in this repository.
+  license. There is no CLA. In its place the project requires a
+  Developer Certificate of Origin 1.1 sign-off on **every** commit —
+  a `Signed-off-by:` trailer, which `git commit -s` adds. Pull requests
+  whose commits lack it are asked to rebase with sign-off before merge.
+  See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- The specification was submitted to the IETF Independent Submission
+  Stream and is published on the IETF Datatracker as an Internet-Draft.
+  The IETF Trust Legal Provisions apply to that draft text as published
+  there, and continue to apply now that the ISE has released it from
+  the queue. The Apache-2.0 license applies to the reference
+  implementation in this repository.
 - The "SAIHM" name and any associated wordmark are currently held by
   the SAIHM Project. On acceptance of the project by AAIF (the stated
   primary foundation target) or another foundation, all project
@@ -274,4 +297,4 @@ start of the comment window.
 - [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html)
 - [AAIF Foundation Charter §8 (Trademark)](https://github.com/aaif/foundation/blob/main/charter.md)
 - [Project standards page](https://saihm.coti.global/standards)
-- [Project blog](https://saihm.coti.global/blog/)
+- [Project blog](https://saihm.coti.global/blog)

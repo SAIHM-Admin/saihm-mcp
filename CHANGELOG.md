@@ -8,6 +8,234 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.11] — 2026-08-26
+
+Hardening release. No new tools, no new configuration and no schema change: the
+eight tools and their input schemas are the same as `0.3.10`. What changed is
+that every value this client reads from an operator — and every value the
+reporting module reads from a caller — is now treated as untrusted, and that the
+Smithery listing can finally be scanned.
+
+That tightening is visible at the tool boundary, so treat the upgrade as
+behaviour-changing rather than transparent: inputs `0.3.10` accepted are now
+refused instead of being stored or forwarded — an empty `saihm_remember` write
+and a malformed agent-id hash among them. The schemas did not change; the set of
+values that survive them narrowed. Operators of the reporting module have one
+further break: every signed message is regenerated this release, detailed under
+`challengeIssuedAt` below.
+
+### Security
+
+- **A downstream-disclosure approval was a replayable bearer token.** The
+  operator's signature on the `operator-for-downstream` path was verified
+  against `auth.operatorIdHash` — the operator's own identity, a constant. A
+  signature over a constant commits to none of the claim, so one observed
+  request yielded a credential that stayed valid for every later request while
+  the customer id, scope, expiry, subpoena hash and jurisdiction could all be
+  swapped underneath it. The operator now signs the claim itself, encoded as a
+  JSON array so that field boundaries survive concatenation.
+- **The customer half of "two-of-two" was never checked.** The data subject's
+  signature was length-checked and then discarded, so a disclosure *about* a
+  party required no act *by* that party. It is now verified through a
+  `verifyCustomerGrant` callback, and the customer's signature is bound inside
+  the operator's signed message so a valid approval cannot be lifted onto a
+  different grant. The check engages once that callback is wired, and wiring it
+  is not optional in the sense the other two are: this is the single place where
+  a missing verifier does not refuse the path, because a grant may have been
+  authenticated out of band. Leave it undefined and the disclosure still
+  proceeds — but the receipt now says so, carrying
+  `/customer-sig-unverified` in its `chainSummary` where it previously read the
+  same as a fully verified one.
+- **Signatures were verified over an untagged blob, allowing transfer between
+  paths.** `self` and `operator-self` verified a signature over the
+  caller-supplied `auth.challenge` alone. Operators wire one `verifyMlDsa`
+  callback for every path, so any string that operator had ever signed verified
+  here — an observed downstream message could be resent as `challenge` and pass
+  as `operator-self`, which `audit-export` and `billing-history` accept.
+  Each path now has a domain-tagged message that commits to
+  `challengeIssuedAt`.
+- **Unwired verifiers returned `ok: true`.** Shape-only smoke-test mode is
+  legitimate, but the test for it lived in one function. `operator-self` and the
+  operator half of `operator-for-downstream` kept the older shape — verify if
+  the callback happens to be present, otherwise pass — so an operator who wired
+  `verifyEip712` for a web surface and nothing else authorized every
+  operator-path request with no signature check at all. The same hole existed
+  one layer down on `self`, where the caller-supplied `surface` field selected
+  the verifier and one of the choices was none. Opting in is now asked in a
+  single place: once **any** verifier is wired, a path whose own verifier is
+  missing is refused rather than waved through.
+- **The audit marker for unverified disclosures could not be matched as
+  documented.** There are three markers, not one, because
+  `operator-for-downstream` reports its two halves separately, and `README` told
+  operators to test the chain summary for the upper-case marker as a substring
+  — a case-sensitive test matching none of the other two. Following that advice
+  exactly, a wholly unverified downstream disclosure read as verified. The set
+  is now exported as a single predicate.
+- **`sourceUrl` on a registry attestation accepted any scheme.** `new URL()`
+  alone admits `javascript:`, `data:` and `file:`, and this value is signed into
+  the operator's message and kept as the auditor's evidence link. The scheme is
+  now allowlisted. It is deliberately weaker than the runtime client's
+  https-only endpoint rule — plain `http` is accepted because some official
+  registries and court record systems still publish over it — and the comment
+  that claimed parity with that rule has been corrected.
+- **`checkKindAuthCoupling` threw instead of refusing on an unknown kind.** The
+  requirements table is keyed by a type that does not exist at runtime, so an
+  unrecognised kind indexed to `undefined` and crashed on `.includes`. Guarding
+  `=== undefined` alone left the inherited half open: `constructor`,
+  `toString`, `hasOwnProperty` and `__proto__` answer from `Object.prototype`
+  and walked past the guard into the same `TypeError`. The lookup now requires
+  an array, which every real entry is and nothing inherited is.
+- **`challengeIssuedAt` is enforced on the operator paths.** `self` bounded a
+  challenge to 30 minutes; the more privileged paths bounded it to nothing. The
+  field stays optional — requiring it would reject operators' live traffic —
+  but when present it is now enforced on the same terms. On
+  `operator-for-downstream` the field did not exist at all. That mattered
+  unevenly across its two branches: a `customer-grant` carries its own
+  `expiresAt` and is refused once it passes, but a `legal-basis` claim commits
+  to a subpoena hash, a jurisdiction and a record URL and to no point in time,
+  so an observed approval stayed valid indefinitely and returned *fresh* data
+  under a *stale* legal basis. It is the only operator path that can produce an
+  `erasure-confirmation`, and it was also the only path that neither bounded a
+  challenge nor recorded that it had not — `operator-self` marks an unbounded
+  challenge `/no-replay-window` in the chain summary precisely so an auditor can
+  see the absence. The field is accepted there on the same optional terms, bound
+  into the signed message, and its absence is now marked the same way. Adding
+  the slot costs operators nothing beyond this release: every path's signed
+  message is new in `0.3.11`, so signatures are regenerated regardless.
+- **A malformed agent-id hash silently became a valid one.** `parseInt` stops at
+  the first character it does not understand and yields `NaN`, which a
+  `Uint8Array` stores as `0`, so every malformed id still produced a well-formed
+  byte string. Since this value decides *who* a sharing contract grants access
+  to, the decode now rejects anything that is not hex.
+- **Oversized responses were only bounded by a header.** The `Content-Length`
+  check was an early-out, not enforcement: a chunked reply carries no such
+  header, `Number(null ?? '0')` is `0`, and anything that streamed its response
+  reached `res.json()` with no limit on how much it could buffer. Bytes are now
+  counted as they arrive and the stream is cancelled mid-flight, so a hostile
+  endpoint is cut off rather than downloaded in full and complained about
+  afterwards. Decoding is streamed too, so a UTF-8 character straddling a chunk
+  boundary is no longer corrupted.
+- **A registered template's identity committed to data nothing validated.**
+  `validateBespokeTemplate` parses with a non-strict schema, which strips unknown
+  keys, but `registerTemplate` hashed the raw argument. A template carrying
+  arbitrary extra keys therefore validated clean and still changed its
+  `templateHash` — the durable identity of the registration, which
+  `template_registered` records and both halves of `template_superseded`
+  reference. The audit ledger was committing to content that nothing validated,
+  capped or read, while every field that *is* validated is capped. It also forked
+  identity on something that was never part of the template. The hash is now taken
+  over the validated projection; a template that was already conformant hashes to
+  exactly what it did before, because the canonical form sorts keys at every level
+  and drops undefined either way.
+- **The `verifyEip712` callback's declared contract misdescribed two of its three
+  parameters.** The operator supplies this callback, and on the `web` surface it is
+  the only signature check in front of `audit-export` and `billing-history`. Its
+  second parameter was declared `challenge` but receives the domain-tagged message
+  (`SAIHM-REPORT-SELF-v1`), not the caller's raw `auth.challenge`; its third was
+  declared `walletAddress` but receives a 64-hex id hash, which is whichever of
+  `walletIdHash` or `agentIdHash` the caller supplied and so may not describe a
+  wallet at all. An Ethereum address is 40 hex, so an operator implementing to the
+  old names recovers a signer address, compares it against a 32-byte hash and never
+  matches — the `web` surface fails closed. The unsafe way to get it wrong is to
+  drop a comparison that never works and return true on any well-formed signature.
+  Both sibling verifiers already named these correctly. The parameters are renamed
+  to `message` and `walletOrAgentIdHash`, the real contract is documented on the
+  declaration, and a test now inspects the arguments the callback actually receives
+  — previously every test wired `async () => true` and never looked at them.
+- **An operator could forge extra receipts inside a receipt identifier.** The values
+  that say which cell was written, erased or shared were the only operator-controlled
+  data in the tool surface that reached the output as *structure* rather than as
+  content, and the only ones emitted with no shape check. Everything beside them is
+  defended: non-primitives are refused and hashes are truncated before printing. So an
+  operator answering `saihm_forget` with a cell id of `<the id you asked for>] DEK
+  destroyed\nFORGOTTEN [<some other cell>` produced **two** well-formed erasure
+  receipts from one call, the second attesting the destruction of a cell that was never
+  asked about and never erased — defeating the guard that exists because erasure is the
+  one claim here nobody can verify afterwards. Reading a cell's plaintext back cannot do
+  this; plaintext prints after a `|` on an indented recall line, never as a receipt of
+  its own. A receipt identifier must now be a single-line printable token within
+  `MAX_RECEIPT_ID_LEN`, and is refused rather than truncated, because a shortened cell
+  id cannot be handed to `saihm_forget`. The same bound also stops an operator emitting
+  a multi-kilobyte identifier straight into the transcript.
+
+
+### Fixed
+
+- **A hash that arrived as a number is no longer displayed as a hash.** Anchors
+  and agent-id hashes are shown truncated with an ellipsis, so a numeric `12345`
+  rendered as `anchor=12345…` — a number dressed as the first characters of a
+  32-byte hash that was never sent. Scalars that are genuinely numeric, such as
+  an epoch or a fee, are unaffected.
+- **A vote recorded in the opposite direction no longer slips past the mismatch
+  check.** An operator that serialises `false` as `"false"` read as "not
+  reported" against a bare `typeof === 'boolean'` test, dropping the very
+  mismatch warning that exists to catch it. Boolean fields are now read through
+  a check that accepts every unambiguous spelling. The two callers are not
+  symmetric and the reader leans accordingly: an unrecognised `revoked` is read
+  as "not true", which errs toward warning about access that was in fact
+  withdrawn.
+- **`saihm_forget` no longer reports an erasure it cannot evidence.** Erasure is
+  the one claim here that a user cannot check afterwards — by construction
+  nothing is left to look at — so it is now reported only on a receipt that
+  names *which* cell was destroyed. `success: true` with no cell id is an
+  acknowledgement, not evidence, and would have rendered as
+  `FORGOTTEN [undefined]` under a GDPR Art. 17 request. A response that is not
+  an object, or a `success` that is neither true nor false, is diagnosed rather
+  than reported as "not found or already destroyed", which asserts a cause the
+  operator never gave.
+- **A malformed recall response is no longer misdiagnosed as a non-custodial
+  operator.** `Array.isArray` vouches for the container, not the contents: a
+  list of `null`s or primitives has no string plaintext, satisfied the
+  all-sealed test, and sent the user to install a different package to fix a
+  malformed reply. Arrays needed excluding explicitly, since `typeof [] ===
+  'object'` let a list of lists land on the same misdiagnosis. A cell id that
+  cannot be quoted back is now diagnosed at the point of reading rather than
+  surfacing later as a raw output-schema error naming a path into an object the
+  user never saw.
+- **"No memories stored" is no longer said after a query that simply matched
+  nothing.** It is a claim about the whole store, and said in the wrong place it
+  tells a user their memory is gone.
+- **`saihm_remember` refuses an empty write.** An empty write still costs a
+  creation fee and still returns `REMEMBERED` with a cell id, so nothing
+  downstream revealed that the memory had no content — and `z.string()` accepts
+  `''`, which is exactly what an agent assembling content from a template that
+  resolved to nothing will send.
+- **Reading a field off a `null` container no longer throws before any
+  diagnosis can run.** The three tools written first did not guard their
+  response container; a `storageByTier` that arrived as an array rendered its
+  indices as tier names, and one that arrived as an object rendered
+  `filecoin=[object Object]B`. A blank `walletIdHash` alongside a valid
+  `agentIdHash` is also no longer rejected as "missing or malformed", since
+  `??` treats `''` as a value.
+
+### Changed
+
+- **The Smithery listing can be scanned.** `configSchema.required` listed both
+  settings, which blocked Smithery's scanner from ever launching the server, so
+  the listing showed no tools at all. Boot is lazy and the server enumerates its
+  eight tools with no environment set — a missing endpoint surfaces as a typed
+  error on first call, not a crash — so `required` is now empty while both
+  fields are still prompted for in the UI. The `saihmEndpointUrl` description
+  now states that it is a **custodial** operator, not the non-custodial hosted
+  service.
+- **`saihm_recall`'s description no longer says "retrieve and decrypt".** This
+  client holds no keys and runs no cryptography; the operator decrypts and
+  returns plaintext, as every other document in the repo says.
+- **`npm pack` now builds.** `prepack` runs the build, so a tarball can no
+  longer be produced from a stale or absent `dist`. `prepublishOnly` runs
+  typecheck and tests, and `typecheck` now covers the test sources as well; the
+  release workflow no longer tolerates a missing `typecheck` script.
+
+### Documentation
+
+- **Corrected the release history for `0.1.1`–`0.1.3`.** `0.1.3` was prepared
+  but never published — there is no npm version, no tag and no GitHub Release —
+  and is now labelled as such rather than deleted, since other documents cite
+  its date for the OpenSSF badge. `0.1.1` did reach npm but was never written
+  up; its entry is reconstructed from the published tarball metadata. The
+  `mcpName` casing correction is attributed to `0.1.2`, where it happened,
+  rather than being described there as an addition.
+
 ## [0.3.10] — 2026-07-28
 
 ### Fixed
@@ -444,7 +672,14 @@ release will perform the corresponding `StatusSnapshot` alignment.
   `cellId` recompute itself remains an operator-side duty because
   the client never receives ciphertext.
 
-## [0.1.3] — 2026-05-19
+## [0.1.3] — 2026-05-19 — PREPARED BUT NEVER PUBLISHED
+
+> **This version does not exist on npm.** `npm view @saihm/mcp-server@0.1.3`
+> returns E404, there is no `v0.1.3` git tag, and there is no GitHub Release.
+> The work below was really done on this date, but it first reached npm in
+> `0.2.0` (2026-05-28). The entry is kept because the files it describes are
+> real and other documents cite this date for the OpenSSF badge; it is labelled
+> rather than deleted so that nobody tries to install it or cite it as shipped.
 
 Governance and assurance release: OpenSSF Best Practices Passing badge achieved
 (project 12898, 100%); Silver criteria at 95%. Adds governance,
@@ -495,12 +730,29 @@ dependencies. No change to MCP-server runtime behavior or wire protocol.
 First release published to the MCP Registry (Glama) and to npm with
 full metadata.
 
+### Fixed
+- `mcpName` casing corrected to `io.github.SAIHM-Admin/saihm-mcp`. It was
+  added in `0.1.1` as `io.github.saihm-admin/saihm-mcp`, and the MCP Registry
+  namespace must match the GitHub organization exactly, so the lowercase form
+  could not be registered. (This entry previously claimed `mcpName` was *added*
+  here; it was added one version earlier.)
+
 ### Added
-- `mcpName` field in `package.json` for MCP Registry discovery.
 - `server.json` — MCP Registry submission metadata.
+
+## [0.1.1] — 2026-05-16
+
+Registry-metadata release. This version went to npm at the time but was never
+written up here; the entry was reconstructed from the published tarball
+metadata.
+
+### Added
+- `mcpName` field in `package.json` for MCP Registry discovery, as
+  `io.github.saihm-admin/saihm-mcp`. The casing is corrected in `0.1.2`.
 - `smithery.yaml` — Smithery configuration (stdio + npm).
 - `Dockerfile` — multi-stage Node 20 Alpine image suitable for
-  registry probes that prefer container packaging (Glama).
+  registry probes that prefer container packaging (Glama). Repository
+  files: neither is carried in the published tarball.
 - Lazy initialization of `SaihmRuntimeClient` in
   `saihm_mcp_server.ts`: the server now starts cleanly without
   `SAIHM_ENDPOINT_URL` / `SAIHM_AUTH_HEADER`, so registry
@@ -512,10 +764,18 @@ full metadata.
   favor of neutral technical description. No semantic change.
 - README version drift fixed (`v0.1.0` → `v0.1.2`).
 
-### Notes
-- Version `0.1.1` was skipped; the jump from `0.1.0` to `0.1.2`
-  bundled the MCP Registry metadata + Glama Dockerfile + lazy-init
-  changes into a single release.
+### Note
+- No `v0.1.1` git tag or GitHub Release was cut for this version, so it is the
+  one published version that cannot be mapped to a commit by tag.
+  `HARDENING.md` §"Distribution integrity" records this.
+- A previous revision of this entry ended with a note claiming the version had
+  been skipped and its contents folded into `0.1.2`. That was wrong and is
+  withdrawn: `npm view @saihm/mcp-server versions` lists `0.1.1`, the tarball
+  is served at `.../@saihm/mcp-server/-/mcp-server-0.1.1.tgz`, and its
+  `package.json` carries the lower-case `mcpName` described above — which is
+  precisely what `0.1.2` then corrected. The claim was a leftover from before
+  this entry was reconstructed, and it contradicted both the entry's own
+  opening line and the npm link at the foot of this file.
 
 ## [0.1.0] — 2026-05-09
 
@@ -543,7 +803,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.10...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.11...HEAD
+[0.3.11]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.11
 [0.3.10]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.10
 [0.3.9]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.9
 [0.3.8]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.8
@@ -556,6 +817,6 @@ Initial release.
 [0.3.1]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.1
 [0.3.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.2.0
-[0.1.3]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.3
 [0.1.2]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.1.2
+[0.1.1]: https://www.npmjs.com/package/@saihm/mcp-server/v/0.1.1
 [0.1.0]: https://github.com/SAIHM-Admin/saihm-mcp/commit/03f1897

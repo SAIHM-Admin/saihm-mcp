@@ -52,6 +52,13 @@ export interface AuthOperatorSelf {
   operatorIdHash: string;
   mldsaSignature: string;
   challenge: string;
+  /**
+   * Optional only for backward compatibility with operators already sending this
+   * payload without it. Supply it: when absent there is no replay window on this
+   * path at all, and the chainSummary written into the audit receipt will record
+   * that the challenge was unbounded.
+   */
+  challengeIssuedAt?: string;
 }
 
 export interface AuthOperatorForDownstream {
@@ -72,6 +79,15 @@ export interface AuthOperatorForDownstream {
         jurisdiction: string;
         publicRecordUrl: string;
       };
+  /**
+   * Optional on the same terms as the `operator-self` field, and for the same
+   * backward-compatibility reason. Supply it: a customer-grant expires on its own
+   * `expiresAt`, but a legal-basis claim commits to a subpoena hash, a jurisdiction
+   * and a record URL and to no point in time at all, so without this field an
+   * observed approval stays valid forever and returns *fresh* data under a *stale*
+   * legal basis. When it is absent the chainSummary records `/no-replay-window`.
+   */
+  challengeIssuedAt?: string;
 }
 
 export type AuthorizationPayload =

@@ -104,6 +104,13 @@ export const AML_CTR_FIELDS: ReadonlyArray<string> = Array.from(
   { length: 44 },
   (_, i) => `aml_ctr_item_${String(i + 1).padStart(2, '0')}`,
 );
+// Deliberately non-contiguous: items 01-70, then 78-98, with nothing between. The
+// identifiers track the numbering of the form being mirrored rather than being packed
+// into a dense sequence, so a field name still names the item an examiner is reading.
+// That gap is why the two lengths below stop short of the highest item number, which
+// otherwise reads as an off-by-seven. Renumbering or closing the gap changes the size
+// of the universe, and the integration suite asserts that size, so it fails there
+// rather than silently reshaping what a template is allowed to project.
 export const AML_SAR_FIELDS: ReadonlyArray<string> = [
   ...Array.from({ length: 70 }, (_, i) => `aml_sar_item_${String(i + 1).padStart(2, '0')}`),
   ...Array.from({ length: 21 }, (_, i) => `aml_sar_item_${String(i + 78).padStart(2, '0')}`),

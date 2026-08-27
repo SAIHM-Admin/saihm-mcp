@@ -139,7 +139,7 @@
   "warnings_strict_justification": "tsconfig.json sets `\"strict\": true`, enabling all of strictNullChecks, noImplicitAny, strictFunctionTypes, etc.",
 
   "know_secure_design_status": "Met",
-  "know_secure_design_justification": "Design uses defense-in-depth: HTTPS-only operator endpoints (plain http:// rejected at construction time except 127.0.0.1/localhost dev exception), per-call 30s abort window, 16MB Content-Length cap, no Authorization-header echo on errors, no filesystem reads, zero EVM tooling. Protocol-layer cryptography references well-published primitives: ML-DSA-65 (NIST FIPS-204) for post-quantum identity binding; HKDF (RFC 5869) for per-cell key derivation; standard NIST-approved AEAD ciphers for cell encryption.",
+  "know_secure_design_justification": "Design uses defense-in-depth: HTTPS-only operator endpoints (plain http:// rejected at construction time except 127.0.0.1/localhost dev exception), per-call 30s abort window, 16MB response-size cap enforced twice (a declared Content-Length over the cap is rejected before the body is read, and the body is independently measured while it streams and aborted on exceeding the cap, so the control does not depend on an honest Content-Length or any at all), no Authorization-header echo on errors, no configuration, credential or user data read from disk and nothing written to disk (the server opens exactly one file, its own package.json, once at startup so serverInfo.version matches the published version, falling back to 0.0.0-dev), zero EVM tooling. Protocol-layer cryptography references well-published primitives: ML-DSA-65 (NIST FIPS-204) for post-quantum identity binding; HKDF (RFC 5869) for per-cell key derivation; standard NIST-approved AEAD ciphers for cell encryption.",
 
   "know_common_errors_status": "Met",
   "know_common_errors_justification": "Maintainer is familiar with the OWASP Top 10, the broader OWASP API Security Top 10, and the emerging OWASP-MCP / agent-tool risk taxonomy. Server enforces conservative defaults to prevent credential leakage (no header echo on error, no disk reads, no shell execution).",
@@ -175,7 +175,7 @@
   "crypto_used_network_justification": "MCP server itself does not negotiate cryptography over the network; it forwards already-authenticated requests over HTTPS to a configured operator endpoint. The operator endpoint implements protocol-layer cryptography end-to-end.",
 
   "delivery_mitm_status": "Met",
-  "delivery_mitm_justification": "Distribution via npm registry over HTTPS with sigstore provenance attestation. Server enforces HTTPS-only on operator endpoint URLs (plain http:// rejected at construction except 127.0.0.1/localhost dev exception).",
+  "delivery_mitm_justification": "Distribution via npm registry over HTTPS, with sigstore provenance attestation on 0.3.6 and later (0.1.0 through 0.3.5 predate the OIDC release pipeline and carry none). Server enforces HTTPS-only on operator endpoint URLs (plain http:// rejected at construction except 127.0.0.1/localhost dev exception).",
 
   "delivery_unsigned_status": "Met",
   "delivery_unsigned_justification": "npm publish flow signs releases via sigstore provenance attestation. Users can verify with `npm audit signatures` and `npm view @saihm/mcp-server --json`.",
@@ -235,7 +235,7 @@
   "build_standard_variables_justification": "Node.js npm project; no make/autoconf install-target convention applies. Standard `npm install` flow is used.",
 
   "bus_factor_status": "Met",
-  "bus_factor_justification": "GOVERNANCE.md §'Adding and removing maintainers' plus the inactivity-emeritus and removal-for-cause processes plus the foundation-cession path describe what happens if the founding maintainer becomes unavailable. The protocol specification is mirrored to the IETF Independent Submission Stream (draft-saihm-memory-protocol), so the spec persists independently of the implementation maintainer.",
+  "bus_factor_justification": "GOVERNANCE.md §'Adding and removing maintainers' plus the inactivity-emeritus and removal-for-cause processes plus the foundation-cession path describe what happens if the founding maintainer becomes unavailable. The protocol specification is published as an Internet-Draft on the IETF Datatracker (draft-saihm-memory-protocol-01), so the spec text persists there independently of the implementation maintainer. It was submitted to the Independent Submission Stream; the ISE concluded its consideration on 2026-07-25 and released it from the queue, so the draft is on no IETF stream and is not an Internet Standard.",
 
   "code_of_conduct_status": "Met",
   "code_of_conduct_justification": "Project adopts the Contributor Covenant v2.1 verbatim text at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CODE_OF_CONDUCT.md. Enforcement contact: architect@saihm.coti.global.",
@@ -256,13 +256,13 @@
   "crypto_verification_private_justification": "Verifier private keys are wallet-bound on the holder side; the MCP server itself holds no signing keys and forwards already-authenticated requests without inspecting the holder's private material.",
 
   "dco_status": "Met",
-  "dco_justification": "Project requires Developer Certificate of Origin (DCO) 1.1 sign-off on every commit (https://developercertificate.org/). CONTRIBUTING.md documents the requirement at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md#licensing-and-dco-sign-off; PRs without `Signed-off-by:` trailers are asked to rebase before merge.",
+  "dco_justification": "Project asks inbound contributions to carry Developer Certificate of Origin (DCO) 1.1 sign-off (https://developercertificate.org/). CONTRIBUTING.md documents the requirement at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md#licensing-and-dco-sign-off and GOVERNANCE.md restates it under Intellectual property; PRs without `Signed-off-by:` trailers are asked to rebase before merge. Stated precisely: the mechanism is a documented policy with a manual remedy, not an automated gate. No DCO check runs in CI and no DCO app is installed, and maintainer practice has lapsed — sign-off was adopted during the Silver push but most commits on main now carry no trailer. HARDENING.md records this as a gap rather than a control.",
 
   "dependency_monitoring_status": "Met",
   "dependency_monitoring_justification": "GitHub Dependabot is enabled via .github/dependabot.yml (weekly schedule for npm + github-actions ecosystems). Dependabot opens pull requests for available dependency updates and reports known vulnerabilities. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/.github/dependabot.yml",
 
   "documentation_current_status": "Met",
-  "documentation_current_justification": "README is updated with every release. The README documents the current v0.1.2 surface (eight tools, configuration, security defaults, achievements, roadmap, dependencies). The CHANGELOG.md tracks release history.",
+  "documentation_current_justification": "README is updated with every release. The README documents the current surface (eight tools, configuration, security defaults, achievements, roadmap, dependencies). The CHANGELOG.md tracks release history.",
 
   "documentation_quick_start_status": "Met",
   "documentation_quick_start_justification": "README's 'Install' + 'Configure' + 'Wire into Claude Code' sections provide a quick-start path from zero to a working server in under five minutes. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md",
@@ -274,10 +274,10 @@
   "governance_justification": "GOVERNANCE.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md documents the project's governance: roles (Contributor / Maintainer / Founding Maintainer / TSC-when-formed), decision process for specification vs implementation vs releases, maintainer add/remove/inactivity, conflict resolution, code review, intellectual property and trademark.",
 
   "implement_secure_design_status": "Met",
-  "implement_secure_design_justification": "Secure-design defaults documented in README §Security: HTTPS-only operator endpoints, per-call 30s abort window, 16 MB Content-Length cap, no Authorization-header echo on errors, no filesystem reads, zero EVM tooling. CONTRIBUTING.md disallows introducing new cryptographic primitives in the MCP-server repo (protocol-stack-only).",
+  "implement_secure_design_justification": "Secure-design defaults documented in README §Security: HTTPS-only operator endpoints, per-call 30s abort window, 16 MB Content-Length cap, no Authorization-header echo on errors, no configuration, credential or user data read from disk and nothing written to disk (the server opens exactly one file, its own package.json, once at startup so serverInfo.version matches the published version, falling back to 0.0.0-dev), zero EVM tooling. CONTRIBUTING.md disallows introducing new cryptographic primitives in the MCP-server repo (protocol-stack-only).",
 
   "input_validation_status": "Met",
-  "input_validation_justification": "Server validates SAIHM_ENDPOINT_URL at construction (HTTPS-only enforcement except 127.0.0.1/localhost dev exception); response Content-Length is capped at 16 MB; Authorization header is never echoed in error messages. TypeScript strict mode adds compile-time validation across the call surface.",
+  "input_validation_justification": "Server validates SAIHM_ENDPOINT_URL at construction (HTTPS-only enforcement except 127.0.0.1/localhost dev exception); response size is capped at 16 MB, enforced both on a declared Content-Length and on the streamed body itself; Authorization header is never echoed in error messages. TypeScript strict mode adds compile-time validation across the call surface.",
 
   "installation_common_status": "Met",
   "installation_common_justification": "Standard npm install: `npm install @saihm/mcp-server` or `npx @saihm/mcp-server`. Documented in README §Install.",
@@ -312,8 +312,8 @@
   "updateable_reused_components_status": "Met",
   "updateable_reused_components_justification": "Dependencies are tracked in package.json + package-lock.json. Dependabot monitors weekly and opens PRs for updates. `npm outdated` shows the current update surface.",
 
-  "version_tags_signed_status": "Met",
-  "version_tags_signed_justification": "Going forward, git tags are GPG-signed via `git tag -s` per the maintainer's local GPG key. The v0.1.2 tag predates this policy; v0.1.3 and subsequent tags will be signed.",
+  "version_tags_signed_status": "Unmet",
+  "version_tags_signed_justification": "No release tag is cryptographically signed. Verified tag by tag: v0.1.0, v0.2.0 and v0.3.0 through v0.3.5 are annotated tags that were never signed; v0.1.2 and v0.3.6 through v0.3.10 are lightweight and hold no tag object that could carry a signature. An earlier answer here claimed GPG signing from v0.1.3 onward; that was untrue of every tag, and v0.1.3 was never released at all. The artifact-to-source link the project does provide is npm sigstore provenance, on 0.3.6 and later: those versions are published from GitHub Actions over OIDC trusted publishing and carry a SLSA provenance attestation binding the tarball to the Actions run and commit that built it (verify with `npm audit signatures`). Versions 0.1.0 through 0.3.5 predate that pipeline and carry no attestation.",
 
   "vulnerability_report_credit_status": "Met",
   "vulnerability_report_credit_justification": "SECURITY.md §Disclosure commits to crediting the reporter (with permission) in the advisory and release notes. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md",
@@ -325,13 +325,13 @@
   "documentation_architecture_justification": "ARCHITECTURE.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/ARCHITECTURE.md documents the high-level architecture: project scope, system diagram, components (MCP tool surface, runtime client, types, reporting, tests), data envelope, trust model, threat-model summary, build/test/release flow, and anti-overreach principles.",
 
   "hardening_status": "Met",
-  "hardening_justification": "HARDENING.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/HARDENING.md collects enforced hardening choices: HTTPS-only transport, TLS 1.2+, no Authorization-header echo on errors, 30s abort window, 16 MB Content-Length cap, no filesystem reads, no EVM tooling, signed npm releases (sigstore provenance), pinned dependencies, Dependabot, DCO requirement, signed git tags going forward, eight-tool cap as protocol-invariant surface minimization. Each choice is enforced in code or in the published artifact, not aspirational.",
+  "hardening_justification": "HARDENING.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/HARDENING.md collects enforced hardening choices: HTTPS-only transport, TLS 1.2+, no Authorization-header echo on errors, 30s abort window, a 16 MB response-size cap enforced both on a declared Content-Length and on the streamed body, no configuration, credential or user data read from disk and nothing written to disk (the server opens exactly one file, its own package.json, once at startup so serverInfo.version matches the published version, falling back to 0.0.0-dev), no EVM tooling, npm releases carrying sigstore/SLSA provenance from OIDC trusted publishing, pinned dependencies, Dependabot, eight-tool cap as protocol-invariant surface minimization. Three items are recorded in HARDENING.md as gaps rather than controls: release tags are unsigned; DCO sign-off is a documented policy with a manual remedy, carries no automated check, and has lapsed in maintainer practice; and CI runs on every PR and every push to main but is not a required status check, because main carries no branch protection and no rulesets. Every item listed as a control is enforced in code or in the published artifact, not aspirational.",
 
   "documentation_roadmap_status": "Met",
   "documentation_roadmap_justification": "README §Roadmap publishes the 12-month roadmap: 2026-Q2 operator-endpoint reference + OpenSSF Silver pursuit; 2026-Q3 first 2-3 external organization deployments + AAIF Project Proposal submission gate; 2026-Q4 NIST AI RMF crosswalk public review + EU AI Act compliance-checklist generator + OpenSSF Silver award target; 2027-Q1 IETF RFC publication + v1.0 reference implementation. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#roadmap",
 
   "documentation_achievements_status": "Met",
-  "documentation_achievements_justification": "README §Achievements lists the project's current standards-track credentials: OpenSSF BP Passing badge (project 12898, 2026-05-19), IETF ISE draft-saihm-memory-protocol-00 acceptance (2026-05-18), npm registry @saihm/mcp-server@0.1.2 (2026-05-16), MCP Registry / Glama listing (2026-05-16). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#achievements",
+  "documentation_achievements_justification": "README §Achievements lists the project's current credentials: OpenSSF BP Passing badge (project 12898, 2026-05-19); the Internet-Draft draft-saihm-memory-protocol-01 (2026-05-27), submitted to the IETF Independent Submission Stream and released from the ISE queue on 2026-07-25 (now on no IETF stream, not an Internet Standard, not IETF-endorsed); npm registry @saihm/mcp-server (0.3.11, 2026-08-26); MCP Registry / Glama listing (2026-05-16). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#achievements",
 
   "external_dependencies_status": "Met",
   "external_dependencies_justification": "README §Dependencies lists the runtime + build dependencies and their licenses (Node.js MIT, @modelcontextprotocol/sdk MIT, TypeScript Apache-2.0, tsx MIT). No copyleft, no proprietary dependencies. Operator-side recommended primitive libraries (@noble/curves MIT, @noble/post-quantum MIT) are also enumerated. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#dependencies",
@@ -349,5 +349,5 @@
   "coding_standards_enforced_justification": "ESLint (typescript-eslint recommended rules) and Prettier are configured at the repository root (eslint.config.js + .prettierrc.json + .prettierignore). The CI workflow at .github/workflows/ci.yml runs `npm run lint` and `npm run format:check` on every push to main and every pull request, against Node 20.x and 22.x. CI fails if any source file fails lint or formatting. npm scripts: `lint`, `lint:fix`, `format`, `format:check`. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/eslint.config.js and https://github.com/SAIHM-Admin/saihm-mcp/blob/main/.github/workflows/ci.yml",
 
   "test_statement_coverage80_status": "Met",
-  "test_statement_coverage80_justification": "Statement coverage is measured via c8 (https://www.npmjs.com/package/c8) wrapping the integration test suite (`c8 tsx tests/integration.test.ts`). c8 configuration in package.json enables `check-coverage: true` with `statements: 80, lines: 80, functions: 80, branches: 65`. Current measured statement coverage is 84.17% across the project (saihm_runtime_client.ts 100%, types.ts 100%, reporting/* averaging 93.3%, with the stdio CLI entry point saihm_mcp_server.ts intentionally not exercised by the integration test). CI fails if statement coverage drops below 80%. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/package.json (c8 section)."
+  "test_statement_coverage80_justification": "Statement coverage is measured via c8 (https://www.npmjs.com/package/c8) wrapping the integration test suite (`c8 tsx tests/integration.test.ts`). c8 configuration in package.json enables `check-coverage: true` with `statements: 80, lines: 80, functions: 80, branches: 65`. Measured statement coverage has been comfortably above that floor on every release (the stdio CLI entry point saihm_mcp_server.ts is intentionally not exercised by the integration test, since importing it must not start a server). CI fails if statement coverage drops below 80%. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/package.json (c8 section)."
 }

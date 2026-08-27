@@ -79,7 +79,13 @@ export function validateBespokeTemplate(input: unknown): ValidationResult {
 
   for (const field of t.fieldProjections) {
     if (!isFieldInUniverse(field)) {
-      errors.push(`fieldProjections: '${field}' not in 262-field universe (security boundary)`);
+      // Size read from the set, not written as a literal. The message used to say
+      // "262-field universe" while enforcement ran against all 280 (262 framework +
+      // 18 ledger), so an operator debugging a rejection counted the wrong boundary.
+      errors.push(
+        `fieldProjections: '${field}' not in ${FIELD_UNIVERSE_SET.size}-field universe` +
+          ' (security boundary)',
+      );
     }
   }
 
@@ -105,6 +111,17 @@ export function validateBespokeTemplate(input: unknown): ValidationResult {
 // Universe-membership check (exported for direct use by generators)
 // ============================================================================
 
+/**
+ * Membership only: it answers whether every listed field is a known one. An empty
+ * list therefore passes, because no member of it is unknown.
+ *
+ * The template schema separately requires fieldProjections to be non-empty, so on
+ * that one input the two exported checks disagree, and a generator gating solely on
+ * this one will build a zero-field projection that validateTemplate refuses. The
+ * disagreement is in the safe direction — an empty projection discloses nothing —
+ * but gate on the schema when the question is "is this a usable template" rather
+ * than "are these fields ones I know".
+ */
 export function projectionsAreInUniverse(fields: ReadonlyArray<string>): {
   valid: boolean;
   invalid: ReadonlyArray<string>;

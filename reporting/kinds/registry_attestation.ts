@@ -51,6 +51,25 @@ export interface PublicRegistry {
   resolve(target: RegistryAttestationTarget): Promise<RegistryRecord | null>;
 }
 
+/**
+ * The single definition of "which identifier identifies this target".
+ *
+ * It used to be decided three separate times with two different notions of
+ * present: the generator's guard tested truthiness (`!agentIdHash && !cellId`)
+ * while the resolver and the receipt scope both used `??`, which treats '' as a
+ * value. So `{ agentIdHash: '', cellId: 'abc' }` passed the guard and was then
+ * looked up — and recorded — under '' rather than 'abc'. Either the requester was
+ * told "target not found" for a record that exists, or a report_generated receipt
+ * was written whose scope names nobody. A receipt is a durable claim about who a
+ * disclosure covered, so it must not be able to say that.
+ */
+export function resolveTargetSubject(target: RegistryAttestationTarget): string | undefined {
+  for (const v of [target.agentIdHash, target.cellId]) {
+    if (typeof v === 'string' && v !== '') return v;
+  }
+  return undefined;
+}
+
 export class StubPublicRegistry implements PublicRegistry {
   private readonly records = new Map<string, RegistryRecord>();
 
@@ -59,14 +78,35 @@ export class StubPublicRegistry implements PublicRegistry {
   }
 
   async resolve(target: RegistryAttestationTarget): Promise<RegistryRecord | null> {
-    const key = target.agentIdHash ?? target.cellId ?? '';
-    return this.records.get(key) ?? null;
+    // Same notion of present as the generator, so a raw target handed straight to
+    // the stub by an operator resolves the same way it would through the generator.
+    const key = resolveTargetSubject(target);
+    return key === undefined ? null : (this.records.get(key) ?? null);
   }
 }
 
 // ============================================================================
 // Output rendering (deterministic JSON / CSV; PDF/A-3 placeholder)
 // ============================================================================
+
+/**
+ * Render one CSV cell to RFC 4180, neutralising spreadsheet formulas.
+ *
+ * publicMetadata is free-form data from a PUBLIC registry, so its contents are
+ * whatever the registering party put there. It used to be interpolated as bare
+ * `JSON.stringify(v)`, which fails twice. Structurally: an object or a string
+ * containing a comma or a quote spilled into extra columns, so the attestation
+ * parsed as a different document than the JSON form of the same record. And an
+ * attestation is an export — a value beginning with =, +, - or @ is executed as a
+ * formula the moment an auditor opens the file in a spreadsheet, which is the whole
+ * of CSV injection. Prefixing with an apostrophe is what stops the evaluation;
+ * quoting alone does not.
+ */
+function csvCell(value: unknown): string {
+  const raw = typeof value === 'string' ? value : (JSON.stringify(value) ?? '');
+  const guarded = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return `"${guarded.replace(/"/g, '""')}"`;
+}
 
 function renderOutput(record: RegistryRecord, format: ReportFormat): Uint8Array {
   const projection = {
@@ -85,7 +125,7 @@ function renderOutput(record: RegistryRecord, format: ReportFormat): Uint8Array 
     return new TextEncoder().encode(body);
   }
   if (format === 'csv') {
-    const rows = Object.entries(projection).map(([k, v]) => `${k},${JSON.stringify(v)}`);
+    const rows = Object.entries(projection).map(([k, v]) => `${csvCell(k)},${csvCell(v)}`);
     return new TextEncoder().encode(rows.join('\n'));
   }
   const placeholder = `%PDF-A3 PLACEHOLDER (real PDF/A-3 pending)\n${body}\n%%EOF\n`;
@@ -102,40 +142,65 @@ export interface GenerateRegistryAttestationDeps {
   verifiers?: AuthVerifiers;
 }
 
+/**
+ * Record the rejection, then fail with the reason for it.
+ *
+ * The rejection is the primary fact. emitReceipt throws when the operator's audit
+ * callback returns nothing usable, and an unguarded `await` here let that replace the
+ * rejection reason outright — so an operator with a broken audit ledger saw "audit
+ * emission failed" for every bad credential and never learned the credential was bad.
+ * Both facts are reported, cause first.
+ */
+async function rejectWithReceipt(
+  reason: string,
+  thrown: string,
+  deps: GenerateRegistryAttestationDeps,
+): Promise<never> {
+  const rejected = buildReportRejected({
+    kind: 'registry-attestation',
+    reason,
+    requesterIdHash: '0'.repeat(64),
+  });
+  try {
+    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
+  } catch (err) {
+    throw new Error(
+      `${thrown} (additionally, the rejection receipt could not be recorded: ` +
+        `${err instanceof Error ? err.message : String(err)})`,
+    );
+  }
+  throw new Error(thrown);
+}
+
 export async function generateRegistryAttestation(
   request: ReportRequestRegistryAttestation,
   deps: GenerateRegistryAttestationDeps,
 ): Promise<GenerateReportResult> {
   const auth = await validateAuthForKind('registry-attestation', request.auth, deps.verifiers);
   if (!auth.ok) {
-    const rejected = buildReportRejected({
-      kind: 'registry-attestation',
-      reason: auth.reason,
-      requesterIdHash: '0'.repeat(64),
-    });
-    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
-    throw new Error(`registry-attestation: auth rejected: ${auth.reason}`);
+    return rejectWithReceipt(
+      auth.reason,
+      `registry-attestation: auth rejected: ${auth.reason}`,
+      deps,
+    );
   }
 
-  if (!request.target.agentIdHash && !request.target.cellId) {
-    const rejected = buildReportRejected({
-      kind: 'registry-attestation',
-      reason: 'target must include agentIdHash or cellId',
-      requesterIdHash: '0'.repeat(64),
-    });
-    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
-    throw new Error('registry-attestation: invalid target');
+  const subject = resolveTargetSubject(request.target);
+  if (subject === undefined) {
+    return rejectWithReceipt(
+      'target must include agentIdHash or cellId',
+      'registry-attestation: invalid target',
+      deps,
+    );
   }
 
   const record = await deps.registry.resolve(request.target);
   if (!record) {
-    const rejected = buildReportRejected({
-      kind: 'registry-attestation',
-      reason: 'target not found in public registry',
-      requesterIdHash: '0'.repeat(64),
-    });
-    await emitReceipt(rejected, 'framework-smoke', deps.runtime);
-    throw new Error('registry-attestation: target not found');
+    return rejectWithReceipt(
+      'target not found in public registry',
+      'registry-attestation: target not found',
+      deps,
+    );
   }
 
   const output = renderOutput(record, request.format);
@@ -143,7 +208,7 @@ export async function generateRegistryAttestation(
   const generatedReceipt = buildReportGenerated({
     kind: 'registry-attestation',
     scope: {
-      customerIdHashes: [request.target.agentIdHash ?? request.target.cellId!],
+      customerIdHashes: [subject],
       timeRange: { from: record.registrationTimestamp, to: new Date().toISOString() },
     },
     format: request.format,

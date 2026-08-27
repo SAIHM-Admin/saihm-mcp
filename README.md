@@ -116,8 +116,12 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
   raw private keys**; the operator's enrolment flow keeps your
   signing key on your machine.
 
-Place these in a `.env` file alongside the server (the `.gitignore` excludes
-all `.env*` files from any future repo).
+Both are read from the process environment. This package loads no `.env` file —
+it has no `dotenv` dependency and never reads configuration from disk — so set
+them in the `env` block of your MCP host's server configuration, or export them
+in the shell that launches the server. If you keep them in a `.env` for your own
+convenience, source it yourself before launching, and keep it out of version
+control.
 
 ## Free trial (sign in with GitHub)
 
@@ -155,7 +159,7 @@ same memories, no re-onboarding.
 
 ## Wire into Claude Code
 
-```jsonc
+```json
 {
   "mcpServers": {
     "saihm": {
@@ -164,11 +168,18 @@ same memories, no re-onboarding.
       "env": {
         "SAIHM_ENDPOINT_URL": "https://operator.example.com/mcp",
         "SAIHM_AUTH_HEADER": "Bearer <token>"
-      }
+      },
+      "timeout": 60
     }
   }
 }
 ```
+
+Keep `timeout`, and keep the block as strict JSON with no trailing commas.
+Hosts that don't recognise `timeout` ignore it, but Cline allows a server only
+1.5 s to start — too short for `npx` to resolve and launch a package — and a
+server that misses the deadline is skipped **silently**, with no error in the
+chat.
 
 ## What gets persisted, where
 
@@ -245,11 +256,21 @@ import {
 } from "@saihm/mcp-server/reporting";
 ```
 
+The package is **ESM-only** — `"type": "module"`, and the `exports` map
+declares an `import` condition with no `require` one. From a CommonJS project
+`require("@saihm/mcp-server/reporting")` therefore fails with
+`ERR_PACKAGE_PATH_NOT_EXPORTED`, which reads as though the sub-export does not
+exist; it does, and the module system is the reason. Both entry points behave this
+way — the root and `/reporting` alike. A newer Node does not help: current Node 20.x
+can `require()` an ES module, but that only takes effect once a `require` condition
+matches, and this package declares none, so the failure is the same on every supported
+version. Use `import`, or load it from CJS with a dynamic `await import()`.
+
 ### What it covers
 
-- **Field universe** (`FIELD_UNIVERSE`) — 280 fields (262 framework + 18 ledger). Templates that project a field outside this set are rejected at validation.
+- **Field universe** (`FIELD_UNIVERSE`) — 280 fields (262 framework + 18 ledger). Templates that project a field outside this set are rejected at validation. Check the split before you plan against the count: the 12 GDPR Art.15, 11 GDPR Art.17 and 18 ledger fields are verbatim canonical names with sub-clause citations, and the other 239 — SOC 2 Type 1 and 2, ISO 27001, and all four AML sub-prefixes — are deterministic structural placeholders (`iso27001_F01`, `aml_ctr_item_01`, and so on) that you map to your own canonical names. They are enforced projection slots, not a regulatory enumeration, so selecting `iso27001` gets you 31 validated slots rather than 31 named ISO 27001 fields. Replacing them with verbatim names against the primary sources is future work.
 - **Bespoke template schema** — zod validator + universe-membership check + scope/cap enforcement.
-- **Authorization path validators** — 4 paths: `public` / `self` / `operator-self` / `operator-for-downstream`.
+- **Authorization path validators** — 4 paths: `public` / `self` / `operator-self` / `operator-for-downstream`. These check structure — shape, hex formats, replay windows, kind-vs-auth coupling. Signature verification is done by callbacks **you** inject; see [Wiring signature verifiers](#wiring-signature-verifiers) before using them to gate anything.
 - **Receipt emission** — 6 sub-kinds (`report_generated` / `report_rejected` / `template_registered` / `template_superseded` / `erasure_chain_broken` / `rate_limit_exceeded`) under a stable, domain-separated receipt namespace.
 - **Framework smoke** — `registry-attestation` (public auth) for end-to-end plumbing verification.
 
@@ -285,17 +306,70 @@ const reg = await registerTemplate(template, runtime);
 if (reg.ok) console.log("registered:", reg.templateHash);
 ```
 
-In production, replace `InMemoryReportingRuntime` with a runtime that persists audit payloads to your operator's audit ledger. Operators who inject signature verifiers should use pure-crypto libraries (`@noble/curves` for EIP-712, `@noble/post-quantum` for FIPS 204 ML-DSA) — the package itself bundles no EVM tooling.
+In production, replace `InMemoryReportingRuntime` with a runtime that persists audit payloads to your operator's audit ledger.
+
+### Wiring signature verifiers
+
+The validators do not verify signatures themselves. Cryptography is injected, so the
+package can stay EVM-free and let you choose your own libraries — but that means the
+default posture is deliberate and must not be mistaken for enforcement:
+
+- **With no verifier wired, the validators are shape-only.** They check structure and
+  return `ok: true` without any signature having been checked. This is a legitimate
+  smoke-test posture; it is **not** authorization. Do not gate a disclosure on a
+  validator result until you have injected verifiers.
+- **Unverified results say so — with one of three markers.** A path that returns
+  `ok: true` without a signature having been checked appends a marker to its
+  `chainSummary`, which `generateRegistryAttestation` copies into the receipt as
+  `authChainSummary`, so a smoke run stays distinguishable from a verified disclosure
+  after the fact. `self` and `operator-self` append `/UNVERIFIED-shape-only`;
+  `operator-for-downstream` reports its two halves separately as
+  `/operator-sig-unverified` and `/customer-sig-unverified`. Audit with the exported
+  `chainSummaryIsUnverified()` rather than matching a substring by hand — a
+  case-sensitive substring test for the upper-case marker matches only the first of the
+  three and reads a wholly unverified downstream disclosure as verified.
+- **Once you wire any verifier, every path that cannot be covered is refused.** Wiring
+  any one of the three callbacks is what distinguishes a live deployment from a smoke
+  run, so from that point on a path whose own verifier is missing is rejected instead of
+  returned as shape-only. On `self` the caller supplies `surface` and `surface` selects
+  the verifier (`web` → `verifyEip712`, `mcp` → `verifyMlDsa`), so wiring only one means
+  a request naming the other surface is refused — otherwise the caller could pick the
+  surface you left unwired and skip verification entirely. `operator-self` and the
+  operator half of `operator-for-downstream` both require `verifyMlDsa` on the same
+  terms: wire `verifyEip712` alone and every operator-path request is refused rather
+  than authorized unchecked.
+  The one deliberate exception is the customer half of a `customer-grant`, which stays
+  a marker rather than a refusal because grants may be authenticated out of band — see
+  `verifyCustomerGrant`, and expect `/customer-sig-unverified` in the `chainSummary`
+  when you leave it undefined.
+- **Sign the same bytes this package verifies.** `selfChallengeMessage`,
+  `operatorSelfChallengeMessage`, `operatorDownstreamMessage` and
+  `customerGrantMessage` are exported for exactly this: each path is domain-tagged, and
+  a signature over anything else will not verify.
+
+Use pure-crypto libraries for the verifiers (`@noble/curves` for EIP-712,
+`@noble/post-quantum` for FIPS 204 ML-DSA) — the package itself bundles no EVM tooling.
+
+```ts
+const verifiers: AuthVerifiers = {
+  verifyMlDsa: async (signature, message, publicKeyHash) => {
+    /* your FIPS 204 verify over exactly `message` */
+  },
+};
+const result = await validateAuthForKind("audit-export", auth, verifiers);
+if (!result.ok) throw new Error(result.reason);
+if (chainSummaryIsUnverified(result.chainSummary)) throw new Error("not actually verified");
+```
 
 ## Security
 
 The server enforces a small set of defaults so misconfiguration cannot leak the `Authorization` header in transit:
 
-- **HTTPS-only endpoints.** `SAIHM_ENDPOINT_URL` must use `https://`. Plain `http://` is rejected at construction time, except for `127.0.0.1` and `localhost` (so a local operator endpoint works during development).
+- **HTTPS-only endpoints, held across the whole call.** `SAIHM_ENDPOINT_URL` must use `https://`. Plain `http://` is rejected at construction time, except for `127.0.0.1` and `localhost` (so a local operator endpoint works during development). Because that check covers the configured URL and nothing past it, requests also set `redirect: 'error'` — an endpoint cannot redirect the call, and the request body with it, to a host that was never validated.
 - **Per-call abort window.** Each request runs under an `AbortController` that aborts after 30s, preventing a hung endpoint from starving the MCP server.
-- **Response-size cap.** Responses whose `Content-Length` exceeds 16 MB are rejected before deserialisation.
+- **Response-size cap.** 16 MB, enforced twice. A `Content-Length` over the cap is rejected before the body is read at all; independently, the body is measured while it streams and the read is aborted the moment it exceeds the cap. The cap therefore does not depend on the sender declaring an honest `Content-Length`, or any at all.
 - **No header echo.** `Authorization` is never included in thrown error messages or stdout.
-- **No filesystem reads.** The package never reads from disk; configuration flows entirely through env vars.
+- **No configuration or user data read from disk.** Configuration flows entirely through env vars, and nothing is ever written to disk. The package opens exactly one file: its own `package.json`, once at startup, so `serverInfo.version` matches the published version (falling back to `0.0.0-dev` if it cannot be read). No credential, cell, or user-data path touches the filesystem.
 - **Zero EVM tooling.** No `ethers`, no `eth_*`, no Solidity. If operators inject signature verifiers via `AuthVerifiers`, they should use pure-crypto libraries (`@noble/curves`, `@noble/post-quantum`).
 
 Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against COTI V2 mainnet anchors is out of scope for this server; consume the `cellId` and `auditCellId` fields and verify against your own SAIHM mainnet read path.
@@ -309,9 +383,11 @@ The published npm package has a minimal runtime surface:
 | Dependency | License | Role |
 |---|---|---|
 | Node.js (≥ 20.x) | MIT | Runtime |
-| `@modelcontextprotocol/sdk` | MIT | MCP SDK; binds the eight-tool surface |
-| TypeScript | Apache-2.0 | Build-time only |
-| `tsx` | MIT | TypeScript runner for tests + CLI |
+| `@modelcontextprotocol/sdk` | MIT | Runtime; MCP SDK, binds the eight-tool surface |
+| `zod` | MIT | Runtime; validates tool inputs and report templates |
+| `@noble/hashes` | MIT | Runtime; SHA-256 for content digests only — a template's `templateHash` and a report's `outputSha256`. No key material passes through it; see `HARDENING.md` §"Surface minimization" |
+| TypeScript | Apache-2.0 | Build-time only — not installed by `npm install @saihm/mcp-server` |
+| `tsx` | MIT | Build-time only; TypeScript runner for tests + CLI |
 
 No copyleft, no proprietary dependencies. Cryptographic primitives at the
 operator-endpoint layer (ML-DSA-65 / Ed25519 / key derivation) are not bundled into
@@ -331,7 +407,12 @@ custom code.
   standing in the IETF standards process.** The `-01` draft remains available on
   the datatracker as the current reference text.
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — `@saihm/mcp-server@0.3.4` published (2026-06-22) adds a
+- **npm registry** — releases from `0.3.6` (2026-06-30) onward are published
+  from GitHub Actions over OIDC trusted publishing and carry an npm sigstore
+  provenance attestation; `0.3.6`–`0.3.10` all do, and the ten earlier
+  versions (`0.1.0`–`0.3.5`), published by hand, do not — see `HARDENING.md`
+  §"Distribution integrity", which also records that no release tag is signed.
+  `0.3.4` (2026-06-22) adds a
   conspicuous "Storage is the operator's responsibility (by design)" section —
   documenting BYO storage and the Join-SAIHM hosted, non-custodial option.
   `0.3.3` (2026-06-22) was
@@ -348,27 +429,33 @@ custom code.
   schema: `prs`, `bfsi`, `bfsi_window_start_ts`, `bfsi_R`,
   `bfsi_M`, `shards`, `contracts`, `governance`). 0.2.0 (also
   2026-05-28) aligned the cell-tuple response shape with §2.1;
-  0.1.3 was the OpenSSF Best Practices Passing badge release
-  (2026-05-19).
+  The OpenSSF Best Practices Passing badge was achieved on 2026-05-19
+  alongside the governance and assurance files; those files first
+  reached npm in 0.2.0 (2026-05-28), as the 0.1.3 version they were
+  prepared under was never published.
 - **MCP Registry / Glama** — server listed for discovery (2026-05-16).
 
 ## Roadmap
 
 A 12-month roadmap is maintained in the project's
-[AAIF proposal](https://github.com/SAIHM-Admin/saihm-mcp/) and will be
-mirrored to <https://saihm.coti.global/roadmap> with the v0.2.x release.
-Near-term tracks:
+[AAIF proposal](https://github.com/SAIHM-Admin/saihm-mcp/) and is published at
+<https://saihm.coti.global/roadmap>. Near-term tracks:
 
-- **2026-Q2** — Operator-endpoint reference implementation; OpenSSF Silver
-  pursuit (governance, code-of-conduct, DCO, signed releases, coverage
-  tooling, assurance case).
+- **2026-Q2 (closed — one gap carried forward)** — Of the OpenSSF Silver
+  pursuit, governance, code-of-conduct, DCO sign-off, coverage tooling and the
+  assurance case all landed. Release-tag signing did **not**; `GOVERNANCE.md`
+  §"Releases" and `HARDENING.md` §"Distribution integrity" both record it as an
+  open gap, and it is carried into the Silver track below.
 - **2026-Q3** — First 2–3 external organization deployments; formal AAIF
   Project Proposal submission when adoption blockers clear.
 - **2026-Q4** — NIST AI RMF crosswalk public review; EU AI Act
   compliance-checklist generator. OpenSSF Silver award (target).
-- **2027-Q1** — Independent-stream (ISE) RFC publication, subject to
-  RFC-Editor review — not an IETF-consensus standard; v1.0 reference
-  implementation.
+- **2027-Q1** — v1.0 reference implementation. The specification's
+  standards path is open: the ISE route closed on 2026-07-25, and the
+  intent is to re-anchor the normative reference on an IETF
+  working-group document once one exists that can be cited. No
+  publication date is being claimed for that, because none is in the
+  project's gift.
 
 ## Support
 

@@ -50,10 +50,13 @@ available we will:
 1. Release a patched version of `@saihm/mcp-server` to npm
 2. Publish a security advisory on the GitHub repository
 3. Credit the reporter (with permission) in the advisory and release notes
-4. Notify SAIHM operator deployments via the SAIHM operations channel
+4. Notify known SAIHM operator deployments via the same private channel
 
-If a reporter has urgent operational concerns, the SAIHM operations team can
-be reached via the same private channel for emergency coordination.
+If a reporter has urgent operational concerns, use the same private channel and
+mark the subject line `[URGENT]`. Please size your expectations accordingly:
+this project is maintained by a single founding maintainer
+(see [`GOVERNANCE.md`](GOVERNANCE.md)), so there is no separate operations
+group and no on-call rotation behind that address.
 
 ## Cryptographic and protocol-level concerns
 
@@ -67,9 +70,13 @@ SAIHM operator endpoint. The protocol stack uses:
 - Public-chain (COTI V2 mainnet) anchoring for audit receipts
 
 If a vulnerability is in the protocol specification itself rather than a
-specific implementation, please indicate that in your report so we can route
-it to the standards track (IETF Independent Submission Stream
-`draft-saihm-memory-protocol`) for coordinated handling.
+specific implementation, please indicate that in your report. Specification
+issues are handled through the same private channel above and are carried
+into the next revision of the Internet-Draft
+`draft-saihm-memory-protocol`. (The draft was submitted to the IETF
+Independent Submission Stream; the ISE concluded its consideration on
+2026-07-25 and released it from the queue, so there is no IETF stream
+process to route a specification report through today.)
 
 ## Thank you
 

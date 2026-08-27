@@ -12,8 +12,9 @@ The repository at `SAIHM-Admin/saihm-mcp` contains the **reference
 MCP-server implementation** for the SAIHM protocol. It does **not**
 contain:
 
-- The protocol specification itself (progressed via
-  [IETF ISE `draft-saihm-memory-protocol`](https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/)).
+- The protocol specification itself (published as the Internet-Draft
+  [`draft-saihm-memory-protocol`](https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/),
+  on no IETF stream since 2026-07-25 — see `GOVERNANCE.md`).
 - The operator-endpoint runtime (the component that actually executes
   the protocol — key derivation, cell encryption, blockchain
   anchoring, audit-receipt emission). Operators run this separately.
@@ -41,7 +42,7 @@ operator endpoint the user has configured via environment variables.
 │  - 8 tool definitions       │
 │  - URL + auth validation    │
 │  - 30s abort window         │
-│  - 16 MB Content-Length cap │
+│  - 16 MB response cap (x2)  │
 │  - No persistence, no crypto│
 └──────────────┬──────────────┘
                │  HTTPS  (operator-issued Bearer token)
@@ -110,14 +111,21 @@ The thin HTTPS client that talks to the operator endpoint:
 - **URL validation** at construction. The endpoint URL must be HTTPS,
   with the exceptions of `127.0.0.1` and `localhost` (for local
   development). Plain `http://` to any other host is rejected.
+- **Redirects refused.** Every request sets `redirect: 'error'`. The URL
+  check covers the configured endpoint and nothing past it, so a followed
+  redirect would move the call to an unvalidated host, carrying the request
+  body with it on `307`/`308`.
 - **Authorization header forwarding.** The `SAIHM_AUTH_HEADER` env var
   (typically `Bearer <token>`) is included on every request. The
   header value is **never** echoed in thrown error messages.
 - **Per-call abort window.** Each request runs under an
   `AbortController` that aborts after 30 seconds. A hung operator
   endpoint cannot starve the MCP server.
-- **Response-size cap.** Responses whose `Content-Length` exceeds
-  16 MB are rejected before deserialization.
+- **Response-size cap: 16 MB, enforced twice.** A declared
+  `Content-Length` over the cap is rejected before the body is read;
+  independently, the body is measured while it streams and the read is
+  aborted on exceeding the cap. The control therefore does not depend
+  on the sender declaring an honest `Content-Length`, or any at all.
 - **No retries.** Failed calls bubble up to the agent immediately;
   retry logic is the agent's responsibility (and avoids accidental
   duplicate `saihm_forget` requests).
@@ -131,7 +139,8 @@ responses.
 TypeScript types that describe the JSON shapes the operator endpoint
 is expected to accept and return. These mirror the
 `draft-saihm-memory-protocol` schema. Type checking happens
-client-side via `tsc --noEmit` (strict mode).
+client-side via `npm run typecheck` (strict mode), which covers both
+the shipped sources and the test suite.
 
 ### `reporting/` — sub-exported reporting library
 
@@ -143,7 +152,12 @@ import, not a ninth tool, and is intended for operator-side report
 generation:
 
 - `FIELD_UNIVERSE` — 280 fields (262 framework + 18 ledger) that
-  bespoke templates may project from.
+  bespoke templates may project from. Only 41 are verbatim canonical
+  names (GDPR Art.15 and Art.17, plus the ledger fields); the other
+  239 — SOC 2, ISO 27001 and AML — are deterministic structural
+  placeholders (`<prefix>_F##`) that the operator maps to its own
+  canonical names. The universe is a validation boundary, not a
+  regulatory enumeration.
 - Template schema (zod validator + universe-membership + scope/cap
   enforcement).
 - Authorization-path validators (4 paths: `public` / `self` /
@@ -161,7 +175,9 @@ See `README.md` "Reporting engine" section for usage.
 Self-contained integration test: spins up an in-process HTTP mock
 server on `127.0.0.1`, configures the runtime client to point at it,
 and exercises all eight MCP tools plus the reporting library. CI runs
-this on every push and pull request on Node 20.x and 22.x.
+this on Node 20.x and 22.x on every push to `main` and every pull
+request targeting it — a push to a topic branch runs nothing until a
+pull request opens.
 
 ## Data envelope (operator-side, for context)
 
@@ -215,7 +231,7 @@ ciphertext remains on the storage tier (Filecoin is intentionally
 unmodifiable to preserve auditability), but is no longer decryptable
 — this is the GDPR Article 17 "cryptographic erasure" pattern.
 
-See [GDPR Art.17 crosswalk](https://saihm.coti.global/standards/gdpr-art-17-crosswalk/)
+See [GDPR Art.17 crosswalk](https://saihm.coti.global/standards/gdpr-art17-crosswalk)
 for the regulator-mapping detail.
 
 ### `saihm_status` schema (spec §3.4)
@@ -277,7 +293,9 @@ operator-integrity threshold (the reference deployment publishes
   — that's a consumer-side responsibility.
 - **The MCP server does not trust the operator with secrets in
   transit.** It refuses plain HTTP (except for localhost dev) so that
-  the `Authorization` header can never be sniffed.
+  the `Authorization` header can never be sniffed, and it refuses
+  redirects so that the endpoint cannot move the call — or the request
+  body — to a host the URL check never saw.
 - **The operator does not see the user's private key.** The protocol
   is wallet-bound; the user holds their signing key, and operator-issued
   Bearer tokens reflect a prior key-bound enrolment. Rotating the
@@ -288,11 +306,12 @@ operator-integrity threshold (the reference deployment publishes
 
 | Threat | Mitigation |
 |---|---|
-| Authorization-header leak in transit | HTTPS-only enforcement (except localhost) |
+| Authorization-header leak in transit | HTTPS-only enforcement (except localhost), plus `redirect: 'error'` so the validated scheme is the one used |
+| Request body diverted to an unvalidated host | `redirect: 'error'`; a `307`/`308` preserves method and body, and for `saihm_remember` the body is the memory plaintext |
 | Authorization-header leak via error | Header value never included in `Error.message` |
 | Operator endpoint compromised | User can rotate to a different operator; cells encrypted under user-bound DEKs cannot be decrypted by a new operator without user re-enrolment |
 | Hung operator (DoS to MCP server) | 30-second per-call abort |
-| Oversized response (DoS / memory exhaustion) | 16 MB Content-Length cap |
+| Oversized response (DoS / memory exhaustion) | 16 MB cap, enforced both on declared `Content-Length` and on the streamed body |
 | Crypto algorithm break | `kekVersion` rotation + `crypto_algorithm_agility` (see protocol draft) |
 | Supply-chain attack on `@saihm/mcp-server` | npm sigstore provenance attestation; `npm audit signatures` verifies |
 | Missing test coverage hides regression | CI gate (Node 20.x + 22.x integration test) |
@@ -309,7 +328,7 @@ Detailed hardening documentation: see [`HARDENING.md`](./HARDENING.md).
  GitHub Actions CI (.github/workflows/ci.yml)
          │
          ├─ npm ci
-         ├─ npm run typecheck   (tsc --noEmit)
+         ├─ npm run typecheck   (sources + tests, strict)
          ├─ npm run build       (tsc -p . + chmod)
          ├─ npm test            (tsx tests/integration.test.ts)
          │
@@ -317,9 +336,14 @@ Detailed hardening documentation: see [`HARDENING.md`](./HARDENING.md).
    Green on Node 20.x AND 22.x
 
    ─── release ───
-   git tag -s vX.Y.Z (signed; GPG-key configured locally)
-   git push origin vX.Y.Z
-   npm publish --provenance   (sigstore attestation)
+   git tag vX.Y.Z && git push origin vX.Y.Z
+   Publish a GitHub Release  ──triggers──▶ .github/workflows/release.yml
+         │
+         ├─ npm ci / build / typecheck / test
+         ├─ validate server.json (pinned mcp-publisher, sha256-checked)
+         ├─ npm publish          (OIDC trusted publishing; no npm token,
+         │                        SLSA provenance generated automatically)
+         └─ publish server.json to the MCP registry (GitHub OIDC)
 ```
 
 ## Anti-overreach principles

@@ -9,16 +9,19 @@
  * Configure via env:
  *   SAIHM_ENDPOINT_URL  HTTPS endpoint, e.g. https://operator.example.com/mcp
  *                       Must be `https://` unless the host is `127.0.0.1` or
- *                       `localhost` (dev exception). Plain HTTP is rejected at
- *                       call time to prevent Authorization-header leaks over
- *                       the wire.
+ *                       `localhost` (dev exception). Plain HTTP is rejected
+ *                       when the client is constructed, on the first tool call.
+ *                       Redirects are refused rather than followed, so the
+ *                       scheme checked at construction is the scheme actually
+ *                       used — otherwise a 307 would carry both the request
+ *                       body and the connection to a host nobody validated.
  *   SAIHM_AUTH_HEADER   Authorization header value per the operator's auth scheme
  *                       (e.g. "Bearer <token>"). The bare-bones client is
  *                       authentication-agnostic; never send raw private keys.
  *
  * Defensive limits:
  *   REQUEST_TIMEOUT_MS  per-call abort window (30s)
- *   MAX_RESPONSE_BYTES  reject responses whose Content-Length exceeds 16 MB
+ *   MAX_RESPONSE_BYTES  stop reading a response once it exceeds 16 MB
  */
 
 import { SharingContractType, type SharingContractScope } from './types.js';
@@ -47,7 +50,21 @@ function assertEndpointUrl(endpoint: string): void {
   try {
     url = new URL(endpoint);
   } catch {
-    throw new Error(`SAIHM_ENDPOINT_URL is not a valid URL: ${endpoint}`);
+    // The value is not quoted back. This branch is reached only by a string that
+    // failed to parse as a URL, so every value that arrives here is the wrong value,
+    // and the likeliest wrong value is the contents of SAIHM_AUTH_HEADER put in the
+    // neighbouring variable. A thrown message becomes the text of an isError tool
+    // result, which is handed to the model and written to the transcript, so quoting
+    // it would copy a bearer token into both. Name the variable and the shape it
+    // should have instead — which is what the https branch below already does, and
+    // what both SAIHM_AUTH_HEADER errors do.
+    throw new Error(
+      'SAIHM_ENDPOINT_URL is not a valid URL, and is not quoted back here in case it' +
+        ' holds a credential. Expected an operator endpoint of the form' +
+        ' https://operator.example.com/mcp. Check the variable directly, and check it' +
+        ' does not hold the value meant for SAIHM_AUTH_HEADER.' +
+        SETUP_HINT,
+    );
   }
   if (url.protocol === 'https:') return;
   if (url.protocol === 'http:' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost'))
@@ -292,10 +309,66 @@ export interface GovernanceVoteResult {
   castAtEpoch: string;
 }
 
+/**
+ * Read a response body with a hard byte cap, returning it as text.
+ *
+ * The Content-Length check at the call site is an early-out, not the enforcement.
+ * A chunked response carries no Content-Length at all — which is what Node's own
+ * http server sends whenever it does not set the length itself — so the header
+ * lookup yields null, `Number(null ?? '0')` is 0, and the check waves it through.
+ * Everything that streams its reply therefore reached res.json() with no limit on
+ * how much it could buffer. Counting bytes as they arrive is what actually bounds
+ * memory, and cancelling mid-stream means a hostile endpoint is cut off rather
+ * than downloaded in full and complained about afterwards.
+ *
+ * Decoding is streamed too: a UTF-8 character can straddle a chunk boundary, and
+ * decoding each chunk independently would corrupt it into replacement characters.
+ */
+async function readCapped(res: Response, method: string): Promise<string> {
+  if (res.body === null) return res.text();
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let out = '';
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_RESPONSE_BYTES) {
+        throw new Error(
+          `SAIHM endpoint ${method} response too large: exceeded the ${MAX_RESPONSE_BYTES}B` +
+            ' cap while still streaming, so the response was cut off and not read.',
+        );
+      }
+      out += decoder.decode(value, { stream: true });
+    }
+  } catch (err) {
+    // Cancel, don't just release. releaseLock leaves the body undrained and the
+    // socket open until the abort timer or the GC gets to it — so the guard meant
+    // to stop an oversized download would let the sender keep the connection. On
+    // the normal path the stream is already done and there is nothing to cancel.
+    await reader.cancel().catch(() => {});
+    throw err;
+  } finally {
+    reader.releaseLock();
+  }
+  return out + decoder.decode();
+}
+
 export class SaihmRuntimeClient {
+  /**
+   * `timeoutMs` defaults to the shipped 30s window and exists so the abort path can be
+   * exercised. It previously could not be: the only way to reach it was to wait 30
+   * seconds, so the suite skipped it and asserted a bare `true` instead — a test that
+   * always passed, counted as a pass, and was cited by ASSURANCE_CASE.md as the
+   * verification for the availability claim. A control that cannot be tested in the
+   * suite ends up evidenced by a placeholder, so the control is made testable.
+   */
   constructor(
     private readonly endpoint: string,
     private readonly authHeader: string,
+    private readonly timeoutMs: number = REQUEST_TIMEOUT_MS,
   ) {
     assertEndpointUrl(endpoint);
   }
@@ -313,7 +386,7 @@ export class SaihmRuntimeClient {
 
   private async call<T>(method: string, params: unknown): Promise<T> {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => ctrl.abort(), this.timeoutMs);
     try {
       const res = await fetch(this.endpoint, {
         method: 'POST',
@@ -323,6 +396,17 @@ export class SaihmRuntimeClient {
         },
         body: JSON.stringify({ method, params }),
         signal: ctrl.signal,
+        // assertEndpointUrl checks the CONFIGURED url and nothing after it. fetch
+        // follows redirects by default, so an endpoint answering 307 sent this exact
+        // POST — method and body preserved — to whatever host it named, and the
+        // https:// guarantee held only as far as the first hop. PROVEN against a local
+        // pair of servers: `saihm_remember` delivered its `content` verbatim to the
+        // redirect target over plain http. undici does strip Authorization across
+        // origins, so the token survives; the body does not, and for saihm_remember the
+        // body IS the memory plaintext — the one thing this client exists to protect.
+        // A JSON-RPC POST endpoint has no reason to redirect, so any redirect is an
+        // error rather than something to follow.
+        redirect: 'error',
       });
       if (!res.ok) {
         throw new Error(`SAIHM endpoint ${method} failed: ${res.status} ${res.statusText}`);
@@ -333,7 +417,32 @@ export class SaihmRuntimeClient {
           `SAIHM endpoint ${method} response too large: ${cl}B (max ${MAX_RESPONSE_BYTES}B)`,
         );
       }
-      return (await res.json()) as T;
+      const raw = await readCapped(res, method);
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        // A 200 that is not JSON is usually an intermediary talking, not the
+        // operator: a captive portal, a proxy error page, an HTML login redirect.
+        // The raw parser error ("Unexpected token <") names none of that, so quote
+        // the opening bytes and say where they came from.
+        const head = raw.slice(0, 120).replace(/\s+/g, ' ').trim();
+        throw new Error(
+          `SAIHM endpoint ${method} returned a non-JSON response` +
+            `${head === '' ? ' (empty body)' : `, starting: ${head}`}. The endpoint URL may` +
+            ' be wrong, or something between this client and the operator answered instead.',
+        );
+      }
+    } catch (err) {
+      // An aborted fetch throws "This operation was aborted", which names neither the
+      // endpoint nor the reason. Only rewritten when the signal actually fired, so a
+      // redirect refusal and a transport error keep their own messages.
+      if (ctrl.signal.aborted) {
+        throw new Error(
+          `SAIHM endpoint ${method} timed out after ${this.timeoutMs}ms with no response,` +
+            ' so the call was aborted. It is unknown whether the operator acted on it.',
+        );
+      }
+      throw err;
     } finally {
       clearTimeout(timer);
     }
