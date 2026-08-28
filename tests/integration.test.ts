@@ -3799,6 +3799,7 @@ async function main() {
     '0.3.8',
     '0.3.9',
     '0.3.10',
+    '0.3.11',
   ]);
   const changelogDoc = repoFile('CHANGELOG.md');
   const changelogLines = changelogDoc.split('\n');
