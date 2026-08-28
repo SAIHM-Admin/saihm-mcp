@@ -1,15 +1,32 @@
 # SAIHM MCP Server
 
-**Sovereign, encrypted, sharable, persistent memory protocol for AI agents.**
+**Portable memory for AI agents.** Your agent remembers what matters — across
+sessions, across models, and across vendors — and you can share it, revoke it,
+or erase it for good.
 
-[![npm version](https://img.shields.io/npm/v/@saihm/mcp-server)](https://www.npmjs.com/package/@saihm/mcp-server) · Apache-2.0 · COTI V2 mainnet
-
+[![npm version](https://img.shields.io/npm/v/@saihm/mcp-server)](https://www.npmjs.com/package/@saihm/mcp-server)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
+· Apache-2.0
 
-> **Start free, no card** — on real infrastructure, via a GitHub sign-in:
-> **[Free trial](#free-trial-sign-in-with-github)**.
-> Or **evaluate it offline first:** runnable demos across every major model, no
-> account needed — **[See it run](#see-it-run)**.
+This package is the **standards client**: eight memory tools any MCP agent —
+Claude Code, Claude Desktop, Cursor, or your own — can call. It carries **no
+cryptography of its own**. It speaks the publicly documented SAIHM memory
+protocol over plain MCP and reaches whichever SAIHM operator you point it at.
+
+**Which package do I want?**
+
+- **You run, or subscribe to, your own SAIHM operator** — this one. Being
+  crypto-free and dependency-light is the point: it drops into a **custodial**
+  operator that performs the cryptography server-side.
+  → [Install](#install) · [Configure](#configure)
+- **You just want memory working, free, in about a minute** — use
+  **[`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)**
+  and ask your agent to *"Join SAIHM"*. It seals cells on your own machine, so it
+  can use the hosted **non-custodial** service — which this crypto-free package
+  cannot. No card. → [Free trial](#free-trial-sign-in-with-github)
+
+**Want to watch it work first?** Runnable demos across every major model,
+offline, no account — **[See it run](#see-it-run)**.
 
 ## What this is
 
