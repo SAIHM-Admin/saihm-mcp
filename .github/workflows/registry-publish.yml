@@ -53,4 +53,26 @@ jobs:
         run: |
           set -euo pipefail
           ./mcp-publisher login github-oidc
-          ./mcp-publisher publish
+          # Same propagation race as release.yml: the registry refuses to register a
+          # version it cannot yet see on npm, and npm's read path lags its own publish.
+          # It bites here too, because this workflow is usually dispatched moments
+          # after the release that failed — the gap has not closed yet. Re-running is
+          # harmless (nothing here is irreversible), but waiting beats a red run, so
+          # the budget is a deadline that tracks propagation rather than a try count.
+          budget=600
+          end=$(( $(date +%s) + budget ))
+          delay=10
+          until ./mcp-publisher publish; do
+            if [ "$(date +%s)" -ge "$end" ]; then
+              echo "::error::MCP registry publish still failing after $(( budget / 60 )) minutes."
+              echo "::error::Nothing here is irreversible, so this workflow is safe to re-run."
+              echo "::error::First confirm npm actually serves the version in server.json:"
+              echo "::error::  npm view @saihm/mcp-server@<version> version"
+              echo "::error::If npm does serve it, the failure is not propagation — read the"
+              echo "::error::publisher output above before dispatching again."
+              exit 1
+            fi
+            echo "registry publish failed (npm may still be propagating); retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$(( delay * 2 )); if [ "$delay" -gt 60 ]; then delay=60; fi
+          done

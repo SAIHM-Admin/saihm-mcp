@@ -96,12 +96,27 @@ jobs:
         run: |
           set -euo pipefail
           ./mcp-publisher login github-oidc
-          # npm publish may still be propagating to the registry mcp-publisher reads
-          # to verify the package carries our mcpName — retry a few times before failing.
-          n=0
+          # The registry refuses to register a version it cannot yet see on npm, and
+          # npm's read path lags its own publish. 0.3.11 sat in that gap longer than
+          # the old 5-attempt/15s budget (75s total) and this step failed with the npm
+          # version already live — which no re-run of this job can repair, because the
+          # npm publish above is not idempotent. The budget is now a deadline rather
+          # than an attempt count, so the wait tracks propagation instead of an
+          # arbitrary number of tries, and it backs off instead of hammering.
+          budget=600
+          end=$(( $(date +%s) + budget ))
+          delay=10
           until ./mcp-publisher publish; do
-            n=$((n + 1))
-            if [ "$n" -ge 5 ]; then echo "::error::MCP registry publish failed after $n attempts"; exit 1; fi
-            echo "registry publish attempt $n failed (npm may still be propagating); retrying in 15s..."
-            sleep 15
+            if [ "$(date +%s)" -ge "$end" ]; then
+              echo "::error::MCP registry publish still failing after $(( budget / 60 )) minutes."
+              echo "::error::The npm version is ALREADY LIVE. Do NOT re-cut the release, and do"
+              echo "::error::NOT 'gh run rerun --failed' — that re-runs the whole job including"
+              echo "::error::the non-idempotent npm publish, which will refuse the version and"
+              echo "::error::skip this step again. Recover with:"
+              echo "::error::  gh workflow run registry-publish.yml -f ref=main"
+              exit 1
+            fi
+            echo "registry publish failed (npm may still be propagating); retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$(( delay * 2 )); if [ "$delay" -gt 60 ]; then delay=60; fi
           done
