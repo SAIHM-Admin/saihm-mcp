@@ -47,7 +47,16 @@ const PACKAGE_VERSION: string = readPackageVersion();
 
 const server = new McpServer(
   { name: 'saihm', version: PACKAGE_VERSION },
-  { capabilities: { tools: {}, prompts: {} } },
+  {
+    capabilities: { tools: {}, prompts: {} },
+    // Sent once at initialize, to every caller, on every session — so it is a pointer, not a
+    // manual. The manual is the saihm_session_bootstrap prompt, which costs nothing until an
+    // agent invokes it. HR-3 bars recommendation language here; this scopes the tools only.
+    instructions:
+      "SAIHM is this agent's persistent memory across sessions, models and vendors. Load it" +
+      ' before other work using the saihm_session_bootstrap prompt, which also carries the rules' +
+      ' for when to store, recall, share and erase. Erasure is cryptographic and irreversible.',
+  },
 );
 
 let runtime: SaihmRuntimeClient | null = null;
@@ -167,7 +176,7 @@ server.registerTool(
   {
     title: 'Remember',
     description:
-      'Store information to SAIHM persistent encrypted memory. Use this when an agent or user wants a fact, decision, or piece of context to persist across sessions.',
+      'Store information in SAIHM persistent encrypted memory. Use this when a fact, decision, or piece of context should outlive the current session. Returns the cell id that saihm_forget takes.',
     inputSchema: { content: z.string().describe('Information to remember') },
     // The cell id is the whole receipt: it is what confirms the write and what
     // saihm_forget needs later. The rest is detail an operator may or may not
@@ -269,7 +278,7 @@ server.registerTool(
       // Not "retrieve and decrypt": this client holds no keys and runs no cryptography —
       // the operator decrypts and returns plaintext. Every other document in the repo says
       // so, and the tool description is the one place a reviewer reads first.
-      'Retrieve memories from the SAIHM encrypted store; the operator decrypts and returns plaintext, this client holds no keys. Use this at the start of a session or whenever past context is needed; pass a keyword to filter, or leave empty to load all.',
+      'Retrieve memories from the SAIHM encrypted store; the operator decrypts and returns plaintext, and this client holds no keys. Use at the start of a session, or whenever past context is needed. Pass a keyword to filter, or leave empty to load all.',
     inputSchema: { query: z.string().optional().describe('Filter by keyword (empty = all)') },
     outputSchema: {
       count: z.number(),
@@ -423,7 +432,7 @@ server.registerTool(
   {
     title: 'Forget (GDPR erasure)',
     description:
-      'Cryptographically erase a memory (GDPR Art. 17 erasure). Use this only to permanently and irreversibly delete a stored memory by its cell id; this cannot be undone.',
+      'Cryptographically erase one memory by its cell id (GDPR Art. 17). Destroying the key makes the content unreadable to everyone, the operator included. Irreversible: use it when erasure is the intent, not to tidy a working set.',
     inputSchema: { id: z.string().describe('Memory entry ID (hex cellId) to erase') },
     annotations: {
       title: 'Forget (GDPR erasure)',
@@ -514,7 +523,7 @@ server.registerTool(
   {
     title: 'Status',
     description:
-      'Show SAIHM session status (PRS, BFSI, storage by tier, sharing, PHI), as far as the operator reports them — a non-custodial operator cannot see stored-byte totals. Use this to check the agent identity, reputation, storage, and sharing state of the current SAIHM session.',
+      'Show the current SAIHM session: agent identity, tier, the prs and bfsi scores, storage by tier, and sharing state, as far as the operator reports them — a non-custodial operator cannot see stored-byte totals. Use it to check the agent identity, custody mode, and what the operator reports about storage and sharing.',
     inputSchema: {},
     // Which of these an operator can answer depends on its custody model, so every
     // field a non-custodial operator cannot see is optional. Only the agent identity
@@ -730,7 +739,7 @@ server.registerTool(
       // wire schema is a lower-case z.enum, and zod enums are case-sensitive. The
       // description is the agent's main signal for what to send, so it was steering
       // callers into a validation rejection. A test asserts the casing stays in step.
-      "Create a sharing contract over one or more shards — type is 'temporary', 'permanent' or 'syndicate'. Use this to grant another agent access to specific memories.",
+      "Grant other agents access to specific memory shards. Set type to 'temporary', 'permanent' or 'syndicate', and scope to 'read', 'write' or 'readwrite'. Grantees are hex agent-id hashes, not names, and shardIds lists exactly what is shared: nothing outside it is exposed, and sharing does not copy the memory.",
     inputSchema: {
       granteeIdHashesHex: z.array(z.string()).describe('Hex-encoded grantee agent ID hashes'),
       shardIds: z.array(z.string()).describe('Shard IDs to include in the contract'),
@@ -864,7 +873,7 @@ server.registerTool(
   {
     title: 'Revoke share',
     description:
-      "Revoke an existing sharing contract by its contractId. Use this to withdraw a grantee's access previously granted with saihm_share.",
+      'Revoke a sharing contract by its contractId, withdrawing access granted with saihm_share. It applies to future reads and cannot retract what a grantee has already read. Use it to end access; the memory itself remains, and saihm_forget is what erases.',
     inputSchema: { contractId: z.string().describe('Sharing contract ID to revoke') },
     annotations: {
       title: 'Revoke share',
@@ -927,7 +936,7 @@ server.registerTool(
   {
     title: 'Propose (governance)',
     description:
-      "Submit a gSAIHM-governance proposal. Scope MUST be 'emission_param' or 'protocol_upgrade'. Use this to open a protocol governance vote.",
+      "Open a protocol governance proposal. Set scope to 'emission_param' or 'protocol_upgrade'; for 'emission_param' also pass paramKey and proposedValue. Returns a hex proposalId that saihm_governance_vote takes. It starts a vote rather than changing a setting.",
     inputSchema: {
       scope: z.enum(['emission_param', 'protocol_upgrade']).describe('Governable scope'),
       paramKey: z.string().optional().describe('Parameter key (when scope=emission_param)'),
@@ -1007,7 +1016,7 @@ server.registerTool(
   {
     title: 'Vote (governance)',
     description:
-      'Cast a vote on an open gSAIHM-governance proposal. Vote weight is derived from gSAIHM balance at proposal.snapshotEpoch. Use this to approve or reject an open proposal by its proposalId.',
+      'Cast a vote on an open governance proposal by its proposalId; set approve to true to approve or false to reject. Vote weight derives from the governance-token balance held at the proposal snapshot epoch, not the balance at the time of voting.',
     inputSchema: {
       proposalId: z.string().describe('Hex proposalId returned by saihm_governance_propose'),
       approve: z.boolean().describe('true = approve, false = reject'),
@@ -1111,8 +1120,9 @@ server.registerTool(
             text:
               `VOTED [${proposalId}] approve=${approve} weight=0 — WARNING: this vote` +
               ' carries zero weight and does not affect the outcome. Weight comes from' +
-              ' the gSAIHM balance at the proposal snapshot epoch; a balance acquired' +
-              ' afterwards does not count and the vote cannot be recast. Do not re-send' +
+              ' the governance-token balance at the proposal snapshot epoch; a balance' +
+              ' acquired afterwards does not count and the vote cannot be recast. Do not' +
+              ' re-send' +
               ' it; raise this with your operator if you expected weight here.',
           },
         ],
@@ -1143,7 +1153,8 @@ server.registerPrompt(
   'saihm_session_bootstrap',
   {
     title: 'Load SAIHM memory',
-    description: 'Load your SAIHM persistent memory at the start of a session, before other work.',
+    description:
+      'Load your SAIHM persistent memory, and the rules for using it, at the start of a session.',
   },
   () => ({
     messages: [
@@ -1151,7 +1162,24 @@ server.registerPrompt(
         role: 'user' as const,
         content: {
           type: 'text' as const,
-          text: 'Before anything else, call the saihm_recall tool (no query, or a keyword if you have one) to load my SAIHM persistent memory for this session, then briefly summarise what you recalled.',
+          text:
+            'Before anything else, call the saihm_recall tool (no query, or a keyword if you' +
+            ' have one) to load my SAIHM persistent memory for this session, then briefly' +
+            ' summarise what you recalled.\n\n' +
+            'Then follow these rules for the rest of the session:\n' +
+            '- Store with saihm_remember when I state something durable: a preference, a' +
+            ' decision, a project fact, or context that should outlive this session. Do not' +
+            ' store passing chatter, and do not store anything I have not asked you to keep.\n' +
+            '- Recall again with saihm_recall when an answer depends on something I told you' +
+            ' earlier, rather than asking me to repeat it.\n' +
+            '- Erase with saihm_forget only when I ask you to erase. It destroys the key, so' +
+            ' the content cannot be recovered by anyone afterwards.\n' +
+            '- Share with saihm_share only when I name both the recipient and what to share.' +
+            ' Grantees are hex agent-id hashes, and shardIds lists exactly what is exposed.' +
+            ' Undo a grant with saihm_revoke_share, which stops future reads but cannot' +
+            ' retract what was already read.\n' +
+            '- If a call fails because no operator endpoint is configured, tell me the setup' +
+            ' step instead of retrying.',
         },
       },
     ],

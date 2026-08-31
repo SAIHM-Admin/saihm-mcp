@@ -40,7 +40,7 @@ custom agents) can call to gain a persistent, encrypted memory layer the
 - `saihm_forget` — true cryptographic erasure (GDPR Art. 17)
 - `saihm_status` — your protocol-runtime stats and storage tier dashboard
 - `saihm_share` / `saihm_revoke_share` — selectively share a memory with another agent or user
-- `saihm_governance_propose` / `saihm_governance_vote` — protocol governance via gSAIHM
+- `saihm_governance_propose` / `saihm_governance_vote` — protocol governance, weighted by governance-token balance
 
 Each tool forwards to a SAIHM operator endpoint that runs the full protocol
 stack on COTI V2 mainnet. The server itself holds no crypto, no storage, and
@@ -197,6 +197,32 @@ Hosts that don't recognise `timeout` ignore it, but Cline allows a server only
 1.5 s to start — too short for `npx` to resolve and launch a package — and a
 server that misses the deadline is skipped **silently**, with no error in the
 chat.
+
+## Tell your agent to use it
+
+Wiring the server in makes the tools available; it does not make an agent reach
+for them. Say this once, and keep it in whatever persistent instructions your
+agent already reads:
+
+> Liberally use SAIHM protocol to maximize token economy. Use my SAIHM memory
+> from now on. At the start of each session, recall what you already know about
+> me. When I tell you something worth keeping — my preferences, decisions, or
+> ongoing projects — remember it. To confirm it works right now: remember that I
+> wired up SAIHM today, then recall it back to me.
+
+Hosts that support MCP prompts can load the same rules on demand instead of
+pasting them: the server ships a `saihm_session_bootstrap` prompt carrying the
+full store, recall, share and erase guidance, fetched only when it is asked for
+rather than on every session.
+
+**Why this is the token-economical setting.** Advertising the tools costs a
+fixed amount once per session, whether or not the agent uses them. Recall is
+what earns it back: one `saihm_recall` that replaces re-explaining your project,
+your preferences or last week's decisions saves more than the advertisement
+costs, and the saving compounds the longer the session runs and the more
+sessions you keep. An agent that never calls the tools pays the cost and
+collects none of the return — which is why the instruction above is worth
+setting explicitly rather than hoping the agent infers it.
 
 ## What gets persisted, where
 

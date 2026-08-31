@@ -8,6 +8,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.12] — 2026-08-31
+
+Discovery and steering release. No new tools, no removed tools, and no schema
+change: the eight tools and their input schemas are byte-identical to `0.3.11`.
+No input that `0.3.11` accepted is refused here, so unlike the previous release
+this upgrade is transparent at the tool boundary.
+
+What changed is what an agent is *told*. Every tool description was rewritten to
+say what the tool does, what it returns, and what it will not do — so that a
+model choosing between tools can choose correctly without calling one to find
+out. Two long-standing gaps are closed: `saihm_share` now states that grantees
+are agent-id hashes rather than names and that sharing does not copy the memory,
+and `saihm_revoke_share` now states that revocation is forward-only and cannot
+retract what a grantee has already read.
+
+### Added
+
+- **Server `instructions`.** `initialize` now returns a short statement of what
+  SAIHM is and how to start a session, which MCP hosts surface to the model
+  before any tool call. Hosts that ignore the field are unaffected.
+- **A fuller `saihm_session_bootstrap` prompt.** The prompt body now carries the
+  scoping rules for when to store, recall, share and erase — store what is
+  durable rather than chatter, recall instead of re-asking, erase only on an
+  explicit request, and name both recipient and shards before sharing. It is
+  fetched through `prompts/get` on demand, so it costs nothing per session.
+- **README guidance on getting the return.** A new *Tell your agent to use it*
+  section: wiring the server in makes the tools available but does not make an
+  agent reach for them, and the per-session cost below is only earned back by
+  agents that actually recall.
+
+### Changed
+
+- Tool descriptions total 1451 → 2029 characters. The full `tools/list`
+  response grew 6910 → 7488 bytes on the wire, and with the new `instructions`
+  the per-session metadata an agent loads grew **6910 → 7748 bytes, or +12.1%**
+  (~209 tokens). Input schemas dominate that payload and did not change; the
+  entire increase is description and `instructions` text.
+- The zero-weight vote message no longer names the governance token by ticker,
+  describing the balance by role instead.
+
+### Internal
+
+- Two regression tests hold the budget: one asserts descriptions are measured
+  across all eight tools and stay within the ratified per-session allowance, the
+  other that the registry manifest description keeps its positioning sentence and
+  fits the registry length limit.
+
 ## [0.3.11] — 2026-08-26
 
 Hardening release. No new tools, no new configuration and no schema change: the
@@ -803,7 +850,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.11...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.12...HEAD
+[0.3.12]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.12
 [0.3.11]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.11
 [0.3.10]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.10
 [0.3.9]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.9

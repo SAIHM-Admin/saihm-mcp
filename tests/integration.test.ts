@@ -2109,6 +2109,43 @@ async function main() {
     'R29-F every advertised tool carries annotations and a description',
   );
 
+  // R31-A. Tool descriptions are injected into every session's context, on a product whose
+  // headline claim is FEWER context tokens — so expanding them taxes exactly what SAIHM
+  // sells. The ratified budget is <=750 tokens for all eight descriptions combined,
+  // measured here in characters. The ratio is NOT the conventional 4.0: HR-2's own measured
+  // pair (1451 chars = ~383 tokens) gives 3.789 chars/token for this corpus, so a 3000-char
+  // cap would have permitted ~792 tokens and quietly overshot the ratified 750. The cap is
+  // 750 * 3.789 = 2841. This is a CAP, not a target: 0.3.12 spends 2029 (~536 tok, 71%).
+  // The count is asserted first so a suite that advertised fewer tools could not pass this
+  // by shrinking the denominator.
+  assert(advertised.length === 8, 'R31-A budget is measured over all eight tools');
+  const descChars = advertised.reduce((n, t) => n + (t.description ?? '').length, 0);
+  assert(
+    descChars <= 2841,
+    `R31-A tool descriptions stay within the ~750-token budget (${descChars}/2841 chars)`,
+  );
+
+  // R31-B. Two surfaces, two caps: package.json is npm (<=120) and server.json is the MCP
+  // Registry, whose schema carries maxLength 100. An over-length string is a clean
+  // pre-publish failure in `mcp-publisher validate`, but only if someone runs it — this
+  // fails in the suite instead. Asserted as PREFIX, not equality: the ratified phrase is
+  // shared, while each package appends its own differentiator, so an equality check here
+  // would fail the sibling package's legitimately longer description.
+  const RATIFIED =
+    'Enterprise-ready portable memory for AI agents: encrypted, shareable, provably erased.';
+  const registryManifest: { description?: string } = JSON.parse(
+    readFileSync(fileURLToPath(new URL('../server.json', import.meta.url)), 'utf8'),
+  );
+  const regDesc = registryManifest.description ?? '';
+  assert(
+    regDesc.startsWith(RATIFIED),
+    'R31-B server.json description opens with the ratified positioning phrase',
+  );
+  assert(
+    regDesc.length <= 100,
+    `R31-B server.json description fits the registry maxLength (${regDesc.length}/100)`,
+  );
+
   // Three of the eight return structured output. Which three is a contract with any
   // consumer that reads structuredContent, and dropping one degrades that consumer
   // to text parsing without failing anything else.
