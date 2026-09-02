@@ -936,7 +936,9 @@ server.registerTool(
   {
     title: 'Propose (governance)',
     description:
-      "Open a protocol governance proposal. Set scope to 'emission_param' or 'protocol_upgrade'; for 'emission_param' also pass paramKey and proposedValue. Returns a hex proposalId that saihm_governance_vote takes. It starts a vote rather than changing a setting.",
+      "Open a protocol governance proposal: set scope to 'emission_param' or 'protocol_upgrade', and for 'emission_param' also pass paramKey and proposedValue. " +
+      'Protocol governance is not enabled by default. The call is forwarded to the operator endpoint you configured, so expect an error rather than an open vote unless that operator has turned governance on. ' +
+      'Where it is enabled it returns a hex proposalId that saihm_governance_vote takes, and it starts a vote rather than changing a setting.',
     inputSchema: {
       scope: z.enum(['emission_param', 'protocol_upgrade']).describe('Governable scope'),
       paramKey: z.string().optional().describe('Parameter key (when scope=emission_param)'),
@@ -1016,7 +1018,9 @@ server.registerTool(
   {
     title: 'Vote (governance)',
     description:
-      'Cast a vote on an open governance proposal by its proposalId; set approve to true to approve or false to reject. Vote weight derives from the governance-token balance held at the proposal snapshot epoch, not the balance at the time of voting.',
+      'Cast a vote on an open protocol governance proposal by its proposalId, with approve set to true to approve or false to reject. ' +
+      'Protocol governance is not enabled by default. The call is forwarded to the operator endpoint you configured, so expect an error rather than a recorded vote unless that operator has turned governance on. ' +
+      'Where it is enabled, vote weight derives from the governance-token balance held at the proposal snapshot epoch, not the balance at the time of voting.',
     inputSchema: {
       proposalId: z.string().describe('Hex proposalId returned by saihm_governance_propose'),
       approve: z.boolean().describe('true = approve, false = reject'),
