@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.13] — 2026-09-02
+
+Truthfulness release. No new tools, no removed tools, no schema change: the eight
+tools and their input schemas are byte-identical to `0.3.12`, and no input that
+`0.3.12` accepted is refused here. What changed is what an agent is told about
+the two governance tools before it chooses one.
+
+### Changed
+
+- **The governance tools now say they are off by default.**
+  `saihm_governance_propose` and `saihm_governance_vote` described opening a
+  proposal and casting a vote as though the call would succeed. Both
+  descriptions now lead with the fact that protocol governance is not enabled by
+  default, and that the call is forwarded to the operator endpoint you
+  configured — so an agent should expect an error rather than an open vote or a
+  recorded vote unless that operator has turned governance on. What each tool
+  does where governance *is* enabled is kept, demoted behind that caveat. No
+  schema change and no behavior change: both tools accept exactly the input they
+  accepted before, and the operator endpoint is untouched. This is a
+  truthfulness fix in what the agent is told before it chooses a tool.
+
+### Documentation
+
+- **The README no longer claims governance works.** The tool list and the tool
+  reference table carried the same promise the descriptions did — including a
+  claim that a vote is weighted by governance-token balance — and now carry the
+  same not-enabled-by-default caveat as the shipped tool descriptions.
+
 ## [0.3.12] — 2026-08-31
 
 Discovery and steering release. No new tools, no removed tools, and no schema
@@ -850,7 +878,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.12...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.13...HEAD
+[0.3.13]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.13
 [0.3.12]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.12
 [0.3.11]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.11
 [0.3.10]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.10

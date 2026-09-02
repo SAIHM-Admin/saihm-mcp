@@ -40,7 +40,7 @@ custom agents) can call to gain a persistent, encrypted memory layer the
 - `saihm_forget` — true cryptographic erasure (GDPR Art. 17)
 - `saihm_status` — your protocol-runtime stats and storage tier dashboard
 - `saihm_share` / `saihm_revoke_share` — selectively share a memory with another agent or user
-- `saihm_governance_propose` / `saihm_governance_vote` — protocol governance, weighted by governance-token balance
+- `saihm_governance_propose` / `saihm_governance_vote` — protocol governance; **not enabled by default**, so expect an error unless your operator has turned it on
 
 Each tool forwards to a SAIHM operator endpoint that runs the full protocol
 stack on COTI V2 mainnet. The server itself holds no crypto, no storage, and
@@ -56,8 +56,8 @@ no protocol runtime — those live behind the operator endpoint.
 | `saihm_status` | Status | read-only |
 | `saihm_share` | Share | writes a sharing contract |
 | `saihm_revoke_share` | Revoke share | withdraws a grant |
-| `saihm_governance_propose` | Propose (governance) | opens a proposal |
-| `saihm_governance_vote` | Vote (governance) | casts a vote |
+| `saihm_governance_propose` | Propose (governance) | forwards a proposal; **not enabled by default** |
+| `saihm_governance_vote` | Vote (governance) | forwards a vote; **not enabled by default** |
 
 Each tool carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) and a human-readable `title`, so MCP hosts can gate confirmations and agents can select the right tool at reasoning time.
 
