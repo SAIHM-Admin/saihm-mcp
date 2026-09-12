@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.SAIHM-Admin/saihm-mcp",
-  "description": "Enterprise-ready portable memory for AI agents: encrypted, shareable, provably erased.",
+  "description": "MCP standards client for your own custodial SAIHM operator. Free start: @saihm/mcp-server-pro",
   "websiteUrl": "https://saihm.coti.global",
   "repository": {
     "url": "https://github.com/SAIHM-Admin/saihm-mcp",
     "source": "github"
   },
-  "version": "0.3.13",
+  "version": "0.3.14",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@saihm/mcp-server",
-      "version": "0.3.13",
+      "version": "0.3.14",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         {

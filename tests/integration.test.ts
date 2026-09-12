@@ -2128,11 +2128,11 @@ async function main() {
   // R31-B. Two surfaces, two caps: package.json is npm (<=120) and server.json is the MCP
   // Registry, whose schema carries maxLength 100. An over-length string is a clean
   // pre-publish failure in `mcp-publisher validate`, but only if someone runs it — this
-  // fails in the suite instead. Asserted as PREFIX, not equality: the ratified phrase is
-  // shared, while each package appends its own differentiator, so an equality check here
-  // would fail the sibling package's legitimately longer description.
-  const RATIFIED =
-    'Enterprise-ready portable memory for AI agents: encrypted, shareable, provably erased.';
+  // fails in the suite instead. Asserted as PREFIX, not equality: the phrase ratified on
+  // 2026-09-12 (funnel audit R2: the two packages no longer share an opener, this one says
+  // who it is for) is shared by this package's registry and npm descriptions, and each
+  // appends its own tail, so an equality check would fail the longer npm string.
+  const RATIFIED = 'MCP standards client for your own custodial SAIHM operator';
   const registryManifest: { description?: string } = JSON.parse(
     readFileSync(fileURLToPath(new URL('../server.json', import.meta.url)), 'utf8'),
   );
@@ -3838,6 +3838,7 @@ async function main() {
     '0.3.10',
     '0.3.11',
     '0.3.12',
+    '0.3.13',
   ]);
   const changelogDoc = repoFile('CHANGELOG.md');
   const changelogLines = changelogDoc.split('\n');

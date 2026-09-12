@@ -1,5 +1,5 @@
 # Smithery configuration for @saihm/mcp-server
-# Sovereign, encrypted, sharable, persistent memory protocol for AI agents.
+# Standards client for custodial SAIHM operators (endpoint URL + operator token). Free start: @saihm/mcp-server-pro.
 # https://smithery.ai/docs/config#smitheryyaml
 
 startCommand:

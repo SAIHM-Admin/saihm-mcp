@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.14] — 2026-09-12
+
+Docs-only release. No new tools, no removed tools, no schema change: the eight
+tools and their input schemas are byte-identical to `0.3.13`, and no input that
+`0.3.13` accepted is refused here. What changed is the first sentence a reader
+sees about this package.
+
+### Changed
+
+- **The description says who this package is for.** The registry entry, the
+  npm description, the README opener and the Smithery header now open with
+  "standards client for your own custodial SAIHM operator" and name the two
+  things it needs: an operator endpoint URL and an operator token. Until now
+  this package and the free-to-start one opened with the same sentence, and
+  the pointer to the free path sat one level down, inside an
+  environment-variable note. It is now in the first sentence: if you just want
+  memory working, free, in about a minute, use `@saihm/mcp-server-pro` and ask
+  your agent to "Join SAIHM".
+
 ## [0.3.13] — 2026-09-02
 
 Truthfulness release. No new tools, no removed tools, no schema change: the eight
@@ -878,7 +897,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.13...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.14...HEAD
+[0.3.14]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.14
 [0.3.13]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.13
 [0.3.12]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.12
 [0.3.11]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.11

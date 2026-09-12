@@ -1,8 +1,9 @@
 # SAIHM MCP Server
 
-**Portable memory for AI agents.** Your agent remembers what matters — across
-sessions, across models, and across vendors — and you can share it, revoke it,
-or erase it for good.
+**The standards client for your own custodial SAIHM operator.** It carries no
+cryptography of its own and expects an operator endpoint URL plus an operator
+token. If you just want memory working, free, in about a minute, use
+**`@saihm/mcp-server-pro`** and ask your agent to *"Join SAIHM"*.
 
 [![npm version](https://img.shields.io/npm/v/@saihm/mcp-server)](https://www.npmjs.com/package/@saihm/mcp-server)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)

@@ -1,8 +1,8 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
-  "description": "Enterprise-ready portable memory for AI agents: encrypted, shareable, provably erased. Standards MCP client.",
+  "description": "MCP standards client for your own custodial SAIHM operator (endpoint URL + operator token). Free hosted start: @saihm/mcp-server-pro.",
   "type": "module",
   "main": "dist/saihm_mcp_server.js",
   "types": "dist/saihm_mcp_server.d.ts",
