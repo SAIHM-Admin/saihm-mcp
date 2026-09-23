@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { AddressInfo } from 'node:net';
-import { SaihmRuntimeClient } from '../saihm_runtime_client.js';
+import { SaihmRuntimeClient, isHostedNonCustodial, safeEndpoint } from '../saihm_runtime_client.js';
 import { SharingContractType } from '../types.js';
 import { server as mcpServer } from '../saihm_mcp_server.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -1962,6 +1962,66 @@ async function main() {
     'R14-B non-JSON 200 names the endpoint and quotes the body',
   );
 
+  // R29-B. A transport failure threw TypeError('fetch failed'), which names neither the
+  // endpoint nor the reason — the message an engineer meets when SAIHM_ENDPOINT_URL is
+  // mistyped. Port 1 on loopback is closed, so this exercises the real undici path.
+  let unreachMsg = '';
+  try {
+    await new SaihmRuntimeClient('http://127.0.0.1:1/mcp', 'Bearer t').recall();
+  } catch (e) {
+    unreachMsg = (e as Error).message;
+  }
+  assert(
+    unreachMsg.includes('could not reach') && unreachMsg.includes('http://127.0.0.1:1/mcp'),
+    'R29-B a transport failure names the endpoint it could not reach',
+  );
+  assert(
+    !unreachMsg.includes('fetch failed'),
+    'R29-B the bare undici message is replaced, not appended to',
+  );
+
+  // R29-B. A 401 from the HOSTED service is the same symptom as a bad operator token and a
+  // different problem. The hint must fire for that host and must NOT fire for anyone else,
+  // or every operator auth failure grows a paragraph telling the reader to switch packages.
+  const unauthServer = createServer((_req, res) => {
+    res.writeHead(401, { 'content-type': 'application/json' });
+    res.end('{}');
+  });
+  await new Promise<void>((r) => unauthServer.listen(0, '127.0.0.1', () => r()));
+  const unauthUrl = `http://127.0.0.1:${(unauthServer.address() as AddressInfo).port}`;
+  let unauthMsg = '';
+  try {
+    await new SaihmRuntimeClient(unauthUrl, 'Bearer t').recall();
+  } catch (e) {
+    unauthMsg = (e as Error).message;
+  }
+  unauthServer.close();
+  assert(
+    unauthMsg.includes('401') && !unauthMsg.includes('non-custodial'),
+    'R29-B a 401 from an ordinary operator carries no wrong-package hint',
+  );
+  assert(
+    isHostedNonCustodial('https://saihm.coti.global/mcp') &&
+      isHostedNonCustodial('HTTPS://SAIHM.COTI.GLOBAL/mcp') &&
+      !isHostedNonCustodial('https://saihm.coti.global.evil.example/mcp') &&
+      !isHostedNonCustodial('https://operator.example.com/mcp') &&
+      !isHostedNonCustodial('not a url'),
+    'R29-B the hosted-host predicate matches the host exactly and survives garbage',
+  );
+
+  // R29-B. The endpoint is quoted back in the transport message, so it must be stripped first.
+  // SAIHM_ENDPOINT_URL is operator-supplied and may carry credentials or a token; an error is
+  // read by an agent and lands in a transcript, which is the wrong place for either.
+  assert(
+    safeEndpoint('https://user:secret@op.example.com/mcp?token=abc#f') ===
+      'https://op.example.com/mcp',
+    'R29-B safeEndpoint drops userinfo, query and fragment, keeping scheme/host/path',
+  );
+  assert(
+    safeEndpoint('not a url') === '(unparseable endpoint URL)',
+    'R29-B safeEndpoint fails closed on garbage rather than echoing it',
+  );
+
   const emptyServer = createServer((_req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end();
@@ -3839,6 +3899,7 @@ async function main() {
     '0.3.11',
     '0.3.12',
     '0.3.13',
+    '0.3.14',
   ]);
   const changelogDoc = repoFile('CHANGELOG.md');
   const changelogLines = changelogDoc.split('\n');

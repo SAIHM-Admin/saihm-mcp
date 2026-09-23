@@ -175,6 +175,37 @@ cancel** — it's a fixed, one-time allowance, not an auto-renewing subscription
 Ready for production? Upgrade in place to a **monthly** plan — same signing key,
 same memories, no re-onboarding.
 
+## What success looks like
+
+Wiring the server in is not the same as using it. The moment that matters is the
+first **recall that returns something** — before that you have an empty store and
+an agent with no particular reason to reach for it.
+
+Here is the whole product in miniature. Once the server is wired in (next
+section) and your host has restarted, say this to your agent, in **two separate
+turns**:
+
+> Remember that I take my coffee black, and that I'm building a Rust CLI called `ferry`.
+
+...then, in a new turn:
+
+> What do you know about me?
+
+The second turn should come back with both facts. It never saw the first turn —
+the memory is what carried them across. Check that round trip before you build
+anything on top of it.
+
+**If the recall comes back empty**, it is nearly always one of these:
+
+| what you see | cause | fix |
+|---|---|---|
+| no SAIHM tools offered at all | the host never started the server | keep `timeout` in the JSON below, then restart the host |
+| tools offered, but the agent never calls them | it has no standing instruction to | see **Tell your agent to use it** below — this is the common one |
+| recall runs but comes back empty | nothing was stored on the first turn | ask for `saihm_remember` by name, then recall again |
+| `401` or `403`, and your endpoint is `saihm.coti.global` | that service is non-custodial — this client cannot read it | use `@saihm/mcp-server-pro` instead; see the free trial above |
+| `401` or `403` from your own operator | no valid token | re-issue it with that operator |
+| `could not reach ...` | endpoint wrong or unreachable | check `SAIHM_ENDPOINT_URL`; the message names the cause |
+
 ## Wire into Claude Code
 
 ```json

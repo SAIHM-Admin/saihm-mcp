@@ -1,6 +1,6 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "MCP standards client for your own custodial SAIHM operator (endpoint URL + operator token). Free hosted start: @saihm/mcp-server-pro.",
   "type": "module",
@@ -59,7 +59,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "llms-install.md"
   ],
   "publishConfig": {
     "access": "public"

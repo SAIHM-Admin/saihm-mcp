@@ -7,7 +7,7 @@ authors:
     email: 'architect@saihm.coti.global'
     website: 'https://saihm.coti.global/'
 type: software
-version: '0.3.14'
+version: '0.3.15'
 date-released: '2026-09-12'
 license: Apache-2.0
 url: 'https://saihm.coti.global/'

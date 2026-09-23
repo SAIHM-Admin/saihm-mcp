@@ -8,6 +8,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.15] — 2026-09-23
+
+Diagnostics and onboarding. No new tools, no removed tools, no schema change:
+the eight tools and their input schemas are byte-identical to `0.3.14`.
+
+### Added
+
+- **`llms-install.md`, for the agent doing the install.** It carries the branch
+  this package needs and the companion client does not: this is the standards
+  client for a *custodial* operator, it cannot self-onboard, and if the user has
+  no operator the correct action is to install `@saihm/mcp-server-pro` instead.
+- **A "What success looks like" section in the README**, above the wiring block.
+  Wiring the server in is not the same as using it. The event that matters is a
+  write in one turn and a read back in a different one, and the README now says
+  so before it asks anyone to edit JSON.
+
+### Changed
+
+- **An unreachable endpoint now names the endpoint and the reason.** A transport
+  failure previously surfaced as the bare string `fetch failed`, which names
+  neither — and that is what a reader meets after a typo in
+  `SAIHM_ENDPOINT_URL`. It now reports the scheme, host and path it could not
+  reach, plus the underlying cause. Userinfo, query and fragment are stripped
+  first: that value is operator-supplied, may carry credentials or a token, and
+  an error message is read by an agent and lands in a transcript.
+- **A `401` from the hosted service now says it is the wrong client.** That
+  service is non-custodial and holds only ciphertext, so this crypto-free client
+  cannot read memory there and no token changes that. The symptom was identical
+  to an expired operator token, and the obvious remedy — re-issue the token —
+  can never work. The hint is gated on an exact host match, so an ordinary
+  operator's auth failure reads exactly as before.
+
 ## [0.3.14] — 2026-09-12
 
 Docs-only release. No new tools, no removed tools, no schema change: the eight
@@ -898,6 +930,7 @@ Initial release.
   mitigations.
 
 [Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.14...HEAD
+[0.3.15]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.15
 [0.3.14]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.14
 [0.3.13]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.13
 [0.3.12]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.12

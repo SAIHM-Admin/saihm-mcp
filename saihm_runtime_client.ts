@@ -34,6 +34,31 @@ const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 // the free tier (which activates through the non-custodial companion client,
 // since this package stays crypto-free), an operator endpoint for this client,
 // and the offline demos — instead of a bare "env var required" dead-end.
+/**
+ * An endpoint URL is safe to quote in an error ONLY after userinfo, query and fragment are
+ * dropped. SAIHM_ENDPOINT_URL is operator-supplied and may legitimately carry credentials
+ * (https://user:pass@host) or a token in the query string; an error message is read by an
+ * agent and lands in a transcript, so echoing it raw would publish exactly what this client
+ * exists to keep private. Scheme, host and path are what identify a mistyped endpoint.
+ */
+export function safeEndpoint(raw: string): string {
+  try {
+    const u = new URL(raw);
+    return `${u.protocol}//${u.host}${u.pathname}`;
+  } catch {
+    return '(unparseable endpoint URL)';
+  }
+}
+
+/** The hosted SAIHM service is non-custodial; this crypto-free client cannot use it. */
+export function isHostedNonCustodial(endpoint: string): boolean {
+  try {
+    return new URL(endpoint).host.toLowerCase() === 'saihm.coti.global';
+  } catch {
+    return false;
+  }
+}
+
 const SETUP_HINT =
   ' Start free, no card: `npx -y @saihm/mcp-server-pro free-join` — the' +
   ' non-custodial companion client, which seals on your own machine; see its' +
@@ -409,7 +434,21 @@ export class SaihmRuntimeClient {
         redirect: 'error',
       });
       if (!res.ok) {
-        throw new Error(`SAIHM endpoint ${method} failed: ${res.status} ${res.statusText}`);
+        // A 401 from the hosted service is the SAME SYMPTOM as a bad operator token and a
+        // completely different problem: that service is non-custodial, so no token makes a
+        // crypto-free client able to read ciphertext it cannot open. Undifferentiated, the
+        // reader re-issues a token that can never work. MEASURED 2026-09-23: pointing this
+        // client at the hosted endpoint returns exactly 401 Unauthorized.
+        const hostedAuthFailure =
+          (res.status === 401 || res.status === 403) && isHostedNonCustodial(this.endpoint);
+        throw new Error(
+          `SAIHM endpoint ${method} failed: ${res.status} ${res.statusText}` +
+            (hostedAuthFailure
+              ? '. That endpoint is the hosted SAIHM service, which is non-custodial: it holds' +
+                ' only ciphertext, so this crypto-free client cannot read memory there and no' +
+                ' token will change that. Use `npx -y @saihm/mcp-server-pro free-join` instead.'
+              : ''),
+        );
       }
       const cl = Number(res.headers.get('content-length') ?? '0');
       if (cl > MAX_RESPONSE_BYTES) {
@@ -440,6 +479,19 @@ export class SaihmRuntimeClient {
         throw new Error(
           `SAIHM endpoint ${method} timed out after ${this.timeoutMs}ms with no response,` +
             ' so the call was aborted. It is unknown whether the operator acted on it.',
+        );
+      }
+      // A transport failure throws TypeError('fetch failed') and puts the real reason on
+      // .cause (DNS, refused connection, TLS). Neither half names the endpoint, so an
+      // engineer who mistyped SAIHM_ENDPOINT_URL sees only "fetch failed" and has nothing
+      // to act on. Rewritten ONLY for that case, so the redirect refusal above and every
+      // message built in this method keep their own wording.
+      if (err instanceof TypeError && /fetch failed/i.test(err.message)) {
+        const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+        const why = cause?.code ?? cause?.message ?? 'no further detail available';
+        throw new Error(
+          `SAIHM endpoint ${method} could not reach ${safeEndpoint(this.endpoint)} (${why}).` +
+            ' Check that SAIHM_ENDPOINT_URL is correct and reachable from this machine.',
         );
       }
       throw err;
