@@ -1,6 +1,6 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "MCP standards client for your own custodial SAIHM operator (endpoint URL + operator token). Free hosted start: @saihm/mcp-server-pro.",
   "type": "module",
@@ -88,7 +88,7 @@
   ],
   "license": "Apache-2.0",
   "author": "SAIHM",
-  "homepage": "https://saihm.coti.global",
+  "homepage": "https://saihm.net",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/SAIHM-Admin"

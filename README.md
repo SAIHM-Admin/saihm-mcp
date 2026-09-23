@@ -111,7 +111,7 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 > This package is deliberately **crypto-free**, so it needs a **custodial**
 > operator — one that performs cryptography server-side and returns plaintext.
 >
-> **The hosted SAIHM service at <https://saihm.coti.global> is not one.** It is
+> **The hosted SAIHM service at <https://saihm.net> is not one.** It is
 > non-custodial by design: it stores only ciphertext and never holds your keys,
 > so cells sealed there can only be opened by a client that holds them. To use
 > the hosted service — including the **free trial** (sign in with GitHub, no
@@ -126,7 +126,7 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 > error.
 
 - **`SAIHM_ENDPOINT_URL`** — the endpoint of the **custodial** SAIHM operator you
-  run or subscribe to. Not the hosted service at <https://saihm.coti.global>,
+  run or subscribe to. Not the hosted service at <https://saihm.net>,
   which is non-custodial — see the note above.
 - **`SAIHM_AUTH_HEADER`** — the `Authorization` header value the operator
   expects (typically a `Bearer <token>` issued to you after key-bound
@@ -159,7 +159,7 @@ openssl rand -hex 32 > saihm-master.key && chmod 600 saihm-master.key
 Then activate:
 
 ```bash
-SAIHM_ENDPOINT_URL=https://saihm.coti.global/mcp \
+SAIHM_ENDPOINT_URL=https://saihm.net/mcp \
 SAIHM_MASTER_SECRET_FILE=./saihm-master.key \
 SAIHM_TIER=FREE \
   npx -y @saihm/mcp-server-pro free-join
@@ -202,7 +202,7 @@ anything on top of it.
 | no SAIHM tools offered at all | the host never started the server | keep `timeout` in the JSON below, then restart the host |
 | tools offered, but the agent never calls them | it has no standing instruction to | see **Tell your agent to use it** below — this is the common one |
 | recall runs but comes back empty | nothing was stored on the first turn | ask for `saihm_remember` by name, then recall again |
-| `401` or `403`, and your endpoint is `saihm.coti.global` | that service is non-custodial — this client cannot read it | use `@saihm/mcp-server-pro` instead; see the free trial above |
+| `401` or `403`, and your endpoint is `saihm.net` or `saihm.coti.global` | that service is non-custodial — this client cannot read it | use `@saihm/mcp-server-pro` instead; see the free trial above |
 | `401` or `403` from your own operator | no valid token | re-issue it with that operator |
 | `could not reach ...` | endpoint wrong or unreachable | check `SAIHM_ENDPOINT_URL`; the message names the cause |
 
@@ -310,7 +310,7 @@ You have two paths, and either is fine:
    and [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)),
    it only ever stores **ciphertext** and never holds your keys — so you get
    managed storage without giving up custody. Enrol via **Join SAIHM** at
-   <https://saihm.coti.global> (a paid hosted service).
+   <https://saihm.net> (a paid hosted service).
 
 ## Reporting engine
 
@@ -514,7 +514,7 @@ custom code.
 
 A 12-month roadmap is maintained in the project's
 [AAIF proposal](https://github.com/SAIHM-Admin/saihm-mcp/) and is published at
-<https://saihm.coti.global/roadmap>. Near-term tracks:
+<https://saihm.net/roadmap>. Near-term tracks:
 
 - **2026-Q2 (closed — one gap carried forward)** — Of the OpenSSF Silver
   pursuit, governance, code-of-conduct, DCO sign-off, coverage tooling and the
@@ -546,7 +546,7 @@ Apache-2.0 — see [`LICENSE`](./LICENSE).
 
 ## Project
 
-- Site: <https://saihm.coti.global>
+- Site: <https://saihm.net>
 - Issue tracker: <https://github.com/SAIHM-Admin/saihm-mcp/issues>
 - Security: see [`SECURITY.md`](./SECURITY.md) for private vulnerability
   disclosure

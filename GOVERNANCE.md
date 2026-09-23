@@ -32,7 +32,7 @@ The project consists of:
   and to GitHub at
   [`SAIHM-Admin/saihm-mcp`](https://github.com/SAIHM-Admin/saihm-mcp).
 - The **standards crosswalk pages** at
-  <https://saihm.coti.global/standards/> (NIST AI RMF, ISO/IEC 42001,
+  <https://saihm.net/standards/> (NIST AI RMF, ISO/IEC 42001,
   ISO/IEC 27001, EU AI Act, GDPR Art.17, MCP).
 
 The **eight-tool MCP cap** is a protocol invariant. Changes that add a
@@ -296,5 +296,5 @@ start of the comment window.
 - [Contributor Covenant](https://www.contributor-covenant.org/)
 - [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html)
 - [AAIF Foundation Charter §8 (Trademark)](https://github.com/aaif/foundation/blob/main/charter.md)
-- [Project standards page](https://saihm.coti.global/standards)
-- [Project blog](https://saihm.coti.global/blog)
+- [Project standards page](https://saihm.net/standards)
+- [Project blog](https://saihm.net/blog)

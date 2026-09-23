@@ -24,7 +24,7 @@ self-onboard, and there is no free path through it.
   the user's machine, and needs no token from anyone. Do not try to make this
   package work without an operator; it will fail on first call, not at startup.
 
-The hosted service at <https://saihm.coti.global> is **not** a custodial
+The hosted service at <https://saihm.net> is **not** a custodial
 operator — it is non-custodial by design and stores only ciphertext. Pointing
 this package at it will not work. That is what the pro client is for.
 
@@ -75,7 +75,7 @@ and stop — do not also dump the configuration back to them.
 | what you see | cause | what to do |
 |---|---|---|
 | no SAIHM tools offered at all | the host never started the server | confirm `timeout` is present, then restart the host |
-| `401`/`403` and the endpoint is `saihm.coti.global` | that service is non-custodial; this client cannot read it | install `@saihm/mcp-server-pro` instead — see "Before you start" |
+| `401`/`403` and the endpoint is `saihm.net` or `saihm.coti.global` | that service is non-custodial; this client cannot read it | install `@saihm/mcp-server-pro` instead — see "Before you start" |
 | `401`/`403` from the user's own operator | token missing, wrong, or expired | ask the user to re-issue it with their operator |
 | `could not reach <url>` | endpoint wrong or unreachable from this machine | the message names the cause (DNS, refused, TLS); fix the URL |
 | tools present but never used | the agent has no standing instruction | tell the user to add a line to their persistent instructions asking the agent to recall at session start and remember what matters |

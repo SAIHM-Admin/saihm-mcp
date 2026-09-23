@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.16] — 2026-09-23
+
+Project host. No new tools, no removed tools, no schema change: the eight
+tools and their input schemas are byte-identical to `0.3.15`.
+
+### Changed
+
+- **The project site is now <https://saihm.net>.** Every link in the README,
+  the install notes, the governance and architecture documents, the registry
+  manifest and the citation file points there. The previous address,
+  `saihm.coti.global`, keeps serving the same content and the same endpoints
+  indefinitely, so nothing that already dials it needs to change.
+- **The hosted-service hint recognizes both hosts.** A `401` or `403` from
+  `saihm.net` or from `saihm.coti.global` is explained the same way: that
+  service is non-custodial, this client cannot read it, and
+  `@saihm/mcp-server-pro` is the client for it. A `401` from any other
+  operator is reported plainly, as before.
+
 ## [0.3.15] — 2026-09-23
 
 Diagnostics and onboarding. No new tools, no removed tools, no schema change:
@@ -930,6 +948,7 @@ Initial release.
   mitigations.
 
 [Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.14...HEAD
+[0.3.16]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.16
 [0.3.15]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.15
 [0.3.14]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.14
 [0.3.13]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.13

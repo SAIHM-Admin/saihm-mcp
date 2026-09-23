@@ -17,7 +17,7 @@ startCommand:
         type: string
         description: >-
           Endpoint URL of the custodial SAIHM operator you run or subscribe to.
-          Not the hosted service at https://saihm.coti.global, which is
+          Not the hosted service at https://saihm.net, which is
           non-custodial: use @saihm/mcp-server-pro for that.
       saihmAuthHeader:
         type: string

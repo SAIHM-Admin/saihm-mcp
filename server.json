@@ -2,22 +2,22 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "MCP standards client for your own custodial SAIHM operator. Free start: @saihm/mcp-server-pro",
-  "websiteUrl": "https://saihm.coti.global",
+  "websiteUrl": "https://saihm.net",
   "repository": {
     "url": "https://github.com/SAIHM-Admin/saihm-mcp",
     "source": "github"
   },
-  "version": "0.3.15",
+  "version": "0.3.16",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@saihm/mcp-server",
-      "version": "0.3.15",
+      "version": "0.3.16",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         {
           "name": "SAIHM_ENDPOINT_URL",
-          "description": "Endpoint URL of the custodial SAIHM operator you run or subscribe to. Not the hosted service at https://saihm.coti.global, which is non-custodial: use @saihm/mcp-server-pro for that.",
+          "description": "Endpoint URL of the custodial SAIHM operator you run or subscribe to. Not the hosted service at https://saihm.net, which is non-custodial: use @saihm/mcp-server-pro for that.",
           "isRequired": true,
           "format": "string"
         },

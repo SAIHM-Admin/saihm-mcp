@@ -1720,7 +1720,7 @@ async function main() {
     }
   }
 
-  // R23-G. smithery.yaml told users to get SAIHM_ENDPOINT_URL from saihm.coti.global/join,
+  // R23-G. smithery.yaml told users to get SAIHM_ENDPOINT_URL from the hosted service's /join,
   // while server.json told them that is the wrong endpoint for this package (the hosted
   // service is non-custodial; it needs @saihm/mcp-server-pro). Whichever is right, the two
   // registry manifests cannot answer the same question differently.
@@ -2003,6 +2003,8 @@ async function main() {
   assert(
     isHostedNonCustodial('https://saihm.coti.global/mcp') &&
       isHostedNonCustodial('HTTPS://SAIHM.COTI.GLOBAL/mcp') &&
+      isHostedNonCustodial('https://saihm.net/mcp') &&
+      !isHostedNonCustodial('https://saihm.net.evil.example/mcp') &&
       !isHostedNonCustodial('https://saihm.coti.global.evil.example/mcp') &&
       !isHostedNonCustodial('https://operator.example.com/mcp') &&
       !isHostedNonCustodial('not a url'),
@@ -3828,7 +3830,7 @@ async function main() {
   // the placeholder this round already learned to distrust. Pin the predicate against
   // the exact string that shipped, plus a forward-looking one that must stay legal.
   assert(
-    deferralIsStale('mirrored to <https://saihm.coti.global/roadmap> with the v0.2.x release.'),
+    deferralIsStale('mirrored to <https://saihm.net/roadmap> with the v0.2.x release.'),
     'R26-D the stale-deferral predicate catches the deferral README actually shipped',
   );
   assert(
@@ -3862,10 +3864,10 @@ async function main() {
     '/standards/gdpr-art17-crosswalk',
   ]);
   for (const doc of CAPACITY_DOCS) {
-    for (const m of repoFile(doc).matchAll(/https:\/\/saihm\.coti\.global([^\s<>()[\]`"',]*)/g)) {
+    for (const m of repoFile(doc).matchAll(/https:\/\/saihm\.(?:net|coti\.global)([^\s<>()[\]`"',]*)/g)) {
       assert(
         VERIFIED_SITE_PATHS.has(m[1]),
-        `R26-E/F ${doc} links saihm.coti.global${m[1]}, a path verified to resolve`,
+        `R26-E/F ${doc} links the project site at ${m[1]}, a path verified to resolve`,
       );
     }
   }
@@ -3900,6 +3902,7 @@ async function main() {
     '0.3.12',
     '0.3.13',
     '0.3.14',
+      '0.3.15',
   ]);
   const changelogDoc = repoFile('CHANGELOG.md');
   const changelogLines = changelogDoc.split('\n');

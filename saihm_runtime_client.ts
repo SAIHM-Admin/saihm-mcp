@@ -50,10 +50,15 @@ export function safeEndpoint(raw: string): string {
   }
 }
 
-/** The hosted SAIHM service is non-custodial; this crypto-free client cannot use it. */
+/**
+ * The hosted SAIHM service is non-custodial; this crypto-free client cannot use it.
+ * Both hostnames are the same operator: the original host keeps serving indefinitely
+ * (installed clients dial it), and saihm.net is the canonical brand host.
+ */
+const HOSTED_NON_CUSTODIAL_HOSTS: ReadonlySet<string> = new Set(['saihm.coti.global', 'saihm.net']);
 export function isHostedNonCustodial(endpoint: string): boolean {
   try {
-    return new URL(endpoint).host.toLowerCase() === 'saihm.coti.global';
+    return HOSTED_NON_CUSTODIAL_HOSTS.has(new URL(endpoint).host.toLowerCase());
   } catch {
     return false;
   }
@@ -63,7 +68,7 @@ const SETUP_HINT =
   ' Start free, no card: `npx -y @saihm/mcp-server-pro free-join` — the' +
   ' non-custodial companion client, which seals on your own machine; see its' +
   ' README for the one-time setup. That is also the client for the hosted SAIHM' +
-  ' service at https://saihm.coti.global: it is non-custodial and stores only' +
+  ' service at https://saihm.net: it is non-custodial and stores only' +
   ' ciphertext, so this crypto-free client cannot read memory held there. To use' +
   ' THIS client, set SAIHM_ENDPOINT_URL and SAIHM_AUTH_HEADER for a custodial' +
   ' operator that performs cryptography server-side. To evaluate the protocol' +

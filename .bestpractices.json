@@ -3,14 +3,14 @@
   "description": "Sovereign, encrypted, sharable, persistent memory protocol MCP server for AI agents. Eight MCP tools forward to a SAIHM operator endpoint that runs the full protocol stack on COTI V2 mainnet.",
   "license": "Apache-2.0",
   "implementation_languages": "TypeScript",
-  "homepage_url": "https://saihm.coti.global",
+  "homepage_url": "https://saihm.net",
   "repo_url": "https://github.com/SAIHM-Admin/saihm-mcp",
 
   "description_good_status": "Met",
   "description_good_justification": "README explains: a Model Context Protocol server exposing eight tools that connect any MCP-capable AI agent to a SAIHM operator endpoint running the full sovereign-memory protocol on COTI V2 mainnet.",
 
   "interact_status": "Met",
-  "interact_justification": "Public interaction via GitHub Issues at https://github.com/SAIHM-Admin/saihm-mcp/issues. Protocol channel documented at https://saihm.coti.global.",
+  "interact_justification": "Public interaction via GitHub Issues at https://github.com/SAIHM-Admin/saihm-mcp/issues. Protocol channel documented at https://saihm.net.",
 
   "contribution_status": "Met",
   "contribution_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md",
@@ -34,7 +34,7 @@
   "documentation_interface_justification": "README documents each of the eight MCP tools (saihm_remember, saihm_recall, saihm_forget, saihm_status, saihm_share, saihm_revoke_share, saihm_governance_propose, saihm_governance_vote) with input/output expectations and security defaults.",
 
   "sites_https_status": "Met",
-  "sites_https_justification": "All project sites use HTTPS: github.com/SAIHM-Admin/saihm-mcp, www.npmjs.com/package/@saihm/mcp-server, saihm.coti.global.",
+  "sites_https_justification": "All project sites use HTTPS: github.com/SAIHM-Admin/saihm-mcp, www.npmjs.com/package/@saihm/mcp-server, saihm.net.",
 
   "discussion_status": "Met",
   "discussion_justification": "GitHub Issues is the primary discussion channel and supports threaded discussion on issues and pull requests.",

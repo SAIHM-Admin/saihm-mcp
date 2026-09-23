@@ -231,7 +231,7 @@ ciphertext remains on the storage tier (Filecoin is intentionally
 unmodifiable to preserve auditability), but is no longer decryptable
 — this is the GDPR Article 17 "cryptographic erasure" pattern.
 
-See [GDPR Art.17 crosswalk](https://saihm.coti.global/standards/gdpr-art17-crosswalk)
+See [GDPR Art.17 crosswalk](https://saihm.net/standards/gdpr-art17-crosswalk)
 for the regulator-mapping detail.
 
 ### `saihm_status` schema (spec §3.4)
@@ -365,7 +365,7 @@ The architecture intentionally **does not** include:
 ## References
 
 - Protocol specification: <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- Standards crosswalks: <https://saihm.coti.global/standards/>
+- Standards crosswalks: <https://saihm.net/standards/>
 - COTI V2 mainnet (audit anchor): <https://mainnet.cotiscan.io>
 - MCP specification: <https://modelcontextprotocol.io/>
 - NIST FIPS-204 (ML-DSA): <https://csrc.nist.gov/pubs/fips/204/final>
