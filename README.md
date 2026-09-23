@@ -206,6 +206,8 @@ anything on top of it.
 | `401` or `403` from your own operator | no valid token | re-issue it with that operator |
 | `could not reach ...` | endpoint wrong or unreachable | check `SAIHM_ENDPOINT_URL`; the message names the cause |
 
+> **Host note (2026-09-23).** The hosted endpoint is `https://saihm.net/mcp`. The previous host, `saihm.coti.global`, serves the identical service until 2026-12-31 and is then discontinued; a configuration that still names it should switch `SAIHM_ENDPOINT_URL` to `https://saihm.net/mcp`.
+
 ## Wire into Claude Code
 
 ```json
