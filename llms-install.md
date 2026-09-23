@@ -80,5 +80,7 @@ and stop — do not also dump the configuration back to them.
 | `could not reach <url>` | endpoint wrong or unreachable from this machine | the message names the cause (DNS, refused, TLS); fix the URL |
 | tools present but never used | the agent has no standing instruction | tell the user to add a line to their persistent instructions asking the agent to recall at session start and remember what matters |
 
+Host note (2026-09-23): The hosted endpoint is `https://saihm.net/mcp`. The previous host, `saihm.coti.global`, serves the identical service until 2026-12-31 and is then discontinued; a configuration that still names it should switch `SAIHM_ENDPOINT_URL` to `https://saihm.net/mcp`.
+
 Do not retry a failing call in a loop. Each of the causes above needs a human
 decision, and repeated calls will not change any of them.
