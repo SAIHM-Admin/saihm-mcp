@@ -9,6 +9,10 @@ token. If you just want memory working, free, in about a minute, use
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
 · Apache-2.0
 
+<a href="https://saihm.net/overview"><img src="https://saihm.net/media/saihm-short-overview-play.jpg" alt="Watch: SAIHM in 6 minutes" width="480"></a>
+
+**New to SAIHM?** [Watch the 6-minute overview](https://saihm.net/overview) (captions and transcript), or [read the SAIHM manual (PDF)](https://saihm.net/manual).
+
 This package is the **standards client**: eight memory tools any MCP agent —
 Claude Code, Claude Desktop, Cursor, or your own — can call. It carries **no
 cryptography of its own**. It speaks the publicly documented SAIHM memory
