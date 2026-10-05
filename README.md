@@ -84,13 +84,13 @@ operator endpoint and token. Two companions cover the rest:
 
 Runnable, one-command demos ground a memory you own in every major model — Claude, GPT, DeepSeek, Qwen, Kimi, GLM — then prove you can erase it, alongside drop-in adapters for LangChain, LlamaIndex, CrewAI, AutoGen, and LangGraph. Each runs offline in about a minute; no account needed.
 
-- **Live demos:** <https://citw2.github.io/saihm-demos/>
+- **Live demos:** <https://saihm-admin.github.io/saihm-demos/>
 - **`demo-claude-code`** wires this server into Claude Code and Cursor as an MCP server.
 
 **Measured — up to ~86% fewer context tokens.** Most agents re-send their entire transcript every turn, so context spend grows ~O(N²) over a session; recalling a bounded set of memory cells instead cut input tokens by **62.8%–85.9%** across a realistic multi-session coding task. The benchmark is open, offline, and deterministic — reproduce the number rather than trust it:
 
 ```bash
-git clone https://github.com/citw2/saihm-token-benchmark
+git clone https://github.com/SAIHM-Admin/saihm-token-benchmark
 cd saihm-token-benchmark && npm install && node benchmark.mjs
 ```
 
