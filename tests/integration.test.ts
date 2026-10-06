@@ -3857,14 +3857,19 @@ async function main() {
     '',
     '/',
     '/blog',
+    '/manual',
     '/mcp',
+    '/media/saihm-short-overview-play.jpg',
+    '/overview',
     '/roadmap',
     '/standards',
     '/standards/',
     '/standards/gdpr-art17-crosswalk',
   ]);
   for (const doc of CAPACITY_DOCS) {
-    for (const m of repoFile(doc).matchAll(/https:\/\/saihm\.(?:net|coti\.global)([^\s<>()[\]`"',]*)/g)) {
+    for (const m of repoFile(doc).matchAll(
+      /https:\/\/saihm\.(?:net|coti\.global)([^\s<>()[\]`"',]*)/g,
+    )) {
       assert(
         VERIFIED_SITE_PATHS.has(m[1]),
         `R26-E/F ${doc} links the project site at ${m[1]}, a path verified to resolve`,
@@ -3902,7 +3907,7 @@ async function main() {
     '0.3.12',
     '0.3.13',
     '0.3.14',
-      '0.3.15',
+    '0.3.15',
   ]);
   const changelogDoc = repoFile('CHANGELOG.md');
   const changelogLines = changelogDoc.split('\n');
