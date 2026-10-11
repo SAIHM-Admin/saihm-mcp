@@ -73,7 +73,7 @@ const SETUP_HINT =
   ' THIS client, set SAIHM_ENDPOINT_URL and SAIHM_AUTH_HEADER for a custodial' +
   ' operator that performs cryptography server-side. To evaluate the protocol' +
   ' offline first (no' +
-  ' account, about a minute), run the demos at https://citw2.github.io/saihm-demos/';
+  ' account, about a minute), run the demos at https://saihm-admin.github.io/saihm-demos/';
 
 function assertEndpointUrl(endpoint: string): void {
   let url: URL;

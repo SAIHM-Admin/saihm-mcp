@@ -41,10 +41,10 @@ custom agents) can call to gain a persistent, encrypted memory layer the
 **user** owns:
 
 - `saihm_remember` — store an encrypted memory cell
-- `saihm_recall` — retrieve and decrypt your memories
+- `saihm_recall` — retrieve your memories, decrypted by your operator
 - `saihm_forget` — erase a memory; whether erasure is cryptographic or access-control depends on your operator (see its documentation)
 - `saihm_status` — your protocol-runtime stats and storage tier dashboard
-- `saihm_share` / `saihm_revoke_share` — selectively share a memory with another agent or user
+- `saihm_share` / `saihm_revoke_share` — share chosen memory shards, by shard id, with another agent, and revoke that access
 - `saihm_governance_propose` / `saihm_governance_vote` — protocol governance; **not enabled by default**, so expect an error unless your operator has turned it on
 
 Each tool forwards to a SAIHM operator endpoint that runs the full protocol

@@ -29,6 +29,9 @@ tools and their input schemas are unchanged from `0.3.16`.
 - **README.** The first-run check now asks in a new conversation, so the
   result shows that recall, not conversation context, supplied the facts.
 - **Package contents.** `CHANGELOG.md` is now included in the npm package.
+- **Links and wording.** The offline-demo link in the setup error now points to
+  the demos' current home under SAIHM-Admin. The README describes recall as
+  returning memories your operator decrypts, and sharing as per memory shard.
 - **Previous host: corrected end date.** The 0.3.16 entry below said
   `saihm.coti.global` would keep serving "indefinitely". That is superseded:
   it serves the same endpoints until 2026-12-31 and is then discontinued, as
@@ -978,7 +981,7 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.14...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.17...HEAD
 [0.3.17]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.17
 [0.3.16]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.16
 [0.3.15]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.15
