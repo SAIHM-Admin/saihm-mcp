@@ -186,16 +186,16 @@ first **recall that returns something** — before that you have an empty store 
 an agent with no particular reason to reach for it.
 
 Here is the whole product in miniature. Once the server is wired in (next
-section) and your host has restarted, say this to your agent, in **two separate
-turns**:
+section) and your host has restarted, say this to your agent:
 
 > Remember that I take my coffee black, and that I'm building a Rust CLI called `ferry`.
 
-...then, in a new turn:
+...then start a **new conversation** (or restart your host) and ask:
 
 > What do you know about me?
 
-The second turn should come back with both facts. It never saw the first turn —
+The new conversation should come back with both facts, and your host should show a
+`saihm_recall` call. That conversation never saw the first one —
 the memory is what carried them across. Check that round trip before you build
 anything on top of it.
 

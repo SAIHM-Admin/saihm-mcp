@@ -92,7 +92,7 @@ cap"; see `CONTRIBUTING.md` and `GOVERNANCE.md`):
 |---|---|
 | `saihm_remember` | Encrypted-cell write |
 | `saihm_recall` | Encrypted-cell read (decrypted on the operator side) |
-| `saihm_forget` | GDPR Art.17 cryptographic erasure (DEK destroy + tombstone + CID blacklist) |
+| `saihm_forget` | Erasure of one cell; cryptographic or access-control, as the operator implements it |
 | `saihm_status` | PRS / BFSI / storage / staking / sharing / PHI dashboard |
 | `saihm_share` | Issue a sharing contract (temporary / permanent / syndicate) |
 | `saihm_revoke_share` | Revoke a sharing contract |
@@ -225,11 +225,14 @@ client via `RememberResult` and `RecalledCell`:
   auditCellId            — public-chain audit-receipt key
 ```
 
-`saihm_forget` removes the DEK from the operator's keystore,
-publishes a tombstone audit receipt, and blacklists the CID. The
-ciphertext remains on the storage tier (Filecoin is intentionally
-unmodifiable to preserve auditability), but is no longer decryptable
-— this is the GDPR Article 17 "cryptographic erasure" pattern.
+`saihm_forget` asks the operator to erase one cell. How it erases is the
+operator's choice, and it is one of two classes. Cryptographic erasure
+destroys the cell's data-encryption key, so the retained ciphertext can no
+longer be decrypted by anyone. Access-control erasure withdraws the cell
+from service (tombstone, index removal), while ciphertext that the operator
+can still decrypt may remain on the storage tier. This client reports what
+the operator returns and cannot tell the two apart; see the operator's
+documentation for which class it provides.
 
 See [GDPR Art.17 crosswalk](https://saihm.net/standards/gdpr-art17-crosswalk)
 for the regulator-mapping detail.

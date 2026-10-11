@@ -19,8 +19,16 @@ tools and their input schemas are unchanged from `0.3.16`.
   The `saihm_forget` description and the README now say that erasure is
   cryptographic (the key is destroyed) or access-control (the cell is
   withdrawn from service) depending on the operator this client connects
-  to, and point to the operator's documentation. The README no longer names
-  a specific ledger for the operator stack.
+  to, and point to the operator's documentation. The same qualification now
+  applies to the server's initialization instructions, the session-bootstrap
+  prompt and ARCHITECTURE.md. The README no longer names a specific ledger
+  for the operator stack.
+- **Forget receipt.** A successful `saihm_forget` now reads
+  `FORGOTTEN [<id>] erased` (previously `... DEK destroyed`). The client cannot
+  tell which erasure class the operator applied, so it no longer names one.
+- **README.** The first-run check now asks in a new conversation, so the
+  result shows that recall, not conversation context, supplied the facts.
+- **Package contents.** `CHANGELOG.md` is now included in the npm package.
 - **Dependencies.** `@modelcontextprotocol/sdk` raised to `^1.32.1`;
   `npm audit --omit=dev` reports 0 vulnerabilities.
 - **Keywords.** Adds `enterprise`.

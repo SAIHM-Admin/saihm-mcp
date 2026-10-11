@@ -55,7 +55,8 @@ const server = new McpServer(
     instructions:
       "SAIHM is this agent's persistent memory across sessions, models and vendors. Load it" +
       ' before other work using the saihm_session_bootstrap prompt, which also carries the rules' +
-      ' for when to store, recall, share and erase. Erasure is cryptographic and irreversible.',
+      ' for when to store, recall, share and erase. Erasure is irreversible; whether it is' +
+      ' cryptographic or access-control depends on the operator.',
   },
 );
 
@@ -152,10 +153,10 @@ const MAX_RECEIPT_ID_LEN = 256;
  * check at all. Every field beside them is defended: asScalar refuses non-primitives,
  * and the hashes are truncated before they are printed. An id was not.
  *
- * A newline is what makes that matter. `FORGOTTEN [<id>] DEK destroyed` is a receipt,
+ * A newline is what makes that matter. `FORGOTTEN [<id>] erased` is a receipt,
  * and the handler below refuses to print it without an id precisely because erasure is
  * the one claim here that cannot be checked afterwards — there is nothing left to look
- * at. An operator answering with an id of `<the id you asked for>] DEK destroyed\nFORGOTTEN
+ * at. An operator answering with an id of `<the id you asked for>] erased\nFORGOTTEN
  * [<some other cell>` gets TWO well-formed receipt lines out of one call, the second
  * attesting the erasure of a cell that was never asked about and never erased. Reading
  * back a cell's own plaintext cannot do this: plaintext is printed after a `|` on an
@@ -510,8 +511,7 @@ server.registerTool(
         {
           type: 'text' as const,
           text:
-            `FORGOTTEN [${cellId}] DEK destroyed` +
-            (detail.length > 0 ? ` (${detail.join(' ')})` : ''),
+            `FORGOTTEN [${cellId}] erased` + (detail.length > 0 ? ` (${detail.join(' ')})` : ''),
         },
       ],
     };
@@ -1176,8 +1176,9 @@ server.registerPrompt(
             ' store passing chatter, and do not store anything I have not asked you to keep.\n' +
             '- Recall again with saihm_recall when an answer depends on something I told you' +
             ' earlier, rather than asking me to repeat it.\n' +
-            '- Erase with saihm_forget only when I ask you to erase. It destroys the key, so' +
-            ' the content cannot be recovered by anyone afterwards.\n' +
+            '- Erase with saihm_forget only when I ask you to erase. It cannot be undone. Depending' +
+            ' on the operator, it destroys the key (no one can recover the content) or' +
+            ' withdraws the cell from service.\n' +
             '- Share with saihm_share only when I name both the recipient and what to share.' +
             ' Grantees are hex agent-id hashes, and shardIds lists exactly what is exposed.' +
             ' Undo a grant with saihm_revoke_share, which stops future reads but cannot' +
