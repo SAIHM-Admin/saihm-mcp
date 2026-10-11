@@ -555,9 +555,9 @@ Apache-2.0 — see [`LICENSE`](./LICENSE).
 
 - Site: <https://saihm.net>
 - Issue tracker: <https://github.com/SAIHM-Admin/saihm-mcp/issues>
-- Security: see [`SECURITY.md`](./SECURITY.md) for private vulnerability
+- Security: see [`SECURITY.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md) for private vulnerability
   disclosure
-- Contributing: see [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
-  [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
-- Governance: see [`GOVERNANCE.md`](./GOVERNANCE.md)
-- Changelog: see [`CHANGELOG.md`](./CHANGELOG.md)
+- Contributing: see [`CONTRIBUTING.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md) and
+  [`CODE_OF_CONDUCT.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CODE_OF_CONDUCT.md)
+- Governance: see [`GOVERNANCE.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md)
+- Changelog: see [`CHANGELOG.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CHANGELOG.md)

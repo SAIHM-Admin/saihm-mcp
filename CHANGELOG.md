@@ -29,6 +29,11 @@ tools and their input schemas are unchanged from `0.3.16`.
 - **README.** The first-run check now asks in a new conversation, so the
   result shows that recall, not conversation context, supplied the facts.
 - **Package contents.** `CHANGELOG.md` is now included in the npm package.
+- **Previous host: corrected end date.** The 0.3.16 entry below said
+  `saihm.coti.global` would keep serving "indefinitely". That is superseded:
+  it serves the same endpoints until 2026-12-31 and is then discontinued, as
+  the README's host note says. Set `SAIHM_ENDPOINT_URL` to
+  `https://saihm.net/mcp` before then.
 - **Dependencies.** `@modelcontextprotocol/sdk` raised to `^1.32.1`;
   `npm audit --omit=dev` reports 0 vulnerabilities.
 - **Keywords.** Adds `enterprise`.
@@ -44,7 +49,8 @@ tools and their input schemas are byte-identical to `0.3.15`.
   the install notes, the governance and architecture documents, the registry
   manifest and the citation file points there. The previous address,
   `saihm.coti.global`, keeps serving the same content and the same endpoints
-  indefinitely, so nothing that already dials it needs to change.
+  indefinitely, so nothing that already dials it needs to change. *(Superseded in
+  0.3.17: served until 2026-12-31, then discontinued.)*
 - **The hosted-service hint recognizes both hosts.** A `401` or `403` from
   `saihm.net` or from `saihm.coti.global` is explained the same way: that
   service is non-custodial, this client cannot read it, and
