@@ -42,13 +42,13 @@ custom agents) can call to gain a persistent, encrypted memory layer the
 
 - `saihm_remember` — store an encrypted memory cell
 - `saihm_recall` — retrieve and decrypt your memories
-- `saihm_forget` — true cryptographic erasure (GDPR Art. 17)
+- `saihm_forget` — erase a memory; whether erasure is cryptographic or access-control depends on your operator (see its documentation)
 - `saihm_status` — your protocol-runtime stats and storage tier dashboard
 - `saihm_share` / `saihm_revoke_share` — selectively share a memory with another agent or user
 - `saihm_governance_propose` / `saihm_governance_vote` — protocol governance; **not enabled by default**, so expect an error unless your operator has turned it on
 
 Each tool forwards to a SAIHM operator endpoint that runs the full protocol
-stack on COTI V2 mainnet. The server itself holds no crypto, no storage, and
+stack. The server itself holds no crypto, no storage, and
 no protocol runtime — those live behind the operator endpoint.
 
 ## Tool reference
@@ -265,9 +265,10 @@ setting explicitly rather than hoping the agent infers it.
 ## What gets persisted, where
 
 The server itself persists nothing. The operator endpoint runs the
-full protocol stack: cells are encrypted under a per-cell DEK, sealed by a
-per-agent KEK, persisted to the operator's configured durable storage, and
-audited on COTI V2 mainnet. See the operator's documentation for tier details,
+full protocol stack: it encrypts and persists cells to its configured durable
+storage and records audit events. How it encrypts, and whether its erasure is
+cryptographic or access-control, are set by the operator: see the operator's
+documentation for those and for tier details,
 and **[Storage is the operator's responsibility (by design)](#storage-is-the-operators-responsibility-by-design)**
 below.
 
@@ -453,7 +454,7 @@ The server enforces a small set of defaults so misconfiguration cannot leak the 
 - **No configuration or user data read from disk.** Configuration flows entirely through env vars, and nothing is ever written to disk. The package opens exactly one file: its own `package.json`, once at startup, so `serverInfo.version` matches the published version (falling back to `0.0.0-dev` if it cannot be read). No credential, cell, or user-data path touches the filesystem.
 - **Zero EVM tooling.** No `ethers`, no `eth_*`, no Solidity. If operators inject signature verifiers via `AuthVerifiers`, they should use pure-crypto libraries (`@noble/curves`, `@noble/post-quantum`).
 
-Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against COTI V2 mainnet anchors is out of scope for this server; consume the `cellId` and `auditCellId` fields and verify against your own SAIHM mainnet read path.
+Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against the operator's audit records is out of scope for this server; consume the `cellId` and `auditCellId` fields and verify them through your operator's own audit read path.
 
 For distribution integrity, each release carries the npm registry signature; verify with `npm audit signatures` (and inspect `npm view @saihm/mcp-server --json | jq .dist`).
 

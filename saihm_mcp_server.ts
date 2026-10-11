@@ -432,7 +432,7 @@ server.registerTool(
   {
     title: 'Forget (GDPR erasure)',
     description:
-      'Cryptographically erase one memory by its cell id (GDPR Art. 17). Destroying the key makes the content unreadable to everyone, the operator included. Irreversible: use it when erasure is the intent, not to tidy a working set.',
+      'Erase one memory by its cell id. Whether erasure is cryptographic (the key is destroyed, so no one can read the content again) or access-control (the cell is withdrawn from service) depends on the operator; check its documentation. Irreversible: use it when erasure is the intent, not to tidy a working set.',
     inputSchema: { id: z.string().describe('Memory entry ID (hex cellId) to erase') },
     annotations: {
       title: 'Forget (GDPR erasure)',
