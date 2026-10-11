@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.17] — 2026-10-11
+
+Maintenance. No new tools, no removed tools, no schema change: the eight
+tools and their input schemas are unchanged from `0.3.16`.
+
+### Changed
+
+- **Erasure is described by the operator, not promised by the client.**
+  The `saihm_forget` description and the README now say that erasure is
+  cryptographic (the key is destroyed) or access-control (the cell is
+  withdrawn from service) depending on the operator this client connects
+  to, and point to the operator's documentation. The README no longer names
+  a specific ledger for the operator stack.
+- **Dependencies.** `@modelcontextprotocol/sdk` raised to `^1.32.1`;
+  `npm audit --omit=dev` reports 0 vulnerabilities.
+- **Keywords.** Adds `enterprise`.
+
 ## [0.3.16] — 2026-09-23
 
 Project host. No new tools, no removed tools, no schema change: the eight
@@ -948,6 +965,7 @@ Initial release.
   mitigations.
 
 [Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.14...HEAD
+[0.3.17]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.17
 [0.3.16]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.16
 [0.3.15]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.15
 [0.3.14]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.14
