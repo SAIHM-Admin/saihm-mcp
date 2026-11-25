@@ -477,6 +477,23 @@ this MCP server; operators implementing the protocol stack are recommended
 to use `@noble/post-quantum` and `@noble/curves` (MIT) rather than rolling
 custom code.
 
+## Tests
+
+From a clone of this repository, with Node.js 20 or later:
+
+```bash
+npm ci
+npm test             # integration suite under c8 coverage
+npm run test:nocov   # the same suite without coverage
+```
+
+`npm test` fails when coverage drops below 90% of statements, 80% of branches,
+80% of lines or 80% of functions (the `c8` block in `package.json`). CI runs the
+suite on Node.js 20.x and 22.x, together with `npm run lint`,
+`npm run format:check`, `npm run typecheck` and a REUSE licensing check. The
+pull-request checklist is in
+[`CONTRIBUTING.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CONTRIBUTING.md).
+
 ## Achievements
 
 - **OpenSSF Best Practices Passing badge** — project 12898, 100% Passing
@@ -486,8 +503,8 @@ custom code.
   and released it from the queue (datatracker stream now None), directing the work
   toward IETF working-group activity (the `agentproto` effort). It is
   **not an Internet Standard, is not endorsed by the IETF, and has no formal
-  standing in the IETF standards process.** The `-01` draft remains available on
-  the datatracker as the current reference text.
+  standing in the IETF standards process.** The current revision, `-03`, is available on
+  the datatracker as the reference text.
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
 - **npm registry** — releases from `0.3.6` (2026-06-30) onward are published
   from GitHub Actions over OIDC trusted publishing and carry an npm sigstore

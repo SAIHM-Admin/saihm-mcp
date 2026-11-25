@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 SAIHM, Inc.
+
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(

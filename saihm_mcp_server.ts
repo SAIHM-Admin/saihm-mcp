@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 SAIHM, Inc.
 /**
  * SAIHM MCP Server — bare-bones thin client.
  *

@@ -1,0 +1,36 @@
+# Licensing metadata in the REUSE format (https://reuse.software/spec-3.3/).
+#
+# Source, test, script and workflow files carry their own SPDX header. The
+# files listed here either cannot hold a comment (JSON, images) or are
+# documentation and configuration kept free of boilerplate, so their
+# copyright and license are declared here instead. `reuse lint` checks the
+# whole tree in CI.
+version = 1
+SPDX-PackageName = "@saihm/mcp-server"
+SPDX-PackageSupplier = "SAIHM, Inc. <ops@saihm.net>"
+SPDX-PackageDownloadLocation = "https://github.com/SAIHM-Admin/saihm-mcp"
+
+[[annotations]]
+path = [
+  "*.md",
+  "*.json",
+  "assets/**",
+  ".github/dependabot.yml",
+  ".github/FUNDING.yml",
+  "smithery.yaml",
+  "CITATION.cff",
+  "Dockerfile",
+  ".dockerignore",
+  ".gitignore",
+  ".prettierignore",
+]
+SPDX-FileCopyrightText = "Copyright 2026 SAIHM, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# The code of conduct is the Contributor Covenant v2.1 with this project's
+# contact address filled in. When several annotations match a file the last
+# one applies, so this entry takes precedence over "*.md" above.
+[[annotations]]
+path = "CODE_OF_CONDUCT.md"
+SPDX-FileCopyrightText = "Contributor Covenant contributors <https://www.contributor-covenant.org>"
+SPDX-License-Identifier = "CC-BY-4.0"

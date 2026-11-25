@@ -112,7 +112,7 @@
   "test_justification": "Integration test at tests/integration.test.ts. Runnable via `npm test`.",
 
   "test_invocation_status": "Met",
-  "test_invocation_justification": "`npm test` documented in README and CONTRIBUTING.md; runnable from a fresh clone after `npm install`.",
+  "test_invocation_justification": "`npm test` documented in README (https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#tests) and CONTRIBUTING.md; runnable from a fresh clone after `npm install`.",
 
   "test_most_status": "Met",
   "test_most_justification": "Integration test exercises tool listing (tools/list) and each of the eight MCP tool-call round-trips against a mock operator endpoint.",
@@ -235,7 +235,7 @@
   "build_standard_variables_justification": "Node.js npm project; no make/autoconf install-target convention applies. Standard `npm install` flow is used.",
 
   "bus_factor_status": "Unmet",
-  "bus_factor_justification": "Maintenance currently rests with the founding maintainer at SAIHM, Inc. GOVERNANCE.md §'Adding and removing maintainers' covers adding, stepping down and removing maintainers; each step runs through the founding maintainer until a TSC exists. SAIHM, Inc. owns and stewards the project and its trademarks, so ownership and the legal rights to continue the project stay with the company if any individual maintainer becomes unavailable. The protocol specification is published as an Internet-Draft on the IETF Datatracker (draft-saihm-memory-protocol-01), so the spec text persists there independently of the implementation maintainer. It was submitted to the Independent Submission Stream; the ISE concluded its consideration on 2026-07-25 and released it from the queue, so the draft is on no IETF stream and is not an Internet Standard.",
+  "bus_factor_justification": "Maintenance currently rests with the founding maintainer at SAIHM, Inc. GOVERNANCE.md §'Adding and removing maintainers' covers adding, stepping down and removing maintainers; each step runs through the founding maintainer until a TSC exists. SAIHM, Inc. owns and stewards the project and its trademarks, so ownership and the legal rights to continue the project stay with the company if any individual maintainer becomes unavailable. The protocol specification is published as an Internet-Draft on the IETF Datatracker (draft-saihm-memory-protocol), so the spec text persists there independently of the implementation maintainer. It was submitted to the Independent Submission Stream; the ISE concluded its consideration on 2026-07-25 and released it from the queue, so the draft is on no IETF stream and is not an Internet Standard.",
 
   "code_of_conduct_status": "Met",
   "code_of_conduct_justification": "Project adopts the Contributor Covenant v2.1 verbatim text at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CODE_OF_CONDUCT.md. Enforcement contact: ops@saihm.net.",
@@ -268,7 +268,7 @@
   "documentation_quick_start_justification": "README's 'Install' + 'Configure' + 'Wire into Claude Code' sections provide a quick-start path from zero to a working server in under five minutes. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md",
 
   "documentation_security_status": "Met",
-  "documentation_security_justification": "SECURITY.md describes the vulnerability disclosure process, private channel, scope/out-of-scope, and protocol-layer cryptography. README's 'Security' section documents the server's HTTPS-only, content-length cap, and abort-window defaults. GOVERNANCE.md describes security-sensitive-change review.",
+  "documentation_security_justification": "SECURITY.md (https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md) describes the vulnerability disclosure process, private channel, scope/out-of-scope, and protocol-layer cryptography. README's 'Security' section documents the server's HTTPS-only, content-length cap, and abort-window defaults. GOVERNANCE.md describes security-sensitive-change review.",
 
   "governance_status": "Met",
   "governance_justification": "GOVERNANCE.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md documents the project's governance: roles (Contributor / Maintainer / Founding Maintainer / TSC-when-formed), decision process for specification vs implementation vs releases, maintainer add/remove/inactivity, conflict resolution, code review, intellectual property and trademark.",
@@ -298,7 +298,7 @@
   "maintenance_or_update_justification": "Updates flow through standard npm: `npm update @saihm/mcp-server`. SemVer is followed: minor releases are non-breaking; major releases follow the breaking-change process in GOVERNANCE.md.",
 
   "roles_responsibilities_status": "Met",
-  "roles_responsibilities_justification": "GOVERNANCE.md §Roles clearly states authority for Contributor, Maintainer, Founding Maintainer, and TSC (when formed). The founding maintainer holds final say until a TSC is constituted (planned for when a second core maintainer joins from a different organization).",
+  "roles_responsibilities_justification": "GOVERNANCE.md §Roles (https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md#roles) clearly states authority for Contributor, Maintainer, Founding Maintainer, and TSC (when formed). The founding maintainer holds final say until a TSC is constituted (planned for when a second core maintainer joins from a different organization).",
 
   "signed_releases_status": "Met",
   "signed_releases_justification": "npm publish uses sigstore provenance attestation; users verify with `npm audit signatures` and inspect `npm view @saihm/mcp-server --json | jq .dist`. README §Security documents the verification procedure.",
@@ -349,5 +349,5 @@
   "coding_standards_enforced_justification": "ESLint (typescript-eslint recommended rules) and Prettier are configured at the repository root (eslint.config.js + .prettierrc.json + .prettierignore). The CI workflow at .github/workflows/ci.yml runs `npm run lint` and `npm run format:check` on every push to main and every pull request, against Node 20.x and 22.x. CI fails if any source file fails lint or formatting. npm scripts: `lint`, `lint:fix`, `format`, `format:check`. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/eslint.config.js and https://github.com/SAIHM-Admin/saihm-mcp/blob/main/.github/workflows/ci.yml",
 
   "test_statement_coverage80_status": "Met",
-  "test_statement_coverage80_justification": "Statement coverage is measured via c8 (https://www.npmjs.com/package/c8) wrapping the integration test suite (`c8 tsx tests/integration.test.ts`). c8 configuration in package.json enables `check-coverage: true` with `statements: 80, lines: 80, functions: 80, branches: 65`. Measured statement coverage has been comfortably above that floor on every release (the stdio CLI entry point saihm_mcp_server.ts is intentionally not exercised by the integration test, since importing it must not start a server). CI fails if statement coverage drops below 80%. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/package.json (c8 section)."
+  "test_statement_coverage80_justification": "Statement coverage is measured via c8 (https://www.npmjs.com/package/c8) wrapping the integration test suite (`c8 tsx tests/integration.test.ts`). c8 configuration in package.json enables `check-coverage: true` with `statements: 90, branches: 80, lines: 80, functions: 80`. Measured on 2026-11-25: 98.4% of statements and 94.4% of branches. The suite imports saihm_mcp_server.ts (96.3% of statements) and leaves only its stdio start-up path unexercised, since that must not run on import. CI fails if statement coverage drops below 90% or branch coverage below 80%. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/package.json (c8 section)."
 }

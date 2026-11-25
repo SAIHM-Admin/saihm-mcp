@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAIHM, Inc.
+
 name: release
 
 # On a published GitHub Release this workflow:

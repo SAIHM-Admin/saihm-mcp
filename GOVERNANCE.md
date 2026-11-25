@@ -18,13 +18,14 @@ The project consists of:
 
 - The **SAIHM protocol specification**, published as the Internet-Draft
   [`draft-saihm-memory-protocol`](https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/).
-  The `-01` revision (2026-05-27) was submitted to the IETF Independent
-  Submission Stream; on 2026-07-25 the ISE concluded its consideration
-  and released it from the queue, and the datatracker stream is now
-  None. The draft is **not** an Internet Standard, is not endorsed by
+  The draft entered the IETF Independent Submission Stream in May 2026.
+  On 2026-07-25, with `-01` (2026-05-27) as the latest revision, the
+  ISE concluded its consideration and released it from the queue, and
+  the datatracker stream changed to None. Revisions `-02` and `-03`
+  were posted on 2026-10-11 as individual submissions on no IETF
+  stream. The draft is **not** an Internet Standard, is not endorsed by
   the IETF, and has no formal standing in the IETF standards process.
-  The `-01` text remains available on the datatracker as the current
-  reference text.
+  `-03` is the current revision and the current reference text.
 - The **reference MCP server**, published to npm as
   [`@saihm/mcp-server`](https://www.npmjs.com/package/@saihm/mcp-server)
   and to GitHub at
@@ -90,6 +91,23 @@ organizations. Seat allocation, chair selection, and meeting cadence
 will be documented in a TSC charter committed to this repository
 before the TSC takes its first decision.
 
+### Two-factor authentication
+
+Anyone with commit access to `SAIHM-Admin/saihm-mcp` or publish rights
+to `@saihm/mcp-server` on npm must keep two-factor authentication
+enabled on the GitHub and npm accounts that hold those rights. The
+second factor must be an authenticator app (TOTP), a passkey, or a
+hardware security key; SMS codes do not qualify. A new maintainer sets
+this up before receiving access.
+
+Releases are not published with a personal npm credential.
+`release.yml` publishes from GitHub Actions through npm trusted
+publishing: the job is granted `id-token: write`, and at publish time
+the npm CLI exchanges that run's short-lived GitHub OIDC token for
+publish access. No workflow in `.github/workflows/` references an npm
+token or any stored repository secret, so publishing needs no
+long-lived npm token.
+
 ## Decision process
 
 ### Specification decisions
@@ -114,12 +132,12 @@ must obey.
 
 Specification work has one surface of record:
 
-- The published Internet-Draft `draft-saihm-memory-protocol-01` on the
-  IETF Datatracker is the specification text of record. It sits on no
-  IETF stream today (see *Project scope* above) and carries the normal
-  Internet-Draft expiry. The project's intent is to re-anchor the
-  normative reference on a working-group document once one exists that
-  can be cited.
+- The current revision of the Internet-Draft on the IETF Datatracker,
+  `draft-saihm-memory-protocol-03`, is the specification text of
+  record. It sits on no IETF stream today (see *Project scope* above)
+  and carries the normal Internet-Draft expiry. The project's intent
+  is to re-anchor the normative reference on a working-group document
+  once one exists that can be cited.
 
 This repository holds the reference implementation, **not** the
 specification text — a point `ARCHITECTURE.md` makes explicitly. Draft

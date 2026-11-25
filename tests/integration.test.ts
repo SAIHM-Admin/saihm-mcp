@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 SAIHM, Inc.
 /**
  * Comprehensive functional test for @saihm/mcp-server bare-bones.
  * Covers:
