@@ -1,6 +1,6 @@
 {
   "name": "@saihm/mcp-server",
-  "version": "0.3.17",
+  "version": "0.3.18",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
   "description": "MCP standards client for your own custodial SAIHM operator (endpoint URL + operator token). Free hosted start: @saihm/mcp-server-pro.",
   "type": "module",
@@ -108,7 +108,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@noble/hashes": "^2.2.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^25.9.0",

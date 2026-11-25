@@ -3913,6 +3913,7 @@ async function main() {
     '0.3.14',
     '0.3.15',
     '0.3.16',
+    '0.3.17',
   ]);
   const changelogDoc = repoFile('CHANGELOG.md');
   const changelogLines = changelogDoc.split('\n');

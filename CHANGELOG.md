@@ -8,6 +8,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.18] — 2026-11-28
+
+Security maintenance. No new tools, no removed tools, no schema change: the
+eight tools and their input schemas are unchanged from `0.3.17`.
+
+### Security
+
+- **zod `^4.6.6`.** zod 4.6.5 and earlier can exhaust memory while
+  validating a large array (GHSA-mrhx-c7xc-m3w5, CVE-2023-54404, high). This
+  server validates every tool's arguments with zod, including the two array
+  arguments of `saihm_share`, so an MCP client could use it to crash the
+  server process. The dependency range is raised from `^4.4.3` to `^4.6.6`,
+  the first fixed release, and the lockfile now resolves zod 4.6.7.
+- **fast-uri 3.1.9 in the lockfile.** The MCP SDK loads fast-uri, through
+  ajv, when the server starts. This server gives it no client or operator
+  input: on the server side the SDK uses ajv only to check elicitation
+  replies, and this server never requests one. The lockfile moves from 3.1.8
+  to 3.1.9, which fixes GHSA-w74x-v6f9-j3xg (CVE-2026-110306),
+  GHSA-wjr9-j795-jxcr (CVE-2026-110180), GHSA-xhq7-xmqj-769h
+  (CVE-2026-110095) and GHSA-333x-w4r6-6crp (CVE-2026-110725).
+- **HTTP transport packages in the lockfile.** The MCP SDK also installs the
+  packages behind its HTTP server transports. This server talks over stdio
+  and never loads them, but the lockfile now pins fixed releases, so CI and
+  builds from the Dockerfile no longer install the affected versions:
+  - body-parser 2.3.0 → 2.4.0: GHSA-27r3-jxmh-p828 (CVE-2026-111181, high)
+  - hono 4.13.13 → 4.13.22: GHSA-46wx-v44x-9hh2 (CVE-2026-126355),
+    GHSA-4h7h-rv7c-7m2v (CVE-2026-126356), GHSA-4m76-xfj5-7975
+    (CVE-2026-126357), GHSA-h7mg-cq63-vhpq (CVE-2026-126358) and
+    GHSA-3gg2-335m-rxc6 (CVE-2026-126359)
+  - @hono/node-server 2.1.4 → 2.1.11: GHSA-qv5m-9pm6-hqp3 (CVE-2026-126343)
+    and GHSA-jpvv-r467-5p4w (CVE-2026-126210)
+  - qs 6.16.0 → 6.17.1: GHSA-6pq8-jhm2-2vcw (CVE-2026-110816)
+  - ip-address 10.7.3 → 10.7.6: GHSA-rxp7-6hxx-x8q5 (CVE-2026-111997)
+  - iconv-lite 0.7.2 → 0.7.3, which body-parser 2.4.0 requires (no advisory)
+- **npm installs.** The published package does not include the lockfile. An
+  `npm install` of 0.3.18 gets zod 4.6.6 or later from the new range. The
+  other packages above resolve from the MCP SDK's own version ranges, which
+  admit the fixed releases. `npm audit --omit=dev` reports 0 vulnerabilities.
+
+### Documentation
+
+- **README.** Names SAIHM, Inc. as the developer and maintainer, points to
+  draft `-03` as the current revision, adds a Tests section and revises the
+  roadmap.
+- **License headers.** The compiled JavaScript in `dist/` now starts with the
+  SPDX license identifier and copyright line that every source file carries.
+  Apart from those two comment lines, `dist/` is identical to `0.3.17`.
+
 ## [0.3.17] — 2026-10-11
 
 Maintenance. No new tools, no removed tools, no schema change: the eight
@@ -981,7 +1029,8 @@ Initial release.
   sub-kinds, the field-universe validation, and the security
   mitigations.
 
-[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.17...HEAD
+[Unreleased]: https://github.com/SAIHM-Admin/saihm-mcp/compare/v0.3.18...HEAD
+[0.3.18]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.18
 [0.3.17]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.17
 [0.3.16]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.16
 [0.3.15]: https://github.com/SAIHM-Admin/saihm-mcp/releases/tag/v0.3.15
