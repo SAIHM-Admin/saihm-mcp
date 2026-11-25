@@ -94,7 +94,7 @@
   "vulnerability_report_process_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md describes the responsible-disclosure process, scope/out-of-scope, and disclosure timelines.",
 
   "vulnerability_report_private_status": "Met",
-  "vulnerability_report_private_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md publishes the private channel architect@saihm.coti.global. Reports are not handled via the public issue tracker.",
+  "vulnerability_report_private_justification": "https://github.com/SAIHM-Admin/saihm-mcp/blob/main/SECURITY.md publishes the private channel security@saihm.net. Reports are not handled via the public issue tracker.",
 
   "vulnerability_report_response_status": "Met",
   "vulnerability_report_response_justification": "SECURITY.md commits to 14-day acknowledgment and 30-day initial assessment / fix-or-mitigation-plan target for confirmed vulnerabilities, depending on severity and complexity.",
@@ -211,7 +211,7 @@
   "dynamic_analysis_fixed_justification": "All issues uncovered by dynamic testing are fixed before commits land in main.",
 
   "access_continuity_status": "Met",
-  "access_continuity_justification": "GOVERNANCE.md describes maintainer add/remove/inactivity-emeritus (12-month inactivity) and removal-for-cause processes plus the foundation-cession path. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md",
+  "access_continuity_justification": "GOVERNANCE.md describes maintainer add/remove/inactivity-emeritus (12-month inactivity) and removal-for-cause processes. SAIHM, Inc. owns and stewards the project and its trademarks, so ownership and the legal rights to continue the project stay with the company if any individual maintainer becomes unavailable. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md",
 
   "accessibility_best_practices_status": "N/A",
   "accessibility_best_practices_justification": "MCP server is a stdio-spoken JSON-RPC interface with no human-facing UI; WCAG / ARIA standards do not apply. Tool inputs/outputs are consumed by an AI agent, not by humans directly.",
@@ -234,11 +234,11 @@
   "build_standard_variables_status": "N/A",
   "build_standard_variables_justification": "Node.js npm project; no make/autoconf install-target convention applies. Standard `npm install` flow is used.",
 
-  "bus_factor_status": "Met",
-  "bus_factor_justification": "GOVERNANCE.md §'Adding and removing maintainers' plus the inactivity-emeritus and removal-for-cause processes plus the foundation-cession path describe what happens if the founding maintainer becomes unavailable. The protocol specification is published as an Internet-Draft on the IETF Datatracker (draft-saihm-memory-protocol-01), so the spec text persists there independently of the implementation maintainer. It was submitted to the Independent Submission Stream; the ISE concluded its consideration on 2026-07-25 and released it from the queue, so the draft is on no IETF stream and is not an Internet Standard.",
+  "bus_factor_status": "Unmet",
+  "bus_factor_justification": "Maintenance currently rests with the founding maintainer at SAIHM, Inc. GOVERNANCE.md §'Adding and removing maintainers' covers adding, stepping down and removing maintainers; each step runs through the founding maintainer until a TSC exists. SAIHM, Inc. owns and stewards the project and its trademarks, so ownership and the legal rights to continue the project stay with the company if any individual maintainer becomes unavailable. The protocol specification is published as an Internet-Draft on the IETF Datatracker (draft-saihm-memory-protocol-01), so the spec text persists there independently of the implementation maintainer. It was submitted to the Independent Submission Stream; the ISE concluded its consideration on 2026-07-25 and released it from the queue, so the draft is on no IETF stream and is not an Internet Standard.",
 
   "code_of_conduct_status": "Met",
-  "code_of_conduct_justification": "Project adopts the Contributor Covenant v2.1 verbatim text at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CODE_OF_CONDUCT.md. Enforcement contact: architect@saihm.coti.global.",
+  "code_of_conduct_justification": "Project adopts the Contributor Covenant v2.1 verbatim text at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CODE_OF_CONDUCT.md. Enforcement contact: ops@saihm.net.",
 
   "crypto_algorithm_agility_status": "Met",
   "crypto_algorithm_agility_justification": "Protocol supports algorithm rotation via KEK versioning (kekVersion field on every cell) and explicit HKDF derivation parameters. New ML-DSA categories or alternative AEAD ciphers can be added without invalidating older cells.",
@@ -298,7 +298,7 @@
   "maintenance_or_update_justification": "Updates flow through standard npm: `npm update @saihm/mcp-server`. SemVer is followed: minor releases are non-breaking; major releases follow the breaking-change process in GOVERNANCE.md.",
 
   "roles_responsibilities_status": "Met",
-  "roles_responsibilities_justification": "GOVERNANCE.md §Roles clearly states authority for Contributor, Maintainer, Founding Maintainer, and TSC (when formed). The founding maintainer holds final say until a TSC is constituted (planned on AAIF acceptance or earliest cross-org maintainer).",
+  "roles_responsibilities_justification": "GOVERNANCE.md §Roles clearly states authority for Contributor, Maintainer, Founding Maintainer, and TSC (when formed). The founding maintainer holds final say until a TSC is constituted (planned for when a second core maintainer joins from a different organization).",
 
   "signed_releases_status": "Met",
   "signed_releases_justification": "npm publish uses sigstore provenance attestation; users verify with `npm audit signatures` and inspect `npm view @saihm/mcp-server --json | jq .dist`. README §Security documents the verification procedure.",
@@ -328,7 +328,7 @@
   "hardening_justification": "HARDENING.md at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/HARDENING.md collects enforced hardening choices: HTTPS-only transport, TLS 1.2+, no Authorization-header echo on errors, 30s abort window, a 16 MB response-size cap enforced both on a declared Content-Length and on the streamed body, no configuration, credential or user data read from disk and nothing written to disk (the server opens exactly one file, its own package.json, once at startup so serverInfo.version matches the published version, falling back to 0.0.0-dev), no EVM tooling, npm releases carrying sigstore/SLSA provenance from OIDC trusted publishing, pinned dependencies, Dependabot, eight-tool cap as protocol-invariant surface minimization. Three items are recorded in HARDENING.md as gaps rather than controls: release tags are unsigned; DCO sign-off is a documented policy with a manual remedy, carries no automated check, and has lapsed in maintainer practice; and CI runs on every PR and every push to main but is not a required status check, because main carries no branch protection and no rulesets. Every item listed as a control is enforced in code or in the published artifact, not aspirational.",
 
   "documentation_roadmap_status": "Met",
-  "documentation_roadmap_justification": "README §Roadmap publishes the 12-month roadmap: 2026-Q2 operator-endpoint reference + OpenSSF Silver pursuit; 2026-Q3 first 2-3 external organization deployments + AAIF Project Proposal submission gate; 2026-Q4 NIST AI RMF crosswalk public review + EU AI Act compliance-checklist generator + OpenSSF Silver award target; 2027-Q1 IETF RFC publication + v1.0 reference implementation. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#roadmap",
+  "documentation_roadmap_justification": "README §Roadmap publishes the 12-month roadmap: 2026-Q2 OpenSSF Silver pursuit (closed, with release-tag signing carried forward as an open gap); 2026-Q3 first 2-3 external organization deployments; 2026-Q4 NIST AI RMF crosswalk public review + EU AI Act compliance-checklist generator + OpenSSF Silver award target; 2027-Q1 v1.0 reference implementation, with the specification's standards path open and no publication date claimed. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#roadmap",
 
   "documentation_achievements_status": "Met",
   "documentation_achievements_justification": "README §Achievements lists the project's current credentials: OpenSSF BP Passing badge (project 12898, 2026-05-19); the Internet-Draft draft-saihm-memory-protocol-01 (2026-05-27), submitted to the IETF Independent Submission Stream and released from the ISE queue on 2026-07-25 (now on no IETF stream, not an Internet Standard, not IETF-endorsed); npm registry @saihm/mcp-server (0.3.11, 2026-08-26); MCP Registry / Glama listing (2026-05-16). https://github.com/SAIHM-Admin/saihm-mcp/blob/main/README.md#achievements",

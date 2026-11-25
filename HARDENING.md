@@ -200,7 +200,7 @@ Out of scope for this server (these belong to other layers):
   described sign-off as required and unsigned PRs as rejected until
   0.3.11.
 - **Private vulnerability channel.** Reports are routed via
-  `architect@saihm.coti.global` per
+  `security@saihm.net` per
   [`SECURITY.md`](./SECURITY.md); 14-day acknowledgment, 30-day
   fix-or-mitigation-plan targets.
 - **Security-sensitive change review.** `GOVERNANCE.md` requires

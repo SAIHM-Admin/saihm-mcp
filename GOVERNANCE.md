@@ -4,15 +4,13 @@ This document describes the governance of the SAIHM Project (the
 "Sovereign AI Horizontal Memory Protocol" and its reference MCP server
 `@saihm/mcp-server`). It is modeled on the
 [Linux Foundation Minimum Viable Governance](https://github.com/linuxfoundation/OpenMVG)
-template, adapted for a single-protocol project that has not yet been
-adopted into a foundation.
+template, adapted for a single-protocol project. SAIHM, Inc. owns and
+stewards the project and its trademarks.
 
-This file is intended to evolve as the project matures. The current
-state reflects honest pre-adoption reality: a single founding
-maintainer, an interim decision process, and a clear plan for how that
-will broaden as adoption grows or as the project is accepted by a
-foundation (AAIF is the stated target — see the project's standards
-campaign).
+This file is intended to evolve as the project matures. Today the
+project has a founding maintainer at SAIHM, Inc. and an interim
+decision process, which will broaden as maintainers from other
+organizations join (see *Technical Steering Committee* below).
 
 ## Project scope
 
@@ -66,29 +64,25 @@ expected to:
 
 ### Founding maintainer
 
-The role of founding maintainer is held until either (a) a Technical
-Steering Committee is formed (see below), or (b) the project is
-accepted by a foundation that defines its own leadership model. The
-founding maintainer's responsibilities are the union of the maintainer
-role plus:
+The role of founding maintainer is held until a Technical Steering
+Committee is formed (see below). The founding maintainer's
+responsibilities are the union of the maintainer role plus:
 
 - Final say on specification revisions until a TSC exists.
 - Initiating the process to add new maintainers.
 - Responsible disclosure of vulnerabilities reported via
   [`SECURITY.md`](SECURITY.md).
-- Trademark stewardship until any cession to a foundation.
+- Trademark stewardship on behalf of SAIHM, Inc., which owns the
+  project's trademarks.
 
-The current founding maintainer is Russell Jackson, on behalf of the
-SAIHM Project, reachable at `architect@saihm.coti.global`.
+The current founding maintainer is Russell Jackson (Founder/Architect,
+SAIHM, Inc.), reachable at `ops@saihm.net`.
 
 ### Technical Steering Committee (TSC)
 
-The TSC does not yet exist. It will be formed at the earlier of:
-
-- Acceptance of the SAIHM Project by the Agentic AI Foundation (AAIF)
-  or another open-source foundation that requires a TSC, or
-- The first time a second core maintainer joins from a different
-  organization than the founding maintainer's.
+The TSC does not yet exist. It will be formed the first time a second
+core maintainer joins from a different organization than the founding
+maintainer's.
 
 When the TSC is formed, it will have an odd number of seats (initially
 3), drawn from active maintainers across at least two distinct
@@ -133,9 +127,9 @@ revisions are prepared and submitted to the datatracker separately;
 there is no copy of the specification in this repository to keep in
 sync.
 
-When a Working Group or other body formalizes the specification at an
-SDO (W3C, IETF, AAIF), that body's process supersedes the process above
-for the surfaces it governs.
+When a Working Group or other body formalizes the specification at a
+standards body (W3C, IETF), that body's process supersedes the process
+above for the surfaces it governs.
 
 ### Implementation decisions
 
@@ -252,7 +246,7 @@ contributors who arrive there first.
 Enforcement — up to and including removing disruptive participants from
 the project's public spaces — follows the *Enforcement* and *Enforcement
 Guidelines* sections of that document. Reports go privately to
-`architect@saihm.coti.global`.
+`ops@saihm.net`.
 
 ## Intellectual property
 
@@ -270,11 +264,10 @@ Guidelines* sections of that document. Reports go privately to
   there, and continue to apply now that the ISE has released it from
   the queue. The Apache-2.0 license applies to the reference
   implementation in this repository.
-- The "SAIHM" name and any associated wordmark are currently held by
-  the SAIHM Project. On acceptance of the project by AAIF (the stated
-  primary foundation target) or another foundation, all project
-  trademarks and accounts will be donated to that foundation per the
-  applicable foundation charter.
+- SAIHM, Inc. owns and stewards the project and its trademarks,
+  including the "SAIHM" name and any associated wordmark. Company
+  ownership keeps those rights in place if any individual maintainer
+  steps away.
 
 ## Amending this document
 
@@ -295,6 +288,5 @@ start of the comment window.
 - [Linux Foundation Minimum Viable Governance template](https://github.com/linuxfoundation/OpenMVG)
 - [Contributor Covenant](https://www.contributor-covenant.org/)
 - [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html)
-- [AAIF Foundation Charter §8 (Trademark)](https://github.com/aaif/foundation/blob/main/charter.md)
 - [Project standards page](https://saihm.net/standards)
 - [Project blog](https://saihm.net/blog)

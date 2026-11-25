@@ -519,17 +519,14 @@ custom code.
 
 ## Roadmap
 
-A 12-month roadmap is maintained in the project's
-[AAIF proposal](https://github.com/SAIHM-Admin/saihm-mcp/) and is published at
-<https://saihm.net/roadmap>. Near-term tracks:
+Near-term tracks, by quarter:
 
 - **2026-Q2 (closed — one gap carried forward)** — Of the OpenSSF Silver
   pursuit, governance, code-of-conduct, DCO sign-off, coverage tooling and the
   assurance case all landed. Release-tag signing did **not**; `GOVERNANCE.md`
   §"Releases" and `HARDENING.md` §"Distribution integrity" both record it as an
   open gap, and it is carried into the Silver track below.
-- **2026-Q3** — First 2–3 external organization deployments; formal AAIF
-  Project Proposal submission when adoption blockers clear.
+- **2026-Q3** — First 2–3 external organization deployments.
 - **2026-Q4** — NIST AI RMF crosswalk public review; EU AI Act
   compliance-checklist generator. OpenSSF Silver award (target).
 - **2027-Q1** — v1.0 reference implementation. The specification's
@@ -541,7 +538,7 @@ A 12-month roadmap is maintained in the project's
 
 ## Support
 
-SAIHM is developed and maintained by a solo founder. If it's useful to you or
+SAIHM is developed and maintained by SAIHM, Inc. If it's useful to you or
 your organization, please consider
 **[sponsoring the project](https://github.com/sponsors/SAIHM-Admin)** — it funds
 continued protocol, client, and open-standards work and keeps this open

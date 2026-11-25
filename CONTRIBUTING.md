@@ -90,7 +90,7 @@ git rebase -i HEAD~N --exec "git commit --amend --no-edit -s"
 
 This project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md).
 By participating in this project, you agree to abide by its terms. Reports of
-unacceptable behavior can be sent privately to `architect@saihm.coti.global`,
+unacceptable behavior can be sent privately to `ops@saihm.net`,
 as described in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## Questions

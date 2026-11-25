@@ -3,8 +3,8 @@ message: 'If you use this software in research, product, or standards work, plea
 title: 'SAIHM — Sovereign AI Horizontal Memory'
 abstract: 'Sovereign, encrypted, persistent memory protocol for AI agents. Eight Model Context Protocol tools (remember, recall, forget, share, governance) provide ML-DSA-signed AES-256-GCM cells with GDPR Article 17 cryptographic erasure. Anchored on COTI V2 mainnet.'
 authors:
-  - name: 'SAIHM Project'
-    email: 'architect@saihm.coti.global'
+  - name: 'SAIHM, Inc.'
+    email: 'ops@saihm.net'
     website: 'https://saihm.net/'
 type: software
 version: '0.3.17'

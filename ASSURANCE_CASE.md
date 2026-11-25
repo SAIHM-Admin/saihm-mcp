@@ -122,15 +122,13 @@ hand and carry no attestation. Verified per version with
 
 ### Residual risk
 
-The architect's npm + GitHub credentials remain a single point of
-failure for the supply chain. Mitigation: publishing does not use a
+The project's npm and GitHub credentials remain a single point of
+failure for the supply chain. SAIHM, Inc. owns the project and is
+accountable for securing them. Mitigation: publishing does not use a
 long-lived npm token at all — `.github/workflows/release.yml` is the
 only publish path and it authenticates by GitHub Actions OIDC, so
 there is no npm credential to steal or replay, and the residual
 control is GitHub account security plus branch/release protection.
-When the project moves to AAIF or a similar foundation, the release
-flow transfers to the foundation's managed process, removing the
-single-point dependency.
 
 ## G4 — Cryptographic primitives are publicly-validated and current
 
@@ -186,7 +184,7 @@ commit), review (who can approve), and release (who can publish).
 |---|---|
 | Source control | Repository is on GitHub; only the founding maintainer (and any future maintainers added per `GOVERNANCE.md`) has push access. |
 | Sign-off | **Gap — documented, not enforced.** `CONTRIBUTING.md` §"Licensing and DCO sign-off" asks inbound contributions to carry a `Signed-off-by:` trailer (DCO 1.1); the remedy it describes is a manual rebase request. No DCO check or app enforces it, and most commits on `main` carry no trailer. `HARDENING.md` §"Process hardening". |
-| Review | **Gap — convention, not enforced.** `GOVERNANCE.md` §"Code review" describes maintainer approval, but `main` has no branch protection and no rulesets, so no approval is mechanically required, and the sole maintainer commits to `main` directly. |
+| Review | **Gap — convention, not enforced.** `GOVERNANCE.md` §"Code review" describes maintainer approval, but `main` has no branch protection and no rulesets, so no approval is mechanically required, and the founding maintainer at SAIHM, Inc. commits to `main` directly. |
 | CI | Lint, format check, typecheck, build and the full test suite run on Node 20.x + 22.x for every PR and every push to `main` (`.github/workflows/ci.yml`). **Not a merge gate** — no required status check is configured. |
 | Release | Publishing runs only from `.github/workflows/release.yml` on GitHub Actions using OIDC trusted publishing — no long-lived npm token exists to steal, and the SLSA provenance attestation is generated automatically. Release process described in `ARCHITECTURE.md` §"Build, test, release flow". |
 | Security-sensitive changes | Founding-maintainer (or, once formed, TSC) sign-off required. `GOVERNANCE.md` §"Implementation decisions" → "Security-sensitive changes". |
@@ -194,14 +192,15 @@ commit), review (who can approve), and release (who can publish).
 
 ### Residual risk
 
-The founding-maintainer-as-sole-approver pattern is a pre-1.0
-pragmatic choice (and one OpenSSF Best Practices flags via the
+Approval rests with one founding maintainer, and SAIHM, Inc. is
+accountable for that arrangement as the project's owner. It is a
+pre-1.0 pragmatic choice (and one OpenSSF Best Practices flags via the
 `bus_factor` criterion). The mitigation is documented in
-`GOVERNANCE.md`: when a second maintainer joins from a different
+`GOVERNANCE.md`: when a second core maintainer joins from a different
 organization, the TSC is formed and approval can be distributed
-across organizations. This is one of the AAIF eligibility gates.
+across organizations.
 
-Sole approvership is not the only residual risk here. The sign-off,
+The single approver is one of several residual risks here. The sign-off,
 review and CI controls above are conventions rather than mechanisms:
 `main` carries no branch protection and no rulesets, so nothing stops
 an unreviewed, unsigned, CI-red push. They hold because one maintainer
@@ -228,11 +227,15 @@ three as enforced controls.
    the source code. The assurance case above is the human-friendly
    index into that documentation.
 3. **"Single maintainer = brittle = unsafe to depend on."** Real
-   risk; documented (`bus_factor`) and mitigated via the foundation
-   cession path in `GOVERNANCE.md` §"Intellectual property". Users
+   risk, documented under `bus_factor`. Continuity rests on SAIHM, Inc.
+   as the owning entity: the company owns the project and its
+   trademarks (`GOVERNANCE.md` §"Intellectual property"), and
+   `GOVERNANCE.md` §"Adding and removing maintainers" covers
+   nomination, stepping down, inactivity and removal for cause. Users
    making procurement decisions should weigh this against the
-   project's maturity stage (pre-1.0) and the explicit roadmap to
-   broaden maintainership.
+   project's maturity stage (pre-1.0) and the path for adding
+   maintainers from other organizations in `GOVERNANCE.md` §"Technical
+   Steering Committee (TSC)".
 
 ## Verification roadmap for an independent reviewer
 

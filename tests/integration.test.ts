@@ -3772,9 +3772,8 @@ async function main() {
   // ── R26-C. Shipped docs must not claim staffing the project does not have. ──
   // SECURITY.md promised to notify operators "via the SAIHM operations channel" and
   // told a reporter with an urgent concern that "the SAIHM operations team" was
-  // reachable — while README §Support says the project is maintained by a solo
-  // founder, GOVERNANCE names one founding maintainer, and ASSURANCE_CASE §G5 logs
-  // founding-maintainer-as-sole-approver as the residual risk. A security policy is
+  // reachable — while GOVERNANCE names one founding maintainer, and ASSURANCE_CASE §G5 logs
+  // approval resting with one founding maintainer as the residual risk. A security policy is
   // exactly the wrong document to inflate response capacity in. Per-CLAIM, not
   // per-file: any shipped doc that names a group or a rotation is the same defect.
   const CAPACITY_DOCS = [
@@ -3806,9 +3805,12 @@ async function main() {
     );
   }
   const securityDoc = repoFile('SECURITY.md');
+  const securityFlat = securityDoc.replace(/\s+/g, ' ');
   assert(
-    /single founding maintainer/i.test(securityDoc) && /GOVERNANCE\.md/.test(securityDoc),
-    'R26-C SECURITY.md discloses the single-maintainer reality and points at GOVERNANCE.md',
+    /maintained by SAIHM, Inc\./.test(securityFlat) &&
+      /GOVERNANCE\.md/.test(securityDoc) &&
+      /Urgent reports follow the acknowledgment and assessment targets above/.test(securityFlat),
+    'R26-C SECURITY.md names SAIHM, Inc., points at GOVERNANCE.md, and holds urgent reports to the stated targets',
   );
 
   // ── R26-D. No doc may defer a deliverable to a release that already shipped. ──
@@ -4057,7 +4059,7 @@ async function main() {
   // .github/workflows/ and no DCO app, `main` carries no branch protection and no
   // rulesets (both verified against the GitHub API), and most commits carry no
   // Signed-off-by trailer — sign-off was adopted in the Silver push and then lapsed.
-  // What the docs described as mechanisms are conventions a sole maintainer chooses to
+  // What the docs described as mechanisms are conventions the founding maintainer chooses to
   // follow, which is a materially weaker claim than the one an auditor reading an
   // assurance case takes away. Same class as R26-I: a control asserted as enforced,
   // never revisited after the reality moved.

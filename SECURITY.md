@@ -6,7 +6,7 @@ If you believe you have found a security vulnerability in the SAIHM MCP server
 (`@saihm/mcp-server`), please report it privately so that we can investigate
 and remediate before public disclosure.
 
-**Private channel:** architect@saihm.coti.global
+**Private channel:** security@saihm.net
 
 Please include, where possible:
 
@@ -53,10 +53,9 @@ available we will:
 4. Notify known SAIHM operator deployments via the same private channel
 
 If a reporter has urgent operational concerns, use the same private channel and
-mark the subject line `[URGENT]`. Please size your expectations accordingly:
-this project is maintained by a single founding maintainer
-(see [`GOVERNANCE.md`](GOVERNANCE.md)), so there is no separate operations
-group and no on-call rotation behind that address.
+mark the subject line `[URGENT]`. Urgent reports follow the acknowledgment and
+assessment targets above. This project is maintained by SAIHM, Inc. (see
+[`GOVERNANCE.md`](GOVERNANCE.md)).
 
 ## Cryptographic and protocol-level concerns
 
