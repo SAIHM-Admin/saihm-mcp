@@ -184,8 +184,8 @@ Releases from `0.3.6` onward are published from GitHub Actions over
 OIDC trusted publishing and carry an npm sigstore provenance
 attestation; users can verify with `npm audit signatures`. Earlier
 versions (`0.1.0`–`0.3.5`) were published by hand and carry no
-attestation. Release tags are not signed — see `HARDENING.md`
-§"Distribution integrity", which records that as a gap.
+attestation. Release tags are not signed; `HARDENING.md` §"Distribution
+integrity" shows how to verify a release through its provenance attestation.
 
 ### Adding and removing maintainers
 
@@ -242,8 +242,9 @@ Every pull request must:
 Branch protection on `main` requires the `build (20.x)`, `build (22.x)` and
 `reuse` status checks to pass, and blocks force-pushes and deletion of `main`.
 Review approval is project policy rather than a repository setting: while the
-project has a single maintainer, GitHub requires no review, and the protection
-is not enforced for administrators.
+project has one maintainer, GitHub requires no review, and the protection
+is not enforced for administrators; a required-review rule can be added once a
+second maintainer joins.
 
 Reviews focus on:
 

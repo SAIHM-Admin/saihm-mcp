@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: 'If you use this software in research, product, or standards work, please cite the software entry below. The Internet-Draft under references is the protocol specification text; it is an Internet-Draft only — not an Internet Standard, not endorsed by the IETF, and on no IETF stream since 2026-07-25. Please cite it as work in progress.'
 title: 'SAIHM — Sovereign AI Horizontal Memory'
-abstract: 'Sovereign, encrypted, persistent memory protocol for AI agents. Eight Model Context Protocol tools (remember, recall, forget, share, governance) provide ML-DSA-signed AES-256-GCM cells with GDPR Article 17 cryptographic erasure. Anchored on COTI V2 mainnet.'
+abstract: 'Sovereign, encrypted, persistent memory protocol for AI agents. Eight Model Context Protocol tools (remember, recall, forget, share, governance) work with ML-DSA-65-signed encrypted cells and GDPR Article 17 erasure, cryptographic or access-control as the operator provides. Receipts are anchored on COTI V2 mainnet in the reference deployment.'
 authors:
   - name: 'SAIHM, Inc.'
     email: 'ops@saihm.net'
@@ -21,14 +21,11 @@ keywords:
   - 'MCP'
   - 'post-quantum cryptography'
   - 'HKDF'
-  - 'AES-256-GCM'
   - 'ML-DSA'
-  - 'ISO/IEC 19790 zeroization'
-  - 'NIST SP 800-88'
   - 'sovereign identity'
 references:
   - type: report
-    title: 'The SAIHM Protocol for Sovereign AI Memory (draft-saihm-memory-protocol-01)'
+    title: 'The Sovereign AI Horizontal Memory (SAIHM) Protocol (draft-saihm-memory-protocol-03)'
     authors:
       - name: 'SAIHM Project'
     url: 'https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/'

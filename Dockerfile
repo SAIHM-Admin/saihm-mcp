@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # SAIHM MCP Server (thin client) - stdio transport.
-# Glama-compatible: server starts without env vars; listTools works for
+# Registry-compatible: server starts without env vars; listTools works for
 # introspection. Env vars (SAIHM_ENDPOINT_URL, SAIHM_AUTH_HEADER) are read
 # lazily on first tool invocation, not at startup.
 

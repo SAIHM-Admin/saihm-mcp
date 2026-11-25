@@ -3,7 +3,7 @@
 This document describes the high-level architecture of
 `@saihm/mcp-server` and its place in the SAIHM (Sovereign AI
 Horizontal Memory) protocol stack. It is intended for contributors,
-reviewers, and security auditors who need a mental model of *where
+reviewers, and security reviewers who need a mental model of *where
 things live* before reading the code.
 
 ## Project scope, restated
@@ -21,7 +21,7 @@ contain:
 - Any cryptographic keys, persistent storage, or network state. The
   MCP server holds none of these.
 
-The MCP server is a **thin forwarding shim**: it exposes eight MCP
+The MCP server is a **forwarding client**: it exposes eight MCP
 tools, validates inputs, and forwards JSON-RPC calls to whatever
 operator endpoint the user has configured via environment variables.
 
@@ -52,9 +52,11 @@ operator endpoint the user has configured via environment variables.
 │  (external; per operator)   │
 │                             │
 │  - ML-DSA-65 identity bind  │
-│  - HKDF per-cell DEK derive │
+│  - Random per-cell DEK,     │
+│    wrapped under a KEK      │
 │  - AEAD cell encryption     │
-│  - DEK destruction (Art.17) │
+│  - Erasure (Art.17), two    │
+│    classes (see below)      │
 │  - Audit-receipt emission   │
 └──────────────┬──────────────┘
                │  Persistence + anchor
@@ -96,8 +98,8 @@ cap"; see `CONTRIBUTING.md` and `GOVERNANCE.md`):
 | `saihm_status` | PRS / BFSI / storage / staking / sharing / PHI dashboard |
 | `saihm_share` | Issue a sharing contract (temporary / permanent / syndicate) |
 | `saihm_revoke_share` | Revoke a sharing contract |
-| `saihm_governance_propose` | Submit a gSAIHM governance proposal |
-| `saihm_governance_vote` | Vote on a gSAIHM governance proposal |
+| `saihm_governance_propose` | Submit a protocol governance proposal (operator-enabled) |
+| `saihm_governance_vote` | Vote on a protocol governance proposal (operator-enabled) |
 
 Adding a ninth tool, removing a tool, or renaming a tool requires the
 breaking-change process in `GOVERNANCE.md`. The eight-tool cap exists
@@ -187,29 +189,23 @@ auditability the architecture document captures the protocol-level
 envelope here:
 
 The protocol-level cell is an 8-field tuple. Field names and ordering
-follow `draft-saihm-memory-protocol-01` §2.1:
+follow `draft-saihm-memory-protocol-03` §2.1:
 
 ```
-Cell (per draft-saihm-memory-protocol-01 §2.1) {
-  cellId            — 32-byte hex; SHA-256(kekVersion_be32 ‖ cellNonce
-                      ‖ ciphertext). Recipients MUST recompute and
-                      reject mismatched cellId.
-  holderId          — ML-DSA-65 public key hash (32-byte hex)
-  kekVersion        — KEK rotation generation (unsigned 32-bit)
-  tier              — "filecoin" | "ipfs"
-  cellNonce         — 16-byte per-cell random; binds DEK derivation
-                      (HKDF info) and cellId derivation
-  ciphertext        — AEAD output (AES-256-GCM); DEK = HKDF(salt =
-                      kekVersion_be32, IKM = identityKey, info =
-                      cellNonce ‖ "MPS-CELL-DEK-v1", L = 32). The
-                      `identityKey` is the holder's 64-byte HKDF-
-                      derived identity material; see spec §2.2 and
-                      §2.3.
-  timestamp         — POSIX seconds, CBOR unsigned integer
-                      (major type 0)
-  holderSignature   — ML-DSA-65 signature over (cellId ‖ holderId ‖
-                      kekVersion_be32 ‖ timestamp_be64); see the
-                      "signature" field definition in spec §2.1.
+Cell (per draft-saihm-memory-protocol-03 §2.1) {
+  cellId     — 32-byte hex; SHA-256(kekVersion_be32 ‖ cellNonce ‖
+               ciphertext). Recipients MUST recompute and reject
+               mismatched cellId.
+  holderId   — SHA-256 of the holder's ML-DSA-65 public key (32-byte hex)
+  kekVersion — KEK generation in force when the cell was written
+               (unsigned 32-bit)
+  tier       — storage tier name
+  cellNonce  — 16 random bytes, unique per cell
+  ciphertext — AEAD output under the cell's random per-cell DEK, which
+               is wrapped under the KEK and independent of every other
+               operator key (§2.4)
+  signature  — ML-DSA-65 signature by the holder's identity key
+  timestamp  — UNIX seconds, 64-bit unsigned
 }
 ```
 
@@ -220,7 +216,7 @@ client via `RememberResult` and `RecalledCell`:
 ```
   epoch                  — block-anchored time at storage commit
   feeNcoti               — fee charged in nCOTI
-  signaturePrefix        — short prefix of holderSignature for UX
+  signaturePrefix        — short prefix of the cell signature for UX
   holderSignaturePrefix  — same (on RecalledCell)
   auditCellId            — public-chain audit-receipt key
 ```
@@ -237,13 +233,13 @@ documentation for which class it provides.
 See [GDPR Art.17 crosswalk](https://saihm.net/standards/gdpr-art17-crosswalk)
 for the regulator-mapping detail.
 
-### `saihm_status` schema (spec §3.4)
+### `saihm_status` schema (spec §4.5)
 
 `saihm_status` returns a holder-side dashboard. The full schema is
-defined by `draft-saihm-memory-protocol-01` §3.4. The reference
+defined by `draft-saihm-memory-protocol-03` §4.5. The reference
 `StatusSnapshot` TypeScript shape surfaces both the original
 operator-extension fields (PRS/BFSI scores, fee-discount tier,
-staking position, PHI) and the spec-aligned §3.4 fields added in
+staking position, PHI) and the spec-aligned fields added in
 0.3.0:
 
 ```
@@ -275,13 +271,12 @@ saihm_status → {
 }
 ```
 
-The `bfsi` value is intentionally NOT opaque: spec §3.4 requires
-that `bfsi_R`, `bfsi_M`, and `bfsi_window_start_ts` MUST be exposed
-to the holder through the same `saihm_status` call, so that any
-holder or auditor can independently reproduce the `bfsi = 1 - (M/R)`
-computation. A `bfsi` value below the operator's published
-operator-integrity threshold (the reference deployment publishes
-0.99) is grounds for migration to another operator.
+The receipt-match index is computed by the holder. Spec §4.5 has the
+operator report the window start and `bfsi_R`, the receipts in the audit
+log attributed to the holder; a holder that keeps its own log of tool
+calls derives `bfsi = 1 - (M/R)`, where `M` counts receipts with no
+matching call. An operator returns `bfsi` or `bfsi_M` only when the
+holder has supplied `M` outside the protocol binding.
 
 ## Trust model
 
@@ -299,11 +294,11 @@ operator-integrity threshold (the reference deployment publishes
   the `Authorization` header can never be sniffed, and it refuses
   redirects so that the endpoint cannot move the call — or the request
   body — to a host the URL check never saw.
-- **The operator does not see the user's private key.** The protocol
-  is wallet-bound; the user holds their signing key, and operator-issued
-  Bearer tokens reflect a prior key-bound enrollment. Rotating the
-  Bearer token rotates the operator-visible auth surface without
-  touching the user's wallet key.
+- **The client holds no key material.** In the custodial profile the
+  operator holds the holder's keys and signs on the holder's behalf; the
+  client treats the Authorization value as opaque. Rotating the Bearer
+  token changes the operator-visible auth surface and leaves stored cells
+  untouched. Holders who keep their own keys use `@saihm/mcp-server-pro`.
 
 ## Threat model summary
 
@@ -312,10 +307,10 @@ operator-integrity threshold (the reference deployment publishes
 | Authorization-header leak in transit | HTTPS-only enforcement (except localhost), plus `redirect: 'error'` so the validated scheme is the one used |
 | Request body diverted to an unvalidated host | `redirect: 'error'`; a `307`/`308` preserves method and body, and for `saihm_remember` the body is the memory plaintext |
 | Authorization-header leak via error | Header value never included in `Error.message` |
-| Operator endpoint compromised | User can rotate to a different operator; cells encrypted under user-bound DEKs cannot be decrypted by a new operator without user re-enrollment |
+| Operator endpoint compromised | In the custodial profile the operator holds the keys (draft §8.1), so choose and secure the operator accordingly; `@saihm/mcp-server-pro` serves holders who keep their own keys |
 | Hung operator (DoS to MCP server) | 30-second per-call abort |
 | Oversized response (DoS / memory exhaustion) | 16 MB cap, enforced both on declared `Content-Length` and on the streamed body |
-| Crypto algorithm break | `kekVersion` rotation + `crypto_algorithm_agility` (see protocol draft) |
+| Crypto algorithm break | Versioned KEK rotation (`kekVersion`); primitives change through the specification's breaking-change process (`GOVERNANCE.md`) |
 | Supply-chain attack on `@saihm/mcp-server` | npm sigstore provenance attestation; `npm audit signatures` verifies |
 | Missing test coverage hides regression | CI gate (Node 20.x + 22.x integration test) |
 | Quiet protocol drift | Tool surface is a protocol invariant; ninth tool requires breaking-change process per `GOVERNANCE.md` |
@@ -373,4 +368,3 @@ The architecture intentionally **does not** include:
 - MCP specification: <https://modelcontextprotocol.io/>
 - NIST FIPS-204 (ML-DSA): <https://csrc.nist.gov/pubs/fips/204/final>
 - RFC 5869 (HKDF): <https://datatracker.ietf.org/doc/html/rfc5869>
-- RFC 8032 (Ed25519): <https://datatracker.ietf.org/doc/html/rfc8032>

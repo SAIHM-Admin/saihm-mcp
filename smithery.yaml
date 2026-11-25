@@ -1,24 +1,21 @@
 # Smithery configuration for @saihm/mcp-server
 # Standards client for custodial SAIHM operators (endpoint URL + operator token). Free start: @saihm/mcp-server-pro.
-# https://smithery.ai/docs/config#smitheryyaml
+# https://smithery.ai
 
 startCommand:
   type: stdio
   configSchema:
     type: object
-    # Deliberately empty. Both values below are needed to USE the server, but marking them
-    # `required` blocked Smithery's tool scanner from ever launching it, so the listing showed
-    # no tools at all. The server enumerates its eight tools with no environment set (boot is
-    # lazy; a missing endpoint surfaces as a typed error on first call, not a crash), so leaving
-    # these optional lets the scanner enumerate while the fields are still prompted for in the UI.
+    # Both values below are needed to use the server. They stay optional here so Smithery's
+    # tool scanner can start the server and list its eight tools: boot is lazy, and a missing
+    # endpoint surfaces as a typed error on the first call.
     required: []
     properties:
       saihmEndpointUrl:
         type: string
         description: >-
-          Endpoint URL of the custodial SAIHM operator you run.
-          Not the hosted service at https://saihm.net, which is
-          non-custodial: use @saihm/mcp-server-pro for that.
+          Endpoint URL of the custodial SAIHM operator you run. For the
+          hosted service at https://saihm.net, use @saihm/mcp-server-pro.
       saihmAuthHeader:
         type: string
         description: Authorization header (typically 'Bearer <token>') issued by your operator.

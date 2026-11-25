@@ -10,18 +10,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.18] — 2026-11-28
 
-Security maintenance and documentation. No new tools, no removed tools, no
-schema change: the eight tools and their input schemas are unchanged from
-`0.3.17`.
+Security maintenance and documentation. No new tools and no removed tools. One
+input-schema change: the two `saihm_share` lists gain size limits (see
+Security). The other seven tools' input schemas are unchanged from `0.3.17`.
 
 ### Security
 
 - **zod `^4.6.6`.** zod 4.6.5 and earlier can exhaust memory while
-  validating a large array (GHSA-mrhx-c7xc-m3w5, CVE-2023-54404, high). This
-  server validates every tool's arguments with zod, including the two array
-  arguments of `saihm_share`, so an MCP client could use it to crash the
-  server process. The dependency range is raised from `^4.4.3` to `^4.6.6`,
-  the first fixed release, and the lockfile now resolves zod 4.6.7.
+  validating a large array, even one that declares a maximum length
+  (GHSA-mrhx-c7xc-m3w5, CVE-2023-54404, high). zod 4.6.6 refuses an over-long
+  bounded array on its size check before it reads any entry, which fixes the
+  bounded lists in the reporting library's template schema
+  (`scope.customerIdHashes` and `fieldProjections`). An array with no maximum
+  is still parsed entry by entry, which is why `saihm_share` gains limits
+  (next item). The dependency range is raised from `^4.4.3` to `^4.6.6`, the
+  first fixed release, and the lockfile now resolves zod 4.6.7.
+- **`saihm_share` input limits.** The two `saihm_share` lists had no maximum,
+  so the zod fix did not cover them: an MCP client could send a list of
+  millions of entries and drive the server's memory past a gigabyte, or abort
+  the process where the heap is smaller (measured: 4,000,000 entries took one
+  call to about 1.4 GB). `granteeIdHashesHex` and `shardIds` now accept at
+  most 1,024 entries each, and each entry at most 256 characters. An
+  over-long list is refused with a single `too_big` error before any entry is
+  read and is never sent to the operator; `tools/list` advertises the limits as
+  `maxItems` and `maxLength`. The values are chosen so that no real contract is
+  refused: 1,024 grantees covers a 1,000-member syndicate contract, the largest
+  the reference deployment accepts; a contract names specific cells, and a
+  larger set can be split across contracts; and a 32-byte id is 64 hex
+  characters, 66 with a `0x` prefix.
 - **fast-uri 3.1.9 in the lockfile.** The MCP SDK loads fast-uri, through
   ajv, when the server starts. This server gives it no client or operator
   input: on the server side the SDK uses ajv only to check elicitation
@@ -52,11 +68,15 @@ schema change: the eight tools and their input schemas are unchanged from
 
 - **Package metadata.** The `package.json` description states who the package
   is for: organizations running their own SAIHM operator endpoint, with
-  `@saihm/mcp-server-pro` named for the hosted service. `author` is now
-  `SAIHM, Inc.`, with `ops@saihm.net` and <https://saihm.net>.
+  `@saihm/mcp-server-pro` named for the hosted service. The registry manifest
+  (`server.json`) and the Smithery listing describe `SAIHM_ENDPOINT_URL` as the
+  endpoint of the operator you run. `author` is now `SAIHM, Inc.`, with
+  `ops@saihm.net` and <https://saihm.net>.
 - **Session-bootstrap prompt.** The prompt now uses the American spelling
-  "summarize". This is the only change to the prompt, tool and message text the
-  server sends.
+  "summarize". Apart from the `saihm_share` limits above, this is the only
+  change to what the server sends: tool descriptions and messages are
+  unchanged.
+- **`glama.json` removed.** The file was never part of the npm package.
 
 ### Documentation
 
@@ -80,28 +100,42 @@ schema change: the eight tools and their input schemas are unchanged from
   `package.json` in the current working directory, using only the `version`
   field.
 - **Provenance and tags.** README, `HARDENING.md`, `ASSURANCE_CASE.md` and
-  `.bestpractices.json` give the provenance range as 0.3.6 and later, with none
-  on 0.1.0 to 0.3.5, and record release tags as unsigned. The verification
-  example uses `@latest`, so it stays current.
+  `.bestpractices.json` give the provenance range as 0.3.6 and later and state
+  that release tags are not signed. The verification example uses `@latest`,
+  so it stays current.
 - **Repository controls.** Branch protection on `main` requires the
   `build (20.x)`, `build (22.x)` and `reuse` checks and blocks force-pushes and
   deletion. `HARDENING.md`, `ASSURANCE_CASE.md`, `GOVERNANCE.md` and
-  `.bestpractices.json` describe it, including that it is not enforced for
-  administrators and requires no review while the project has a single
-  maintainer.
+  `.bestpractices.json` describe it and its settings.
 - **Vulnerability reporting.** `SECURITY.md` adds GitHub private vulnerability
   reporting as a second private channel beside security@saihm.net.
 - **Runtime client comment.** The header comment of `saihm_runtime_client.ts`
   says what the client does: it forwards each call as an HTTPS POST with the
   configured Authorization header, and it holds no keys and does no signing.
+- **Protocol and security documents follow draft `-03`.** `ARCHITECTURE.md`,
+  `HARDENING.md`, `ASSURANCE_CASE.md`, `SECURITY.md`, `.bestpractices.json` and
+  `CITATION.cff` describe each cell's key as random and wrapped under a
+  versioned key-encryption key, HKDF as deriving the holder's identity key, and
+  key custody in the custodial profile as the operator's, as draft `-03`
+  specifies. Ed25519, which the protocol does not use, is no longer listed.
+  `ARCHITECTURE.md` gives the cell tuple and the `saihm_status` fields from
+  `-03`.
+- **README.** The free trial is one command,
+  `npx -y @saihm/mcp-server-pro free-join`, as the `@saihm/mcp-server-pro`
+  README documents. The `timeout` note explains the first `npx` download
+  instead of citing a host's start-up limit. The demo list names the models the
+  demos cover and the client `demo-claude-code` uses. The Achievements entry
+  points to this changelog for release history, and the operator storage
+  section is tightened.
 - **Comments and spelling.** Code comments give the reason for each guard in
-  the present tense, and the docs, comments and prompt use American spelling.
+  the present tense, and the docs, comments, prompt and tests use American
+  spelling.
   Some earlier CHANGELOG entries are reworded for clarity; what each release
   changed is described as before.
 - **License headers.** The compiled JavaScript in `dist/` now starts with the
   SPDX license identifier and copyright line that every source file carries.
-  Apart from comments and the prompt word above, `dist/` is identical to
-  `0.3.17`.
+  Apart from comments, the prompt word and the `saihm_share` limits above,
+  `dist/` is identical to `0.3.17`.
 
 ## [0.3.17] — 2026-10-11
 
@@ -153,7 +187,7 @@ tools and their input schemas are byte-identical to `0.3.15`.
   `saihm.net` or from `saihm.coti.global` is explained the same way: that
   service is non-custodial, and `@saihm/mcp-server-pro` is the client for
   it. A `401` from any other
-  operator is reported plainly, as before.
+  operator is reported as before.
 
 ## [0.3.15] — 2026-09-23
 
@@ -208,7 +242,7 @@ sees about this package.
 
 ## [0.3.13] — 2026-09-02
 
-Truthfulness release. No new tools, no removed tools, no schema change: the eight
+Governance-tool descriptions. No new tools, no removed tools, no schema change: the eight
 tools and their input schemas are byte-identical to `0.3.12`, and no input that
 `0.3.12` accepted is refused here. What changed is what an agent is told about
 the two governance tools before it chooses one.
@@ -224,15 +258,14 @@ the two governance tools before it chooses one.
   recorded vote unless that operator has turned governance on. What each tool
   does where governance *is* enabled is kept, demoted behind that caveat. No
   schema change and no behavior change: both tools accept exactly the input they
-  accepted before, and the operator endpoint is untouched. This is a
-  truthfulness fix in what the agent is told before it chooses a tool.
+  accepted before, and the operator endpoint is untouched. Only what the agent
+  is told before it chooses a tool changes.
 
 ### Documentation
 
-- **The README no longer claims governance works.** The tool list and the tool
-  reference table carried the same promise the descriptions did — including a
-  claim that a vote is weighted by governance-token balance — and now carry the
-  same not-enabled-by-default caveat as the shipped tool descriptions.
+- **The README states that governance is off by default.** The tool list and
+  the tool reference table now carry the same not-enabled-by-default note as the
+  shipped tool descriptions.
 
 ## [0.3.12] — 2026-08-31
 
@@ -281,7 +314,7 @@ retract what a grantee has already read.
   other that the registry manifest description keeps its positioning sentence and
   fits the registry length limit.
 
-## [0.3.11] — 2026-08-26
+## [0.3.11] — 2026-08-28
 
 Hardening release. No new tools, no new configuration and no schema change: the
 eight tools and their input schemas are the same as `0.3.10`. What changed is
@@ -380,6 +413,9 @@ further break: every signed message is regenerated this release, detailed under
   `Uint8Array` stores as `0`, so every malformed id still produced a well-formed
   byte string. Since this value decides *who* a sharing contract grants access
   to, the decode now rejects anything that is not hex.
+- **Redirects are refused.** Every request sets `redirect: 'error'`, so a `307`
+  or `308` can no longer carry the request body to a host that was never
+  validated.
 - **Oversized responses were only bounded by a header.** The `Content-Length`
   check was an early-out, not enforcement: a chunked reply carries no such
   header, `Number(null ?? '0')` is `0`, and anything that streamed its response
@@ -582,15 +618,13 @@ wire-format, or tool-surface change, and this package remains crypto-free.
 
 ### Fixed
 
-- **The first-run error was a dead end.** A fresh install has no operator
+- **The first-run error now names the next step.** A fresh install has no operator
   endpoint, so the first tool call throws — and the message offered only a
   website and the offline demos. It now names the free path explicitly
   (`npx -y @saihm/mcp-server-pro free-join`) alongside the operator route and
   the demos, so an agent that hits the error can act on it.
-- **The documented free-trial command could not work.** The quickstart omitted
-  `SAIHM_ENDPOINT_URL` and the master secret, so it failed with
-  `SAIHM_ENDPOINT_URL env var required`. Corrected to a working sequence,
-  including how to generate the secret.
+- **The free-trial quickstart is complete.** It now includes
+  `SAIHM_ENDPOINT_URL` and the master secret, with the step that generates it.
 
 ### Changed
 
@@ -642,7 +676,7 @@ package remains crypto-free.
 
 ### Changed
 
-- **The first-run error was a bare dead end.** A fresh install has no operator
+- **The first-run error names the next steps.** A fresh install has no operator
   endpoint, so the first tool call threw `SAIHM_ENDPOINT_URL env var required`
   with nowhere to go. Both `bootFromEnv()` errors now append a setup hint
   naming the two next steps: obtain a live endpoint at

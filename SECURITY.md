@@ -20,7 +20,7 @@ Please include, where possible:
 - A description of the vulnerability and its potential impact
 - Steps to reproduce, or a proof-of-concept
 - Affected version(s) of `@saihm/mcp-server`
-- Whether the issue is in the MCP-server shim, the SAIHM operator endpoint
+- Whether the issue is in the MCP server, the SAIHM operator endpoint
   it talks to, or in a dependency
 - Your name or handle if you wish to be credited in the fix
 
@@ -67,23 +67,22 @@ SAIHM, Inc. (see
 
 ## Cryptographic and protocol-level concerns
 
-The MCP server itself is intentionally a thin tool surface — it holds no
-cryptographic keys, no storage, and no protocol runtime; those live behind the
-SAIHM operator endpoint. The protocol stack uses:
+The MCP server itself holds no cryptographic keys, no storage, and no
+protocol runtime; those live behind the SAIHM operator endpoint. The protocol
+stack uses:
 
 - ML-DSA-65 (NIST FIPS-204) for post-quantum agent identity binding
-- HKDF (RFC 5869) for per-cell key derivation
-- Standard NIST-approved AEAD ciphers for cell encryption
-- Public-chain (COTI V2 mainnet) anchoring for audit receipts
+- HKDF (RFC 5869) to derive the holder's identity key from the holder seed
+- Standard NIST-approved AEAD ciphers under random per-cell keys, wrapped by a
+  versioned key-encryption key
+- A public append-only audit log for receipts (the reference deployment
+  anchors it on COTI V2 mainnet)
 
 If a vulnerability is in the protocol specification itself rather than a
 specific implementation, please indicate that in your report. Specification
 issues are handled through the same private channels above and are carried
 into the next revision of the Internet-Draft
-`draft-saihm-memory-protocol`. (The draft was submitted to the IETF
-Independent Submission Stream; the ISE concluded its consideration on
-2026-07-25 and released it from the queue, so there is no IETF stream
-process to route a specification report through today.)
+`draft-saihm-memory-protocol` (current revision `-03`).
 
 ## Thank you
 

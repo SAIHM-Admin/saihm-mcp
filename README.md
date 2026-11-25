@@ -34,15 +34,15 @@ protocol over plain MCP and reaches the SAIHM operator endpoint you run.
   the hosted **non-custodial** service holds only ciphertext. The free trial
   needs no card. → [Free trial](#free-trial-sign-in-with-github)
 
-**Want to watch it work first?** Runnable demos across every major model,
+**Want to watch it work first?** Runnable demos across six major models,
 offline, no account — **[See it run](#see-it-run)**.
 
 ## What this is
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server
 that exposes eight tools any MCP-capable AI agent (Claude Code, Claude Desktop,
-custom agents) can call to gain a persistent, encrypted memory layer the
-**user** owns:
+custom agents) can call to gain a persistent memory layer, encrypted by
+your operator:
 
 - `saihm_remember` — store an encrypted memory cell
 - `saihm_recall` — retrieve your memories, decrypted by your operator
@@ -70,7 +70,7 @@ no protocol runtime — those live behind the operator endpoint.
 
 Each tool carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) and a human-readable `title`, so MCP hosts can gate confirmations and agents can select the right tool at reasoning time.
 
-## Companion package
+## Companion packages
 
 This package speaks MCP and holds no cryptography, so it always needs an
 operator endpoint and token. Two companions cover the rest:
@@ -86,10 +86,10 @@ operator endpoint and token. Two companions cover the rest:
 
 ## See it run
 
-Runnable, one-command demos ground a memory you own in every major model — Claude, GPT, DeepSeek, Qwen, Kimi, GLM — then prove you can erase it, alongside drop-in adapters for LangChain, LlamaIndex, CrewAI, AutoGen, and LangGraph. Each runs offline in about a minute; no account needed.
+Runnable, one-command demos ground a memory you own in Claude, GPT, DeepSeek, Qwen, Kimi and GLM, then prove you can erase it, alongside drop-in adapters for LangChain, LlamaIndex, CrewAI, AutoGen, and LangGraph. Each runs offline in about a minute; no account needed.
 
 - **Live demos:** <https://saihm-admin.github.io/saihm-demos/>
-- **`demo-claude-code`** wires this server into Claude Code and Cursor as an MCP server.
+- **`demo-claude-code`** wires the non-custodial `@saihm/mcp-server-pro` client into Claude Code and Cursor as an MCP server.
 
 **Measured — up to ~86% fewer context tokens.** Most agents re-send their entire transcript every turn, so context spend grows ~O(N²) over a session; recalling a bounded set of memory cells instead cut input tokens by **62.8%–85.9%** across a realistic multi-session coding task. The benchmark is open, offline, and deterministic — reproduce the number rather than trust it:
 
@@ -116,9 +116,11 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 ```
 
 > **Don't have an endpoint and token yet?** They're issued by a SAIHM *operator*.
-> This package is deliberately **crypto-free**, so it works with a **custodial**
-> operator — one that performs cryptography server-side and returns plaintext —
-> such as the operator endpoint your organization runs.
+> This package holds no keys, so it works with a **custodial** operator — one
+> that performs cryptography server-side and returns plaintext — such as the
+> operator endpoint your organization runs. The operator side is specified in
+> the Internet-Draft [`draft-saihm-memory-protocol`](https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/),
+> so an organization can build and run its own endpoint.
 >
 > **The hosted SAIHM service at <https://saihm.net> uses
 > [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro).**
@@ -136,10 +138,9 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
   run. For the hosted service at <https://saihm.net>, which is non-custodial,
   use `@saihm/mcp-server-pro` — see the note above.
 - **`SAIHM_AUTH_HEADER`** — the `Authorization` header value the operator
-  expects (typically a `Bearer <token>` issued to you after key-bound
-  enrollment). The server is authentication-agnostic and **never transmits
-  raw private keys**; the operator's enrollment flow keeps your
-  signing key on your machine.
+  expects (typically a `Bearer <token>` issued by your operator). The server
+  treats it as opaque, holds no keys and signs nothing; in the specification's
+  custodial profile the operator holds the holder's keys.
 
 Both are read from the process environment. This package loads no `.env` file —
 it has no `dotenv` dependency and never reads configuration from disk — so set
@@ -156,28 +157,19 @@ a GitHub device sign-in. It runs through the non-custodial
 [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)
 client, which seals cells on your own machine so the operator stays blind.
 
-First generate your master secret — it never leaves your machine, and it is the
-only key to your memory:
+Run one command. It creates your key on this machine (the only key to your
+memory) and prints a short code and a link:
 
 ```bash
-openssl rand -hex 32 > saihm-master.key && chmod 600 saihm-master.key
+npx -y @saihm/mcp-server-pro free-join
 ```
 
-Then activate:
-
-```bash
-SAIHM_ENDPOINT_URL=https://saihm.net/mcp \
-SAIHM_MASTER_SECRET_FILE=./saihm-master.key \
-SAIHM_TIER=FREE \
-  npx -y @saihm/mcp-server-pro free-join
-```
-
-It prints a short code and a link: open <https://github.com/login/device> in
-your browser and enter the code. The sign-in stays in your browser — this
-client never sees or holds your GitHub token; it is exchanged server-side and
-kept ephemeral. When `free-join` returns, start the server normally (drop
-`free-join`) and it self-onboards on the free trial. **No card, and nothing to
-cancel** — it's a fixed, one-time allowance, not an auto-renewing subscription.
+Open the link in your browser (<https://github.com/login/device>), sign in to
+GitHub and enter the code. The sign-in stays in your browser: this client
+never sees or holds your GitHub token. When the command finishes, add
+`@saihm/mcp-server-pro` to your AI client as its README describes. **No card,
+and nothing to cancel** — it's a fixed, one-time allowance, not an
+auto-renewing subscription.
 
 Ready for production? Upgrade in place to a **monthly** plan — same signing key,
 same memories, no re-onboarding.
@@ -234,10 +226,9 @@ anything on top of it.
 ```
 
 Keep `timeout`, and keep the block as strict JSON with no trailing commas.
-Hosts that don't recognize `timeout` ignore it, but Cline allows a server only
-1.5 s to start — too short for `npx` to resolve and launch a package — and a
-server that misses the deadline is skipped **silently**, with no error in the
-chat.
+The first `npx` run downloads the package, which can take longer than a host
+allows by default; the `timeout` value gives it room, and hosts that don't
+recognize it ignore it.
 
 ## Tell your agent to use it
 
@@ -278,13 +269,11 @@ below.
 
 ## Storage is the operator's responsibility (by design)
 
-> **For operators — read this first.** SAIHM does **not** hard-wire your
-> durable storage to any single provider, and it does **not** silently
-> provision storage for you. **Choosing and configuring where cells are
-> persisted is your job, on purpose.** This is a deliberate design choice for
-> operator convenience and data sovereignty — not a missing feature. If
-> memory writes fail with a storage error, it almost always means the backend
-> has not been configured yet.
+> **For operators — read this first.** You choose where cells are persisted
+> and you configure that backend: SAIHM does not hard-wire durable storage to
+> a single provider, which gives operators convenience and data sovereignty.
+> If memory writes fail with a storage error, the backend has most likely not
+> been configured yet.
 
 Why it works this way:
 
@@ -306,15 +295,15 @@ What you configure (your operator deployment guide lists the exact settings):
 - credentials for at least one Filecoin / IPFS pinning provider for durable
   deep-archive.
 
-**Encryption at rest is the operator runtime's responsibility.** This client
-stores nothing locally: memory text goes from it straight to your operator
-endpoint and is held only there. Keep stored memory encrypted at rest in every
-tier your operator writes to, including the local node, the deep-archive
-provider and any backups. This is a recommendation for every deployment; your
-operator runtime's documentation describes how it encrypts stored cells.
-
 If neither is configured, the endpoint has nowhere durable to put cells and
-will **reject writes rather than lose data**. That refusal is intentional.
+will **reject writes rather than lose data**.
+
+**Encryption at rest is the operator runtime's responsibility.** This client
+keeps no copy: it sends memory text to your operator endpoint, which stores it.
+Keep stored memory encrypted at rest in every tier your operator writes to,
+including the local node, the deep-archive provider and any backups. This is a
+recommendation for every deployment; your operator runtime's documentation
+describes how it encrypts stored cells.
 
 ### Prefer not to run storage yourself? Join SAIHM.
 
@@ -361,7 +350,7 @@ version. Use `import`, or load it from CJS with a dynamic `await import()`.
 
 ### What it covers
 
-- **Field universe** (`FIELD_UNIVERSE`) — 280 fields (262 framework + 18 ledger). Templates that project a field outside this set are rejected at validation. Check the split before you plan against the count: the 12 GDPR Art.15, 11 GDPR Art.17 and 18 ledger fields are verbatim canonical names with sub-clause citations, and the other 239 — SOC 2 Type 1 and 2, ISO 27001, and all four AML sub-prefixes — are deterministic structural placeholders (`iso27001_F01`, `aml_ctr_item_01`, and so on) that you map to your own canonical names. They are enforced projection slots, not a regulatory enumeration, so selecting `iso27001` gets you 31 validated slots rather than 31 named ISO 27001 fields. Replacing them with verbatim names against the primary sources is future work.
+- **Field universe** (`FIELD_UNIVERSE`) — 280 fields (262 framework + 18 ledger). Templates that project a field outside this set are rejected at validation. Check the split before you plan against the count: the 12 GDPR Art.15, 11 GDPR Art.17 and 18 ledger fields are verbatim canonical names with sub-clause citations, and the other 239 — SOC 2 Type 1 and 2, ISO 27001, and all four AML sub-prefixes — are deterministic structural placeholders (`iso27001_F01`, `aml_ctr_item_01`, and so on) that you map to your own canonical names. They are enforced projection slots, not a regulatory enumeration, so selecting `iso27001` gets you 31 validated slots rather than 31 named ISO 27001 fields.
 - **Bespoke template schema** — zod validator + universe-membership check + scope/cap enforcement.
 - **Authorization path validators** — 4 paths: `public` / `self` / `operator-self` / `operator-for-downstream`. These check structure — shape, hex formats, replay windows, kind-vs-auth coupling. Signature verification is done by callbacks **you** inject; see [Wiring signature verifiers](#wiring-signature-verifiers) before using them to gate anything.
 - **Receipt emission** — 6 sub-kinds (`report_generated` / `report_rejected` / `template_registered` / `template_superseded` / `erasure_chain_broken` / `rate_limit_exceeded`) under a stable, domain-separated receipt namespace.
@@ -461,6 +450,7 @@ The server enforces a small set of defaults so misconfiguration cannot leak the 
 - **HTTPS-only endpoints, held across the whole call.** `SAIHM_ENDPOINT_URL` must use `https://`. Plain `http://` is rejected at construction time, except for `127.0.0.1` and `localhost` (so a local operator endpoint works during development). Because that check covers the configured URL and nothing past it, requests also set `redirect: 'error'` — an endpoint cannot redirect the call, and the request body with it, to a host that was never validated.
 - **Per-call abort window.** Each request runs under an `AbortController` that aborts after 30s, preventing a hung endpoint from starving the MCP server.
 - **Response-size cap.** 16 MB, enforced twice. A `Content-Length` over the cap is rejected before the body is read at all; independently, the body is measured while it streams and the read is aborted the moment it exceeds the cap. The cap therefore does not depend on the sender declaring an honest `Content-Length`, or any at all.
+- **Bounded share lists.** `saihm_share` accepts at most 1,024 grantee ids and 1,024 shard ids per call, each at most 256 characters, and an over-long list is refused before any entry is read.
 - **No header echo.** `Authorization` is never included in thrown error messages or stdout.
 - **No configuration or user data read from disk.** Configuration flows entirely through env vars, and nothing is ever written to disk. The only file read is a `package.json`, once at startup, so `serverInfo.version` matches the published version: the package's own `package.json`, or, if that cannot be read, `package.json` in the current working directory. Only its `version` field is used, and the server reports `0.0.0-dev` if neither file yields one. No credential, cell, or user-data path touches the filesystem.
 - **Zero EVM tooling.** No `ethers`, no `eth_*`, no Solidity. If operators inject signature verifiers via `AuthVerifiers`, they should use pure-crypto libraries (`@noble/curves`, `@noble/post-quantum`).
@@ -480,10 +470,10 @@ The published npm package has a minimal runtime surface:
 | `zod` | MIT | Runtime; validates tool inputs and report templates |
 | `@noble/hashes` | MIT | Runtime; SHA-256 for content digests only — a template's `templateHash` and a report's `outputSha256`. No key material passes through it; see `HARDENING.md` §"Surface minimization" |
 | TypeScript | Apache-2.0 | Build-time only — not installed by `npm install @saihm/mcp-server` |
-| `tsx` | MIT | Build-time only; TypeScript runner for tests + CLI |
+| `tsx` | MIT | Build-time only; TypeScript runner for the test suite |
 
 No copyleft, no proprietary dependencies. Cryptographic primitives at the
-operator-endpoint layer (ML-DSA-65 / Ed25519 / key derivation) are not bundled into
+operator-endpoint layer (ML-DSA-65, AEAD, key derivation) are not bundled into
 this MCP server; operators implementing the protocol stack are recommended
 to use `@noble/post-quantum` and `@noble/curves` (MIT) rather than rolling
 custom code.
@@ -520,30 +510,11 @@ pull-request checklist is in
 - **npm registry** — every release from `0.3.6` (2026-06-30) onward is
   published from GitHub Actions over OIDC trusted publishing and carries an npm
   sigstore provenance attestation; the ten earlier versions (`0.1.0`–`0.3.5`)
-  were published by hand and carry none. Release tags are not signed.
+  were published by hand and carry none.
   `HARDENING.md` §"Distribution integrity" has the details and the commands to
-  verify them. `0.3.4` (2026-06-22) adds a
-  conspicuous "Storage is the operator's responsibility (by design)" section —
-  documenting BYO storage and the Join-SAIHM hosted, non-custodial option.
-  `0.3.3` (2026-06-22) was
-  a documentation release that states the Independent-Submission status
-  precisely (no implied IETF endorsement) and cross-references the
-  companion package `@saihm/client-pro`. 0.3.2 (2026-06-22) corrected
-  the documented operator-endpoint path to `/mcp` (the
-  canonical `SAIHM_ENDPOINT_URL` path) across the README and client
-  comments. 0.3.1 (2026-05-28) was a metadata patch that sources the
-  MCP `serverInfo.version` from `package.json` (was hardcoded
-  `"0.1.0"` from 0.1.0 through 0.3.0).
-  0.3.0 (also 2026-05-28) aligned the `saihm_status` response shape
-  with `draft-saihm-memory-protocol-01` §3.4 (full eight-field
-  schema: `prs`, `bfsi`, `bfsi_window_start_ts`, `bfsi_R`,
-  `bfsi_M`, `shards`, `contracts`, `governance`). 0.2.0 (also
-  2026-05-28) aligned the cell-tuple response shape with §2.1;
-  The OpenSSF Best Practices Passing badge was achieved on 2026-05-19
-  alongside the governance and assurance files; those files first
-  reached npm in 0.2.0 (2026-05-28), as the 0.1.3 version they were
-  prepared under was never published.
-- **MCP Registry / Glama** — server listed for discovery (2026-05-16).
+  verify them. Release history:
+  [`CHANGELOG.md`](https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CHANGELOG.md).
+- **MCP Registry** — server listed for discovery (2026-05-16).
 
 ## Roadmap
 
@@ -583,9 +554,8 @@ semantics and agent-runtime semantics.
 
 SAIHM is developed and maintained by SAIHM, Inc. If it's useful to you or
 your organization, please consider
-**[sponsoring the project](https://github.com/sponsors/SAIHM-Admin)** — it funds
-continued protocol, client, and open-standards work and keeps this open
-reference implementation maintained.
+**[sponsoring the project](https://github.com/sponsors/SAIHM-Admin)** — it supports
+continued protocol, client, and open-standards work.
 
 ## License
 

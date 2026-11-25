@@ -25,10 +25,8 @@ secret, does not become a vector for DoS against the caller, and is
 distributed with verifiable provenance.**
 
 The three sub-properties — credential confidentiality, availability,
-distribution integrity — are the core security promises of a thin
-forwarding shim. They are the properties that, if violated, would
-make the shim a *worse* choice than the caller talking to the
-operator directly. The assurance case justifies each in turn, then
+distribution integrity — are the core security promises of a
+forwarding client. The assurance case justifies each in turn, then
 addresses cryptographic and process controls that back the promises
 end-to-end.
 
@@ -66,15 +64,17 @@ combine with a malicious operator to MITM.
 
 ## G2 — Availability under adversarial input
 
-**Claim.** A hung or malicious operator cannot cause the MCP server
-to consume unbounded resources or block its caller indefinitely.
+**Claim.** A hung or malicious operator, or an oversized tool call,
+cannot cause the MCP server to consume unbounded resources or block its
+caller indefinitely.
 
 ### Argument
 
-Three resource exhaustion paths exist for a forwarding shim: time
+Four resource exhaustion paths exist for a forwarding client: time
 (operator never responds), memory (operator emits an oversized
-response), and surface (an unbounded tool surface lets attackers
-exercise rarely-tested code paths). The project caps each.
+response), tool input (caller sends an oversized argument), and surface
+(an unbounded tool surface lets attackers exercise rarely-tested code
+paths). The project caps each.
 
 ### Evidence
 
@@ -82,6 +82,7 @@ exercise rarely-tested code paths). The project caps each.
 |---|---|---|
 | Time | 30-second per-call abort via `AbortController` | `saihm_runtime_client.ts` abort wiring. `tests/integration.test.ts` R26-B cases: a server that accepts the request and never answers, against a client constructed with a 60 ms window, throws "timed out after 60ms" in well under a second; further cases assert the message does not echo the header, states the outcome is unknown rather than implying failure, and that the shipped default is still 30 s. The abort window is a constructor parameter defaulting to `REQUEST_TIMEOUT_MS`, so the test can exercise it with a short window. |
 | Memory | 16 MB cap, enforced twice: a declared `Content-Length` over the cap is rejected before the body is read, and independently the body is measured while it streams and the read is aborted on exceeding the cap — so the cap does not depend on the sender declaring an honest `Content-Length`, or any at all | `tests/integration.test.ts` tests "Content-Length over 16 MB rejected" (server advertises 20 MB; call throws "response too large") and "R14-A chunked response over 16 MB rejected (no Content-Length)" (17x1 MB chunked reply with no header; call throws "while still streaming"). |
+| Tool input | zod schemas on every tool. `saihm_share` accepts at most 1,024 grantee ids and 1,024 shard ids, each at most 256 characters, and an over-long list is refused on its size check before any entry is read (zod `^4.6.6`). The MCP SDK's stdio transport caps each message at 10 MB. | `tests/integration.test.ts` R32-A cases: `tools/list` advertises both bounds; a 1,025-entry and a 1,000,000-entry list are each refused with a single `too_big` issue and no per-entry issues, in milliseconds; no over-limit list reaches the operator; a call at both limits succeeds. |
 | Surface | Eight-tool protocol invariant — no ninth tool without a breaking-change process | `GOVERNANCE.md` §"Decision process" + `CONTRIBUTING.md` §"Coding conventions" both restate the cap. |
 
 ### Residual risk
@@ -117,18 +118,18 @@ published by hand and carry none. Verified per version with
 | Provenance generated at publish | `.github/workflows/release.yml` publishes from GitHub Actions with `id-token: write` and OIDC trusted publishing, which generates the SLSA attestation automatically (no `--provenance` flag, no npm token). To confirm on the current release: `npm view @saihm/mcp-server@latest dist.attestations --json` reports predicate type `https://slsa.dev/provenance/v1`. |
 | Provenance verifiable by user | `npm audit signatures` works against the published `@saihm/mcp-server` package; `npm view @saihm/mcp-server --json | jq .dist` shows the attestation URLs. Attestations are present on `0.3.6` and later and absent on `0.1.0`–`0.3.5`. |
 | CI provenance | `.github/workflows/ci.yml` is the CI workflow; runs are public at <https://github.com/SAIHM-Admin/saihm-mcp/actions> |
-| Version-to-commit mapping | Every published npm version from `0.3.0` onward has a git tag of the same name, so it maps to a commit. Two exceptions: `0.1.1` is on npm with no tag, and `v0.3.2`, `v0.3.4` and `v0.3.5` have tags but no GitHub Release (they predate the automated pipeline). `/releases/tag/<tag>` resolves for a bare tag, so the `CHANGELOG.md` links still work. |
-| Tag signing — not a control | Release tags are unsigned. `v0.1.2` and `v0.3.6`–`v0.3.10` are lightweight tags; the other release tags are annotated, and an annotated tag can be signed in place. Recorded in `HARDENING.md` §"Distribution integrity" as a gap, not claimed as a control; for `0.3.6` and later the artifact-to-source link to rely on is the provenance attestation above. |
+| Version-to-commit mapping | Every published npm version except `0.1.1` has a git tag of the same name, so it maps to a commit. `v0.1.0`, `v0.1.2`, `v0.3.2`, `v0.3.4` and `v0.3.5` have tags without a GitHub Release (they predate the automated pipeline). `/releases/tag/<tag>` resolves for a bare tag, so the `CHANGELOG.md` links still work. |
+| Artifact-to-source link | Release tags are not signed (`v0.1.2` and `v0.3.6`–`v0.3.10` are lightweight tags; the other release tags are annotated and can be signed in place). For `0.3.6` and later the link to rely on is the provenance attestation above; see `HARDENING.md` §"Distribution integrity". |
 
 ### Residual risk
 
-The project's npm and GitHub credentials remain a single point of
-failure for the supply chain. SAIHM, Inc. owns the project and is
-accountable for securing them. Mitigation: publishing does not use a
-long-lived npm token at all — `.github/workflows/release.yml` is the
-only publish path and it authenticates by GitHub Actions OIDC, so
-there is no npm credential to steal or replay, and the residual
-control is GitHub account security plus branch/release protection.
+Supply-chain security rests on the security of the project's GitHub
+account. Publishing uses no long-lived npm token:
+`.github/workflows/release.yml` is the only publish path and it
+authenticates by GitHub Actions OIDC, so there is no npm credential to
+steal or replay. SAIHM, Inc. owns the project and secures that account
+with two-factor authentication, and branch protection on `main` adds a
+further control.
 
 ## G4 — Cryptographic primitives are publicly-validated and current
 
@@ -147,11 +148,10 @@ the recommended verifier-injection libraries.
 | Primitive | Standard / library | Status |
 |---|---|---|
 | ML-DSA-65 (post-quantum signature) | NIST FIPS 204 (2024) — <https://csrc.nist.gov/pubs/fips/204/final> | Current NIST recommendation; Category 3 |
-| HKDF (key derivation) | RFC 5869 (2010) — <https://datatracker.ietf.org/doc/html/rfc5869> | IETF Proposed Standard; widely deployed |
-| Ed25519 (verifier signature) | RFC 8032 (2017) — <https://datatracker.ietf.org/doc/html/rfc8032> | IETF Standards Track; widely deployed |
+| HKDF (key derivation) | RFC 5869 (2010) — <https://datatracker.ietf.org/doc/html/rfc5869> | IETF RFC (Informational); widely deployed |
 | AEAD (cell encryption) | NIST-approved AEAD ciphers (AES-GCM family) | Current NIST recommendation |
 | `@noble/post-quantum` (library) | MIT-licensed; pure TS implementation of ML-DSA + others — <https://www.npmjs.com/package/@noble/post-quantum> | Active maintenance; well-reviewed in the JS crypto community |
-| `@noble/curves` (library) | MIT-licensed; pure TS implementation of Ed25519, HKDF, etc. — <https://www.npmjs.com/package/@noble/curves> | Active maintenance; well-reviewed |
+| `@noble/curves` (library) | MIT-licensed; pure TS implementation of secp256k1, Ed25519 and other curves — <https://www.npmjs.com/package/@noble/curves> | Active maintenance; well-reviewed |
 
 ### Anti-evidence (primitives explicitly NOT used)
 
@@ -162,11 +162,11 @@ The `crypto_weaknesses` and `crypto_working` criteria in
 
 ### Residual risk
 
-A future cryptographic break (most plausibly: a *partial* break in
-ML-DSA-65 that motivates rotation to a higher-category parameter set)
-is addressed by `kekVersion` rotation in the protocol — older cells
-retain their version tag and can be migrated lazily. The MCP server
-does not need to change to accommodate such a rotation.
+A future cryptographic break (most plausibly a partial break in
+ML-DSA-65) is handled at the protocol layer: primitives change through
+the specification's breaking-change process (`GOVERNANCE.md` §"Decision
+process"), and key-encryption keys rotate by generation (`kekVersion`).
+The MCP server does not need to change to accommodate either.
 
 ## G5 — Process controls prevent unauthorized changes
 
@@ -183,61 +183,50 @@ commit), review (who can approve), and release (who can publish).
 | Control | Mechanism |
 |---|---|
 | Source control | Repository is on GitHub; only the founding maintainer (and any future maintainers added per `GOVERNANCE.md`) has push access. |
-| Sign-off | **Gap — documented, not enforced.** `CONTRIBUTING.md` §"Licensing and DCO sign-off" asks inbound contributions to carry a `Signed-off-by:` trailer (DCO 1.1); the remedy it describes is a manual rebase request. No DCO check or app enforces it, and most commits on `main` carry no trailer. `HARDENING.md` §"Process hardening". |
-| Review | **Gap — convention, not enforced.** `GOVERNANCE.md` §"Code review" describes maintainer approval. Branch protection on `main` requires no review while the project has a single maintainer, and the founding maintainer at SAIHM, Inc. commits to `main` directly. |
-| CI | Lint, format check, typecheck, build and the full test suite run on Node 20.x + 22.x for every PR and every push to `main`, together with a REUSE licensing check (`.github/workflows/ci.yml`). Branch protection on `main` requires the `build (20.x)`, `build (22.x)` and `reuse` status checks to pass and blocks force-pushes and deletion. It is not enforced for administrators, so the admin account can still push to `main` without the checks. |
+| Sign-off | **Documented policy, manual remedy.** `CONTRIBUTING.md` §"Licensing and DCO sign-off" asks inbound contributions to carry a `Signed-off-by:` trailer (DCO 1.1), and a pull request without it is asked to rebase. No DCO check or app automates this. `HARDENING.md` §"Process hardening". |
+| Review | **Maintainer approval.** `GOVERNANCE.md` §"Code review" describes maintainer approval. Branch protection on `main` requires no review while the project has one maintainer; a required-review rule can be added once a second maintainer joins. |
+| CI | Lint, format check, typecheck, build and the full test suite run on Node 20.x + 22.x for every PR and every push to `main`, together with a REUSE licensing check (`.github/workflows/ci.yml`). Branch protection on `main` requires the `build (20.x)`, `build (22.x)` and `reuse` status checks to pass and blocks force-pushes and deletion. It is not enforced for administrators. |
 | Release | Publishing runs only from `.github/workflows/release.yml` on GitHub Actions using OIDC trusted publishing — no long-lived npm token exists to steal, and the SLSA provenance attestation is generated automatically. Release process described in `ARCHITECTURE.md` §"Build, test, release flow". |
 | Security-sensitive changes | Founding-maintainer (or, once formed, TSC) sign-off required. `GOVERNANCE.md` §"Implementation decisions" → "Security-sensitive changes". |
 | Dependency update review | Dependabot opens PRs that go through the same review + CI process. Dependabot config: `.github/dependabot.yml`. |
 
 ### Residual risk
 
-Approval rests with one founding maintainer, and SAIHM, Inc. is
-accountable for that arrangement as the project's owner. It is a
-pre-1.0 pragmatic choice (and one OpenSSF Best Practices flags via the
-`bus_factor` criterion). The mitigation is documented in
-`GOVERNANCE.md`: when a second core maintainer joins from a different
-organization, the TSC is formed and approval can be distributed
-across organizations.
+Approval currently rests with the founding maintainer, and SAIHM, Inc.
+is accountable for that arrangement as the project's owner. The company
+owns the project and its trademarks (`GOVERNANCE.md` §"Intellectual
+property"); when a second core maintainer joins from a different
+organization, the TSC is formed and approval is distributed across
+organizations.
 
-The single approver is one of several residual risks here. Branch
-protection on `main` requires the CI and REUSE checks and blocks
-force-pushes and deletion, but it is not enforced for administrators
-and requires no review, so an administrator can still push to `main`
-without review, sign-off or green checks. The sign-off and review
-controls above are therefore conventions the maintainer follows rather
-than mechanisms, and most commits on `main` carry no sign-off trailer.
-The remaining repository-settings changes (required review, a DCO
-check) are tracked as open gaps alongside release-tag signing.
+Branch protection on `main` requires the `build (20.x)`, `build (22.x)`
+and `reuse` checks and blocks force-pushes and deletion. It is not
+enforced for administrators and requires no review while there is one
+maintainer, so sign-off and review are maintainer practice, with CI and
+REUSE as the automated gates. Required review and a DCO check are
+repository-settings options for when maintainers are added; they sit
+beside release-tag signing among the open items in the README roadmap.
 
-## Counterarguments considered (and dismissed or scoped)
+## Questions reviewers ask
 
-1. **"The MCP server is just a forwarding shim — security promises
-   should be the operator's responsibility."** Partially true. The
-   shim's promises are narrow on purpose (G1–G5), and they are the
-   ones the user *can* verify locally without trusting the operator.
-   The operator has additional promises (key custody, audit-anchor
-   correctness) that are out of scope for this assurance case but
-   documented in the protocol draft.
-2. **"Do the OpenSSF Best Practices criteria add security, or only
-   documentation?"** Their value here is that they require the project
-   to *write down* the controls that exist, so independent reviewers
-   can check them without having to read all the source code. The
-   assurance case above is the human-friendly index into that
-   documentation.
-3. **"Does a single maintainer make the project a continuity risk?"**
-   It is a recognized risk, documented under `bus_factor`. Continuity
-   rests on SAIHM, Inc.
-   as the owning entity: the company owns the project and its
-   trademarks (`GOVERNANCE.md` §"Intellectual property"), and
-   `GOVERNANCE.md` §"Adding and removing maintainers" covers
-   nomination, stepping down, inactivity and removal for cause. Users
-   making procurement decisions should weigh this against the
-   project's maturity stage (pre-1.0) and the path for adding
-   maintainers from other organizations in `GOVERNANCE.md` §"Technical
-   Steering Committee (TSC)".
+1. **"Do the security promises belong to the operator?"** The client's
+   promises (G1–G5) are the ones a user can verify locally without
+   trusting the operator. The operator has further promises (key
+   custody, audit-anchor correctness) that are out of scope for this
+   assurance case and are documented in the protocol draft.
+2. **"What do the OpenSSF Best Practices criteria add?"** They ask the
+   project to write down the controls that exist, so reviewers can check
+   them without reading all the source. The assurance case above is the
+   index into that documentation.
+3. **"How is continuity assured?"** SAIHM, Inc. owns and stewards the
+   project and its trademarks (`GOVERNANCE.md` §"Intellectual
+   property"), the code is Apache-2.0, and `GOVERNANCE.md` §"Adding and
+   removing maintainers" covers nomination, stepping down, inactivity
+   and removal for cause. The path for adding maintainers from other
+   organizations is in `GOVERNANCE.md` §"Technical Steering Committee
+   (TSC)".
 
-## Verification roadmap for an independent reviewer
+## Verification checklist for reviewers
 
 A reviewer who wants to validate this assurance case end-to-end can
 follow this checklist:
@@ -255,7 +244,7 @@ follow this checklist:
 - [ ] Inspect `tests/integration.test.ts` for the security
       assertions (HTTPS reject, oversized-`Content-Length` reject,
       oversized chunked reply with no `Content-Length` reject, no
-      header echo).
+      header echo, over-limit `saihm_share` lists refused).
 - [ ] Inspect `package.json` for `prepack: "npm run build"` and
       `prepublishOnly: "npm run typecheck && npm test"` — so a
       published tarball is always rebuilt from the committed source,

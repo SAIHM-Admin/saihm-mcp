@@ -327,7 +327,7 @@ async function main() {
     expiryEpoch: string | null;
   };
   assert(shareParams.granteeIdHashesHex[0] === 'abcdef', 'saihm_share encodes grantees as hex');
-  assert(shareParams.expiryEpoch === '100', 'saihm_share serialises bigint expiry');
+  assert(shareParams.expiryEpoch === '100', 'saihm_share serializes bigint expiry');
 
   const r6 = await client.revokeShare('ff'.repeat(16));
   assert(r6.revoked === true, 'saihm_revoke_share revoked');
@@ -582,7 +582,7 @@ async function main() {
   const staleLegal = await legalAt(new Date(T0 - 31 * 60 * 1000).toISOString(), T0);
   assert(
     !staleLegal.ok && staleLegal.reason.includes('replay window'),
-    'R29-D a legal-basis approval older than the replay window is refused, not honoured forever',
+    'R29-D a legal-basis approval older than the replay window is refused, not honored forever',
   );
   const freshLegal = await legalAt(new Date(T0 - 60 * 1000).toISOString(), T0);
   assert(
@@ -1066,7 +1066,7 @@ async function main() {
   assert(metaRow !== undefined, 'R15-C the metadata row is still present and keyed');
   assert(
     csv.includes(`"'=cmd`) && !/,"=cmd/.test(csv),
-    'R15-C a formula-leading cell is neutralised, not left executable',
+    'R15-C a formula-leading cell is neutralized, not left executable',
   );
   // Every field quoted and every embedded quote doubled is exactly RFC 4180, and it
   // is what stops a comma inside a value from spilling into an extra column.
@@ -1234,7 +1234,7 @@ async function main() {
     ...legalBase,
     downstream: { type: 'other' } as never,
   });
-  assert(!badType.ok, 'R18 an unrecognised downstream.type is refused');
+  assert(!badType.ok, 'R18 an unrecognized downstream.type is refused');
 
   // Coverage: the not-found reject path returns the cause, not an audit error.
   let notFoundMsg = '';
@@ -1295,7 +1295,7 @@ async function main() {
   };
   assert(
     (await validateAuthOperatorForDownstream(downstreamAuth, oneSigOperator)).ok,
-    'R17-A the operator signature is still valid for the downstream disclosure it authorised',
+    'R17-A the operator signature is still valid for the downstream disclosure it authorized',
   );
   const lifted = await validateAuthOperatorSelf(
     {
@@ -1364,7 +1364,7 @@ async function main() {
   const unknownKind = checkKindAuthCoupling('not-a-kind' as never, 'public');
   assert(
     !unknownKind.ok && (unknownKind.reason ?? '').includes('unknown report kind'),
-    'R17-C an unrecognised report kind is refused, not a crash inside the coupling check',
+    'R17-C an unrecognized report kind is refused, not a crash inside the coupling check',
   );
   const unknownViaDispatcher = await validateAuthForKind('not-a-kind' as never, { path: 'public' });
   assert(
@@ -1457,7 +1457,7 @@ async function main() {
 
   // R19-B. `surface` is caller-supplied and it selects the verifier. An operator wiring
   // only verifyMlDsa for their MCP surface had a web-surfaced request match neither
-  // branch and still return ok:true — any signature over any bytes authorised it, on a
+  // branch and still return ok:true — any signature over any bytes authorized it, on a
   // path audit-export and billing-history both accept.
   const mldsaOnly = { verifyMlDsa: async () => true };
   const eip712Only = { verifyEip712: async () => true };
@@ -1508,7 +1508,7 @@ async function main() {
   const readme = readFileSync(fileURLToPath(new URL('../README.md', import.meta.url)), 'utf8');
   assert(
     readme.includes('/UNVERIFIED-shape-only') && /shape-only/.test(readme),
-    'R20-A README discloses that an unwired verifier yields a shape-only, unauthorised pass',
+    'R20-A README discloses that an unwired verifier yields a shape-only, unauthorized pass',
   );
   assert(
     /Content-Length[\s\S]{0,400}?stream/i.test(readme),
@@ -1847,7 +1847,7 @@ async function main() {
 
   // R29-E. This message used to quote the offending value. Only a string that failed
   // to parse as a URL reaches it, so the value is always the wrong one, and the wrong
-  // one that matters is SAIHM_AUTH_HEADER pasted into the neighbouring variable. The
+  // one that matters is SAIHM_AUTH_HEADER pasted into the neighboring variable. The
   // SDK puts a thrown message verbatim into an isError tool result, so quoting it put
   // the token in the model's context and in the transcript. Planted here as a token
   // rather than as generic text, because a token is the case with consequences.
@@ -2326,7 +2326,7 @@ async function main() {
   );
 
   // Present is not the same as numeric. The client casts the operator's JSON without
-  // validating it, and an operator that serialises numbers as strings is normal here
+  // validating it, and an operator that serializes numbers as strings is normal here
   // — bfsi_R, bfsi_M and snapshotEpoch are declared as strings. Calling .toFixed() on
   // one crashed the tool with "d.bfsi.toFixed is not a function".
   responder.for = () => ({
@@ -3079,6 +3079,79 @@ async function main() {
     'a share receipt states what was shared, not only who with',
   );
 
+  // R32-A. zod 4.6.6 fixes GHSA-mrhx-c7xc-m3w5 only for arrays that declare a maximum:
+  // such an array fails its size check before any entry is parsed. An array with no bound
+  // is still parsed entry by entry, with an issue object for every bad entry, and a list
+  // of 4,000,000 numbers took one saihm_share call to about 1.4 GB. Both share lists now
+  // declare bounds, advertised in tools/list. The over-limit lists below are made of
+  // numbers, so a parsed entry would add an "expected string" issue: one too_big and
+  // nothing else shows the size check ran first.
+  const shareProps = (advertised.find((t) => t.name === 'saihm_share')?.inputSchema.properties ??
+    {}) as Record<string, { maxItems?: number; items?: { maxLength?: number } }>;
+  for (const [field, max] of [
+    ['granteeIdHashesHex', 1024],
+    ['shardIds', 1024],
+  ] as const) {
+    assert(
+      shareProps[field]?.maxItems === max && shareProps[field]?.items?.maxLength === 256,
+      `R32-A tools/list advertises ${field} as at most ${max} entries of at most 256 characters`,
+    );
+  }
+
+  const capArgs = (over: Record<string, unknown>) => ({
+    granteeIdHashesHex: ['ab'.repeat(32)],
+    shardIds: ['shard-1'],
+    type: 'temporary',
+    scope: 'read',
+    ...over,
+  });
+  const callsBeforeCaps = calls.length;
+  for (const [field, n] of [
+    ['granteeIdHashesHex', 1025],
+    ['shardIds', 1025],
+    ['granteeIdHashesHex', 1_000_000],
+  ] as const) {
+    const t0 = performance.now();
+    const over = await mcpClient.callTool({
+      name: 'saihm_share',
+      arguments: capArgs({ [field]: new Array<number>(n).fill(1) }),
+    });
+    const ms = performance.now() - t0;
+    const text = textOf(over);
+    assert(over.isError === true, `R32-A ${field} with ${n} entries is refused`);
+    assert(
+      (text.match(/Too big/g) ?? []).length === 1 && !/expected string/.test(text),
+      `R32-A ${field} with ${n} entries yields one too_big issue and no per-entry issues`,
+    );
+    assert(ms < 1000, `R32-A ${field} with ${n} entries is refused quickly (${ms.toFixed(0)} ms)`);
+  }
+  const overLongId = await mcpClient.callTool({
+    name: 'saihm_share',
+    arguments: capArgs({ granteeIdHashesHex: ['ab'.repeat(129)] }),
+  });
+  assert(
+    overLongId.isError === true && /Too big/.test(textOf(overLongId)),
+    'R32-A a grantee id longer than 256 characters is refused',
+  );
+  assert(calls.length === callsBeforeCaps, 'R32-A no over-limit share list reaches the operator');
+
+  // The bounds are inclusive: a contract at both limits still goes through.
+  const shareAtLimits = await mcpClient.callTool({
+    name: 'saihm_share',
+    arguments: capArgs({
+      granteeIdHashesHex: Array.from({ length: 1024 }, (_, i) => i.toString(16).padStart(64, '0')),
+      shardIds: Array.from({ length: 1024 }, (_, i) => `shard-${i}`),
+    }),
+  });
+  assert(
+    shareAtLimits.isError !== true && /^SHARED/.test(textOf(shareAtLimits)),
+    'R32-A a share with 1024 grantees and 1024 shards is accepted',
+  );
+  assert(
+    /shards=1024/.test(textOf(shareAtLimits)),
+    'R32-A the at-limit share receipt counts all 1024 shards',
+  );
+
   // Every other write tool refuses its success headline without a receipt field. Of what
   // a vote returns, only weight and castAtEpoch are produced by the operator.
   responder.for = () => ({});
@@ -3154,8 +3227,8 @@ async function main() {
   );
 
   // ── R4: string-typed booleans, and a claim about the whole store ──────────
-  // This file already accepts "495912" as a number because operators serialise scalars
-  // as strings. The same operator serialises false as "false", which a bare
+  // This file already accepts "495912" as a number because operators serialize scalars
+  // as strings. The same operator serializes false as "false", which a bare
   // `typeof === 'boolean'` reads as "not reported" — letting the opposite-direction vote
   // straight past the check written to catch it.
   responder.for = () => ({
@@ -3174,7 +3247,7 @@ async function main() {
     'a string-typed approve echo is still caught as a direction mismatch',
   );
 
-  // The same normalisation has to reach every boolean the operator sends, not just the
+  // The same normalization has to reach every boolean the operator sends, not just the
   // one that prompted it: a string-typed success reported an erasure as UNCONFIRMED.
   responder.for = () => ({ success: 'true', cellId: 'ab'.repeat(32) });
   const forgetStringSuccess = await mcpClient.callTool({
@@ -3241,7 +3314,7 @@ async function main() {
   assert(/empty memory/.test(textOf(rememberEmpty)), 'an empty write says what was wrong with it');
 
   // ── R6: how wide "unambiguously true or false" has to be ──────────────────
-  // Leaning narrow is not neutral. An unrecognised `revoked` errs safe; an unrecognised
+  // Leaning narrow is not neutral. An unrecognized `revoked` errs safe; an unrecognized
   // `approve` drops the direction mismatch and prints what the caller asked for.
   responder.for = () => ({
     proposalId: 'p0'.repeat(16),
@@ -3374,7 +3447,7 @@ async function main() {
     );
   }
 
-  // '' is NOT in that list, and that is deliberate in the handler: it is normalised to
+  // '' is NOT in that list, and that is deliberate in the handler: it is normalized to
   // "no expiry supplied" rather than refused or fed to BigInt(''), which is 0n and would
   // date the contract to the epoch. Pinned here because the distinction is invisible from
   // the schema — expiryEpoch is z.string().optional(), so absent and empty arrive
@@ -3391,7 +3464,7 @@ async function main() {
   });
   assert(
     emptyExpiry.isError !== true,
-    'R30-B an empty expiryEpoch is normalised to absent, not refused and not read as epoch 0',
+    'R30-B an empty expiryEpoch is normalized to absent, not refused and not read as epoch 0',
   );
 
   // ── concurrent tool dispatch ───────────────────────────────────────
@@ -3404,10 +3477,10 @@ async function main() {
   // single existing test.
   //
   // maxInFlight is the load-bearing assertion. "All twelve came back" is satisfied
-  // trivially by a server that serialises, so the mock holds every reply until all
+  // trivially by a server that serializes, so the mock holds every reply until all
   // twelve requests have arrived: that makes the count deterministic rather than a
   // race against the machine, and releasing them on staggered timers makes completion
-  // order differ from submission order. If dispatch ever serialises the twelfth never
+  // order differ from submission order. If dispatch ever serializes the twelfth never
   // arrives, the deadline releases whatever is waiting, and maxInFlight reads 1.
   group('concurrent tool dispatch');
 
@@ -3424,7 +3497,7 @@ async function main() {
   const allArrived = new Promise<void>((resolve) => {
     openGate = resolve;
   });
-  // Bounds the failure path: a serialised dispatcher never reaches twelve arrivals,
+  // Bounds the failure path: a serialized dispatcher never reaches twelve arrivals,
   // and without this the case would hang rather than fail.
   const arrivalDeadline = setTimeout(openGate, 2000);
 
@@ -3650,7 +3723,7 @@ async function main() {
   assert(
     UNVERIFIED_MARKERS.length === 3 &&
       UNVERIFIED_MARKERS.every((m) => chainSummaryIsUnverified(`x${m}y`)),
-    'R25-C every published unverified marker is recognised by the predicate',
+    'R25-C every published unverified marker is recognized by the predicate',
   );
   // The README must not hand the reader back the broken guard.
   const readmeAuth = repoFile('README.md');
@@ -3927,7 +4000,7 @@ async function main() {
   // The set above records what npm serves, so it has exactly two states and a release
   // commit is in neither. The version being released is not published yet — writing it
   // into PUBLISHED_VERSIONS to get past this loop would put a prediction into a record
-  // of measured fact — and it is not "never published" either, so labelling it as such
+  // of measured fact — and it is not "never published" either, so labeling it as such
   // to satisfy the other branch would be a second lie. Both gates run before publish
   // (`prepublishOnly`, and the workflow's own test step), so with only two states this
   // check blocks every release whose entry tells the truth about itself. The candidate
@@ -3960,7 +4033,7 @@ async function main() {
       // itself. That fails in both directions: an entry could be flagged for accurately
       // describing another version, and — because the same substring satisfied the
       // unpublished branch below — an entry could also be waved through without ever
-      // labelling itself. So each line is attributed to the versions it names, falling
+      // labeling itself. So each line is attributed to the versions it names, falling
       // back to the nearest one named before it, and only a claim landing on a version
       // npm actually serves is a defect. A line naming several is judged by any of them
       // being published, so an ambiguous sentence fails closed and is reworded rather
@@ -3987,7 +4060,7 @@ async function main() {
     } else {
       assert(
         CLAIMS_UNPUBLISHED.test(bodyLines.join('\n')),
-        `R26-G the ${ver} entry is labelled as never published, because npm does not serve it`,
+        `R26-G the ${ver} entry is labeled as never published, because npm does not serve it`,
       );
     }
   }
@@ -4171,16 +4244,19 @@ async function main() {
     /not an enforced control/i.test(repoFile('HARDENING.md')),
     'R27-A HARDENING records DCO sign-off as a gap rather than a control',
   );
+  // The ASSURANCE_CASE rows state each control at its real strength: sign-off is a
+  // documented policy with a manual remedy, review is maintainer approval, and the
+  // residual risk names CI and REUSE as the only automated gates.
   assert(
-    /Gap — documented, not enforced/.test(repoFile('ASSURANCE_CASE.md')) &&
-      /Gap — convention, not enforced/.test(repoFile('ASSURANCE_CASE.md')),
-    'R27-A ASSURANCE_CASE marks the sign-off and review rows as gaps',
+    /Documented policy, manual remedy/.test(repoFile('ASSURANCE_CASE.md')) &&
+      /Maintainer approval\./.test(repoFile('ASSURANCE_CASE.md')),
+    'R27-A ASSURANCE_CASE labels sign-off as a policy with a manual remedy and review as maintainer approval',
   );
   assert(
-    /conventions the maintainer follows rather than mechanisms/i.test(
+    /maintainer practice, with CI and REUSE as the automated gates/i.test(
       repoFile('ASSURANCE_CASE.md').replace(/\s+/g, ' '),
     ),
-    'R27-A ASSURANCE_CASE residual risk states the sign-off and review controls are conventions',
+    'R27-A ASSURANCE_CASE residual risk states sign-off and review are maintainer practice',
   );
   {
     const bp = JSON.parse(repoFile('.bestpractices.json')) as Record<string, string>;

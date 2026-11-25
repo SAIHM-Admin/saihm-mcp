@@ -731,6 +731,27 @@ const hexToBytes = (h: string, label = 'hex value'): Uint8Array => {
   return out;
 };
 
+/**
+ * Size bounds on the two `saihm_share` lists.
+ *
+ * zod rejects an over-long array on its size check before it reads a single entry, but
+ * only when the array declares a maximum: an unbounded array is parsed entry by entry,
+ * with an issue object for every bad one. A list of 4,000,000 numbers fits inside the
+ * SDK's 10 MB stdio message and drove one call to about 1.4 GB of memory (measured on
+ * 0.3.18 before these bounds); a smaller heap, as in a container, aborts the process.
+ *
+ * - 1,024 grantees covers a 1,000-member syndicate contract, the largest the reference
+ *   deployment accepts.
+ * - 1,024 shards: a contract names specific cells, and a larger set can be split across
+ *   contracts.
+ * - 256 characters per entry, the receipt-id bound above: a 32-byte id is 64 hex
+ *   characters (66 with a 0x prefix), so this rejects no real id and leaves no room for
+ *   a payload.
+ */
+const MAX_SHARE_GRANTEES = 1024;
+const MAX_SHARE_SHARDS = 1024;
+const MAX_SHARE_ID_LEN = 256;
+
 server.registerTool(
   'saihm_share',
   {
@@ -743,8 +764,14 @@ server.registerTool(
       // casing stays in step.
       "Grant other agents access to specific memory shards. Set type to 'temporary', 'permanent' or 'syndicate', and scope to 'read', 'write' or 'readwrite'. Grantees are hex agent-id hashes, not names, and shardIds lists exactly what is shared: nothing outside it is exposed, and sharing does not copy the memory.",
     inputSchema: {
-      granteeIdHashesHex: z.array(z.string()).describe('Hex-encoded grantee agent ID hashes'),
-      shardIds: z.array(z.string()).describe('Shard IDs to include in the contract'),
+      granteeIdHashesHex: z
+        .array(z.string().max(MAX_SHARE_ID_LEN))
+        .max(MAX_SHARE_GRANTEES)
+        .describe('Hex-encoded grantee agent ID hashes'),
+      shardIds: z
+        .array(z.string().max(MAX_SHARE_ID_LEN))
+        .max(MAX_SHARE_SHARDS)
+        .describe('Shard IDs to include in the contract'),
       type: z.enum(['temporary', 'permanent', 'syndicate']).describe('Contract type'),
       scope: z.enum(['read', 'write', 'readwrite']).describe('Access scope'),
       expiryEpoch: z.string().optional().describe('Optional expiry epoch (decimal string)'),

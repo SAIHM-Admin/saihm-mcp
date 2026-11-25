@@ -56,11 +56,10 @@ object rather than replacing it. For Cline that file is
 Replace both placeholder values with what the operator issued. Keep the block as
 strict JSON — no trailing commas.
 
-**`timeout` is required, not decorative.** Cline's default MCP start-up budget is
-1.5 seconds. `npx` cannot resolve and launch a package that fast, and a server
-that misses the deadline is skipped **silently** — the tools never appear and no
-error is surfaced in the chat. If this server seems absent after install, check
-that setting before anything else.
+**Keep `timeout`.** The first `npx` run downloads the package, which can take
+longer than a host allows by default, and a host may then skip the server
+without an error in the chat. If this server seems absent after install, check
+that setting first.
 
 ## Step 2 — restart the host, then prove the round trip
 

@@ -43,8 +43,8 @@ implementation for the SAIHM (Sovereign AI Horizontal Memory) protocol.
 ## Coding conventions
 
 - TypeScript, ES modules, strict mode.
-- Keep the MCP-server surface minimal — the server is a thin forwarding shim
-  to the SAIHM operator endpoint. Protocol logic lives behind the operator
+- Keep the MCP-server surface minimal — the server is a small forwarding client
+  for the SAIHM operator endpoint. Protocol logic lives behind the operator
   endpoint, not here.
 - No new cryptographic primitives in this repository. Identity binding,
   encryption, and audit anchoring are provided by the operator endpoint and

@@ -10,8 +10,9 @@ enforced in `@saihm/mcp-server`. It is a companion to:
 - [`GOVERNANCE.md`](./GOVERNANCE.md) — review process for
   security-sensitive changes
 
-If a hardening choice is listed here, it is enforced today in the
-shipped code or in the published artifact; it is not aspirational.
+Each hardening choice listed here is enforced today in the shipped code,
+in the published artifact or in the repository settings. Items that rest on
+documented policy are labeled as such.
 
 ## Threat model
 
@@ -56,8 +57,10 @@ Out of scope for this server (these belong to other layers):
   defaults to TLS 1.2+ (TLS 1.3 preferred where the server supports
   it); legacy TLS / SSL versions are not negotiated.
 - **Certificate verification.** Node.js verifies the operator
-  endpoint's certificate against the system trust store. No
-  insecure-cert bypass is exposed.
+  endpoint's certificate against the system trust store. The
+  package exposes no insecure-cert option; leave `NODE_TLS_REJECT_UNAUTHORIZED`
+  unset, because setting it to `0` turns verification off for the whole
+  Node.js process.
 
 ### Authorization handling
 
@@ -99,10 +102,17 @@ Out of scope for this server (these belong to other layers):
   malformed or non-HTTPS URL throws there. That construction is
   **lazy** — it happens on the first tool call, not at process start,
   so the server starts and answers `tools/list` with no configuration
-  at all (registry introspection depends on this). The practical
-  consequence is worth stating plainly: a misconfigured endpoint does
-  *not* fail at boot, it fails on the first tool call. The thrown
-  message does not include the Authorization header.
+  at all (registry introspection depends on this). A misconfigured
+  endpoint therefore surfaces on the first tool call rather than at
+  boot, and the thrown message does not include the Authorization header.
+- **Tool-input bounds.** Every tool's arguments pass a zod schema
+  before anything is forwarded. `saihm_share` accepts at most 1,024
+  grantee ids and 1,024 shard ids per call, each at most 256
+  characters, and zod (`^4.6.6`) refuses an over-long list on its size
+  check before it reads any entry. The MCP SDK's stdio transport also
+  caps each incoming message at 10 MB. The integration test asserts
+  that a 1,000,000-entry list is refused with a single `too_big` issue
+  and never reaches the operator.
 - **Type checking.** TypeScript strict mode (`"strict": true` in
   `tsconfig.json`) is enabled, catching common classes of error at
   compile time. `npm run typecheck` runs on every CI build and covers
@@ -131,8 +141,8 @@ Out of scope for this server (these belong to other layers):
   npm audit signatures
   npm view @saihm/mcp-server@latest dist.attestations --json
   ```
-- **Release tags are unsigned.** Tag signing is not enforced, so it is
-  recorded here as a gap rather than a control (see the preamble).
+- **Release tags are not signed.** For `0.3.6` and later, the provenance
+  attestation above links each package to the commit that built it.
   `v0.1.2` and `v0.3.6`–`v0.3.10` are lightweight tags; the other
   release tags are annotated. An annotated tag can be signed in place,
   while a lightweight tag would first be recreated as an annotated one.
@@ -176,10 +186,9 @@ Out of scope for this server (these belong to other layers):
   licensing check. Branch protection on `main` requires the status
   checks `build (20.x)`, `build (22.x)` and `reuse` to pass, and it
   blocks force-pushes to `main` and deletion of `main`. The protection
-  is not enforced for administrators, so the repository's admin
-  account can still push to `main` without the checks, and no
-  pull-request review is required while the project has a single
-  maintainer. Branch protection is a repository setting rather than a
+  is not enforced for administrators, and no pull-request review is
+  required while the project has one maintainer; both settings can be
+  tightened as maintainers are added. Branch protection is a repository setting rather than a
   file in this tree; `gh api
   repos/SAIHM-Admin/saihm-mcp/branches/main/protection` shows it.
 - **Dependabot enabled.** `.github/dependabot.yml` opens weekly PRs
@@ -190,12 +199,9 @@ Out of scope for this server (these belong to other layers):
 - **DCO sign-off — documented policy, not an enforced control.**
   `CONTRIBUTING.md` §"Licensing and DCO sign-off" and `GOVERNANCE.md`
   §"Intellectual property" ask inbound contributions to carry a
-  `Signed-off-by:` trailer (Developer Certificate of Origin 1.1), and
-  the remedy both describe is manual — a pull request without sign-off
-  is asked to rebase. Nothing automates that: there is no DCO check in
-  `.github/workflows/` and no DCO app installed, so no PR is
-  mechanically rejected, and most commits on `main` carry no trailer.
-  Recorded as a gap.
+  `Signed-off-by:` trailer (Developer Certificate of Origin 1.1), and a
+  pull request without sign-off is asked to rebase. The check is manual:
+  `.github/workflows/` has no DCO job and no DCO app is installed.
 - **Private vulnerability channels.** Reports go to
   `security@saihm.net` or through GitHub private vulnerability
   reporting (the repository's Security tab), per
@@ -214,13 +220,13 @@ only:
 
 - **ML-DSA-65** (NIST FIPS-204, 2024) — post-quantum identity
   binding for the holder.
-- **HKDF** (RFC 5869) — per-cell DEK derivation from the holder's
-  wallet-bound key material plus per-cell salt.
-- **Ed25519** (RFC 8032) — short-term verifier signatures where
-  used.
-- **Standard NIST-approved AEAD ciphers** for cell encryption.
-- **`kekVersion` rotation** — protocol supports algorithm rotation
-  without invalidating older cells (they retain their version tag).
+- **HKDF** (RFC 5869) — derivation of the holder's identity key from
+  the holder seed.
+- **Standard NIST-approved AEAD ciphers** for cell encryption, under a
+  random per-cell key wrapped by a versioned key-encryption key.
+- **`kekVersion` rotation** — each cell keeps the key-encryption-key
+  generation it was written under, and an operator can re-wrap cell
+  keys under a new generation without changing cell ids.
 
 No deprecated primitives are used: no MD5/SHA-1 for integrity, no
 RC4, no DES, no ECB-mode block ciphers.
@@ -232,8 +238,8 @@ To verify the hardening choices above in the shipped artifact:
 1. **Source on GitHub:** <https://github.com/SAIHM-Admin/saihm-mcp>
 2. **Integration test:** clone, `npm install && npm test`. The test
    asserts the HTTPS-only enforcement, both halves of the 16 MB cap
-   (declared `Content-Length` and streamed body), and the
-   header-no-echo behavior.
+   (declared `Content-Length` and streamed body), the header-no-echo
+   behavior, and the `saihm_share` list bounds.
 3. **CI green check:** <https://github.com/SAIHM-Admin/saihm-mcp/actions>
 4. **npm provenance:** `npm view @saihm/mcp-server --json | jq .dist`
    then `npm audit signatures`.
