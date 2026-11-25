@@ -69,12 +69,13 @@ Out of scope for this server (these belong to other layers):
   `Error.message`, stdout, or stderr. The integration test
   (`tests/integration.test.ts`) asserts this with a sentinel token
   (`"Bearer SECRET-TOKEN-DO-NOT-LEAK"`) and a forced server 500.
-  Node's `fetch` quotes a header value with a line break or other
-  control character inside it in its own error, so the client refuses
-  any value `fetch` cannot send when it is constructed, with a fixed
-  message that quotes no part of it, and replaces any other error
-  `fetch` raises while building a request. The R33-A tests plant a
-  sentinel in each shape and search every error for it.
+  Node's `fetch` quotes a header value with a line break or NUL inside
+  it in its own error, so the client refuses any value `fetch` cannot
+  send (any control character but tab inside it, or a character above
+  U+00FF) when it is constructed, with a fixed message that quotes no
+  part of it, and replaces any other error `fetch` raises while
+  building a request. The R33-A tests plant a sentinel in each shape
+  and search every error for it.
 - **No on-disk persistence.** The server never writes to the
   filesystem, and reads no configuration, credential, or user data
   from it — configuration flows entirely through environment

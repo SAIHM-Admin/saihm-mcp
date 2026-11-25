@@ -21,20 +21,20 @@ unchanged from `0.3.17`.
   `fetch` quotes the offending value in two of its errors: an Authorization
   value with a line break or NUL inside it, and an endpoint URL with a user
   name or password in it. The server returned those errors as tool output, so
-  a malformed `SAIHM_AUTH_HEADER`, or a `SAIHM_ENDPOINT_URL` of the form
-  `https://user:password@host/`, reached the model and its transcript. The
-  client now refuses both when it is constructed, on the first tool call, with
-  fixed messages that name the variable and quote no part of its value: any
-  header value `fetch` cannot send (a line break, NUL or other control
-  character inside it, or a character above U+00FF) and any endpoint URL with
-  userinfo. Any other error `fetch` raises while building a request is
-  replaced by a fixed message too. Neither shape could reach an operator
-  before, so every working configuration still works, and leading or trailing
-  whitespace in the header is trimmed as before. Draft `-03` Appendix A lists
-  this behavior for 0.3.17 (Section 8.3); 0.3.18 corrects it. It changes
-  authorization handling and URL validation, so it carries founding-maintainer
-  sign-off under `GOVERNANCE.md`. Regression tests R33-A plant sentinel
-  secrets in both shapes and check every error for them.
+  a `SAIHM_AUTH_HEADER` with a line break inside it, or a `SAIHM_ENDPOINT_URL`
+  of the form `https://user:password@host/`, reached the model and its
+  transcript. The client now refuses both when it is constructed, on the first
+  tool call, with fixed messages that name the variable and quote no part of
+  its value: any header value `fetch` cannot send (a line break, NUL or any
+  other control character but tab inside it, or a character above U+00FF) and
+  any endpoint URL with userinfo. Any other error `fetch` raises while
+  building a request is replaced by a fixed message too. Neither shape could
+  reach an operator before, so every working configuration still works, and
+  leading or trailing whitespace in the header is trimmed as before. Draft
+  `-03` Appendix A lists this behavior for 0.3.17 (Section 8.3); 0.3.18
+  corrects it. It changes authorization handling and URL validation, so it
+  carries founding-maintainer sign-off under `GOVERNANCE.md`. Regression tests
+  R33-A plant sentinel secrets in both shapes and check every error for them.
 - **zod `^4.6.6`.** zod 4.6.5 and earlier can exhaust memory while
   validating a large array, even one that declares a maximum length
   (GHSA-mrhx-c7xc-m3w5, CVE-2023-54404, high). zod 4.6.6 refuses an over-long

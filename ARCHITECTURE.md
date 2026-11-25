@@ -121,11 +121,11 @@ The HTTPS client that talks to the operator endpoint:
 - **Authorization header forwarding.** The `SAIHM_AUTH_HEADER` env var
   (typically `Bearer <token>`) is included on every request. The
   header value is **never** echoed in thrown error messages. Node's
-  `fetch` quotes a header value with a line break or other control
-  character inside it, and an endpoint URL with userinfo, in its own
-  errors, so the constructor refuses both with fixed messages, and
-  `call()` replaces any other error `fetch` raises while building the
-  request.
+  `fetch` quotes a header value with a line break or NUL inside it, and
+  an endpoint URL with userinfo, in its own errors, so the constructor
+  refuses any header value `fetch` cannot send and any URL with
+  userinfo, with fixed messages, and `call()` replaces any other error
+  `fetch` raises while building the request.
 - **Per-call abort window.** Each request runs under an
   `AbortController` that aborts after 30 seconds. A hung operator
   endpoint cannot starve the MCP server.
