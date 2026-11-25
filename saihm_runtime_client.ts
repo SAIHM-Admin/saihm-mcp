@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 SAIHM, Inc.
 /**
- * SAIHM MCP — bare-bones runtime client.
+ * SAIHM MCP — runtime client.
  *
  * Forwards MCP tool calls to a SAIHM operator endpoint over HTTPS. The endpoint
  * is operator-supplied and runs the full SAIHM protocol stack behind the 8 MCP tools.
@@ -12,15 +12,18 @@
  * Configure via env:
  *   SAIHM_ENDPOINT_URL  HTTPS endpoint, e.g. https://operator.example.com/mcp
  *                       Must be `https://` unless the host is `127.0.0.1` or
- *                       `localhost` (dev exception). Plain HTTP is rejected
- *                       when the client is constructed, on the first tool call.
+ *                       `localhost` (dev exception), and must not carry a user
+ *                       name or password. Both are checked when the client is
+ *                       constructed, on the first tool call.
  *                       Redirects are refused rather than followed, so the
  *                       scheme checked at construction is the scheme actually
  *                       used — otherwise a 307 would carry both the request
  *                       body and the connection to a host nobody validated.
  *   SAIHM_AUTH_HEADER   Authorization header value per the operator's auth scheme
- *                       (e.g. "Bearer <token>"). The bare-bones client is
+ *                       (e.g. "Bearer <token>"). This client is
  *                       authentication-agnostic; never send raw private keys.
+ *                       A value that cannot be sent as an HTTP header is refused
+ *                       at construction.
  *
  * Defensive limits:
  *   REQUEST_TIMEOUT_MS  per-call abort window (30s)
@@ -39,10 +42,11 @@ const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 // and the offline demos — instead of a bare "env var required" dead-end.
 /**
  * An endpoint URL is safe to quote in an error ONLY after userinfo, query and fragment are
- * dropped. SAIHM_ENDPOINT_URL is operator-supplied and may legitimately carry credentials
- * (https://user:pass@host) or a token in the query string; an error message is read by an
- * agent and lands in a transcript, so echoing it raw would publish exactly what this client
- * exists to keep private. Scheme, host and path are what identify a mistyped endpoint.
+ * dropped. SAIHM_ENDPOINT_URL is operator-supplied and may carry a token in the query string,
+ * or credentials as userinfo (https://user:pass@host), which the constructor refuses; an
+ * error message is read by an agent and lands in a transcript, so echoing it raw would
+ * publish exactly what this client exists to keep private. Scheme, host and path are what
+ * identify a mistyped endpoint.
  */
 export function safeEndpoint(raw: string): string {
   try {
@@ -78,6 +82,57 @@ const SETUP_HINT =
   ' offline first (no' +
   ' account, about a minute), run the demos at https://saihm-admin.github.io/saihm-demos/';
 
+/*
+ * Node's fetch quotes the offending value in two of its errors, and here both values are
+ * credentials:
+ *
+ *   an Authorization value with a line break or NUL inside it:
+ *     Headers.append: "Bearer X\nY" is an invalid header value.
+ *   an endpoint URL with a user name or password in it:
+ *     Request cannot be constructed from a URL that includes credentials: http://user:PASS@host/
+ *
+ * A thrown message becomes the text of an isError tool result, so either would copy the
+ * secret into the model's context and the transcript. The constructor refuses both shapes
+ * with the fixed messages below, so neither value reaches fetch, and call() replaces any
+ * other error fetch raises while building the request.
+ */
+const AUTH_HEADER_INVALID =
+  'SAIHM_AUTH_HEADER contains a character that cannot be sent in an HTTP header, such as' +
+  ' a line break or another control character inside the value. The value is not quoted' +
+  ' back here, because it is a credential. Set it to the value your operator issued, on' +
+  ' one line (for example "Bearer <token>").';
+const ENDPOINT_HAS_USERINFO =
+  'SAIHM_ENDPOINT_URL includes a user name or password (the user:password@ part before' +
+  ' the host). A request cannot carry credentials in its URL, and the URL is not quoted' +
+  ' back here, because that part is a credential. Remove it and send the credential in' +
+  ' SAIHM_AUTH_HEADER, as your operator specifies.';
+const REQUEST_NOT_BUILT =
+  'The HTTP library could not build the request from SAIHM_ENDPOINT_URL and' +
+  ' SAIHM_AUTH_HEADER. Its message is not quoted here, because it can contain either' +
+  ' value. Check both variables.';
+
+/**
+ * Whether fetch can send this as a header value. fetch first trims leading and trailing
+ * tabs, spaces and line breaks (a token read from a file often ends in a newline), and
+ * those values work, so they are trimmed here too rather than refused. What remains may
+ * hold only tab, visible ASCII, space and the Latin-1 range: a line break, NUL, other
+ * control character or DEL inside the value, or any character above U+00FF, makes fetch
+ * throw. That is the field-value grammar of RFC 9110 §5.5, and the same test undici
+ * applies before it sends a header.
+ */
+function isSendableHeaderValue(value: string): boolean {
+  return !/[^\t\x20-\x7e\x80-\xff]/.test(value.replace(/^[\t\n\r ]+|[\t\n\r ]+$/g, ''));
+}
+
+function hasUserinfo(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    return url.username !== '' || url.password !== '';
+  } catch {
+    return false;
+  }
+}
+
 function assertEndpointUrl(endpoint: string): void {
   let url: URL;
   try {
@@ -99,6 +154,7 @@ function assertEndpointUrl(endpoint: string): void {
         SETUP_HINT,
     );
   }
+  if (url.username !== '' || url.password !== '') throw new Error(ENDPOINT_HAS_USERINFO);
   if (url.protocol === 'https:') return;
   if (url.protocol === 'http:' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost'))
     return;
@@ -113,7 +169,7 @@ export interface RememberResult {
   /**
    * 16-byte per-cell nonce (hex). Surfaced to the agent so it can keep
    * a verifiable record of which nonce was bound to this cell at
-   * creation time. Per draft-saihm-memory-protocol-01 §2.1 the nonce
+   * creation time. Per draft-saihm-memory-protocol-03 §2.1 the nonce
    * is a public field of the cell tuple.
    */
   cellNonce: string;
@@ -128,13 +184,13 @@ export interface RecalledCell {
   cellId: string;
   /** 16-byte per-cell nonce (hex). See {@link RememberResult.cellNonce}. */
   cellNonce: string;
-  /** KEK generation that sealed this cell's DEK. Spec §2.1. */
+  /** KEK generation in force when the cell was written. Spec §2.1. */
   kekVersion: number;
   /** 32-byte hex of the holder's ML-DSA-65 public-key hash. Spec §2.1. */
   holderIdHex: string;
   /**
    * Short prefix (hex) of the holder's ML-DSA-65 signature. Per spec
-   * §2.1 the signature is computed over (cellId ‖ holderId ‖
+   * §2.3 the signature is computed over (cellId ‖ holderId ‖
    * kekVersion_be32 ‖ timestamp_be64). Full signature is ~3309 bytes;
    * surfacing the prefix lets agents log a compact integrity-witness
    * without inflating recall payloads. The signature is verified at
@@ -160,30 +216,29 @@ export interface StakingPosition {
 
 /**
  * One element of the `contracts` array returned by `saihm_status`.
- * Spec: draft-saihm-memory-protocol-01 §3.4 (a sharing contract
- * visible to this holder). The spec defines each element as a CBOR
- * object; on the JSON wire this is the structurally equivalent
- * JSON object. The spec does not narrow the array to active-only
- * contracts; operators MAY include expired entries.
+ * Spec: draft-saihm-memory-protocol-03 §4.5 (a sharing contract
+ * visible to this holder), a JSON object. The spec does not narrow
+ * the array to active-only contracts; operators MAY include expired
+ * entries, and MUST NOT include revoked ones.
  */
 export interface ContractEntry {
-  /** 32-byte hex contract identifier. Spec §3.4. */
+  /** 32-byte hex contract identifier. Spec §4.5. */
   contractId: string;
   /**
-   * Sharing-contract mode. Per spec §2.5 / §3.4 the on-wire string
+   * Sharing-contract mode. Per spec §2.6 / §4.5 the on-wire string
    * enum is `"TEMPORARY"`, `"PERMANENT"`, or `"SYNDICATE"`. This
    * is the spec-aligned uppercase form; it is independent of the
    * `SharingContractType` enum used by `saihm_share` parameters,
    * which is lowercase for legacy reasons.
    */
   mode: 'TEMPORARY' | 'PERMANENT' | 'SYNDICATE';
-  /** Grantee agent ID hashes (each 32-byte hex). Spec §3.4. */
+  /** Grantee agent ID hashes (each 32-byte hex). Spec §4.5. */
   granteeIds: string[];
   /**
-   * Expiry as UNIX epoch seconds (decimal string). Spec §3.4
+   * Expiry as UNIX epoch seconds (decimal string). Spec §4.5
    * specifies an unsigned integer, so the value is surfaced as
    * `string` to preserve precision for values beyond the JS
-   * Number safe-integer ceiling (2^53 - 1). Per spec §2.5 the
+   * Number safe-integer ceiling (2^53 - 1). Per spec §2.6 the
    * permitted range depends on `mode`: `TEMPORARY` caps expiry at
    * `timestamp + 86400` seconds (24 hours); `PERMANENT` requires
    * the sentinel value `"0"` (no time bound); `SYNDICATE` permits
@@ -195,39 +250,37 @@ export interface ContractEntry {
 
 /**
  * One element of the `governance` array returned by `saihm_status`.
- * Spec: draft-saihm-memory-protocol-01 §3.4 (a governance proposal
- * visible to the holder). The spec defines each element as a CBOR
- * object; on the JSON wire this is the structurally equivalent
- * JSON object. Field names use snake_case verbatim from the spec.
- * The spec does not narrow the array to a particular state
- * (active / closed / decided); operators MAY include closed
- * proposals.
+ * Spec: draft-saihm-memory-protocol-03 §4.5 (a governance proposal
+ * visible to the holder), a JSON object. Field names use snake_case
+ * verbatim from the spec. The spec does not narrow the array to a
+ * particular state (active / closed / decided); operators MAY
+ * include closed proposals.
  */
 export interface GovernanceEntry {
-  /** 32-byte hex proposal identifier. Spec §3.4. */
+  /** 32-byte hex proposal identifier. Spec §4.5. */
   propId: string;
   /**
    * Proposal scope string. The set of permitted scope values is
-   * defined by the deployment's published governance form (spec
-   * §3.9 item (f)), not by the protocol itself. The reference
-   * deployment uses `"emission_param"` and `"protocol_upgrade"`;
-   * see the `governancePropose` parameter type on
-   * `SaihmRuntimeClient` for that form.
+   * defined by the operator's published governance form (spec
+   * §4.10 item (f)), not by the protocol itself. The
+   * `saihm_governance_propose` input (spec §4.8) offers
+   * `"emission_param"` and `"protocol_upgrade"`; see the
+   * `governancePropose` parameter type on `SaihmRuntimeClient`.
    */
   scope: string;
-  /** Voting-window open, UNIX epoch seconds (decimal string). Spec §3.4. */
+  /** Voting-window open, UNIX epoch seconds (decimal string). Spec §4.5. */
   opens_ts: string;
-  /** Voting-window close, UNIX epoch seconds (decimal string). Spec §3.4. */
+  /** Voting-window close, UNIX epoch seconds (decimal string). Spec §4.5. */
   closes_ts: string;
   /**
-   * Vote-weight tally in favor (decimal string). Spec §3.4
+   * Vote-weight tally in favor (decimal string). Spec §4.5
    * specifies unsigned integer; surfaced as `string` so unbounded
    * weight aggregates beyond 2^53 - 1 remain exact.
    */
   tally_for: string;
-  /** Vote-weight tally against (decimal string). Spec §3.4. */
+  /** Vote-weight tally against (decimal string). Spec §4.5. */
   tally_against: string;
-  /** Vote-weight tally abstaining (decimal string). Spec §3.4. */
+  /** Vote-weight tally abstaining (decimal string). Spec §4.5. */
   tally_abstain: string;
 }
 
@@ -253,50 +306,45 @@ export interface StatusSnapshot {
   phi: number;
   snapshotEpoch: string;
 
-  // ────────── §3.4 spec-aligned fields (added 0.3.0) ──────────
+  // ────────── draft -03 §4.5 fields (added 0.3.0) ──────────
   /**
-   * Process Reliability Score. Spec §3.4: "IEEE 754 binary64 in
-   * the closed interval [0.0, 1.0]. … the fraction of the
-   * operator's expected tool-call returns delivered within the
-   * operator's published SLA window, computed over a rolling
-   * 30-day window."
+   * Process Reliability Score. Spec §4.5: a number in [0.0, 1.0],
+   * the fraction of tool calls answered within the operator's
+   * published service window over a rolling 30-day window.
    */
   prs: number;
   /**
-   * Byzantine Fault Score Index. Spec §3.4: "IEEE 754 binary64 in
-   * the closed interval [0.0, 1.0]. … the fraction of audit-chain
-   * receipts that match a corresponding holder-side tool-call
-   * event … bfsi = 1 - (M / R) … When R = 0 … bfsi is defined as
-   * 1.0 by convention."
+   * Receipt-match index. Spec §4.5: bfsi = 1 - (M / R), and 1.0 by
+   * convention when R = 0. M comes from the holder's own log of tool
+   * calls, which the operator cannot see, so an operator returns
+   * `bfsi` and `bfsi_M` only when the holder has given it M.
    */
   bfsi: number;
   /**
    * Start of the rolling 30-day window over which `bfsi` (and
    * `prs`) is computed, as UNIX epoch seconds (decimal string).
-   * Spec §3.4 specifies unsigned integer; surfaced as `string`
+   * Spec §4.5 specifies unsigned integer; surfaced as `string`
    * for forward-compat with values beyond 2^53 - 1.
    */
   bfsi_window_start_ts: string;
   /**
-   * Count of operator-anchored receipts on the audit chain
-   * attributed to the holder over the window, as a decimal
-   * string. Spec §3.4 specifies unsigned integer; `string`
-   * preserves precision for unbounded receipt counts.
+   * Count of receipts in the audit log attributed to the holder
+   * over the window, as a decimal string. Spec §4.5 specifies
+   * unsigned integer; `string` preserves precision for unbounded
+   * receipt counts.
    */
   bfsi_R: string;
   /**
-   * Count of operator-anchored receipts with no corresponding
-   * tool-call event in the holder's local event log, as a decimal
-   * string. Spec §3.4 specifies unsigned integer; `string`
-   * preserves precision.
+   * Count of those receipts with no matching call in the holder's
+   * own log, as a decimal string. Spec §4.5 specifies unsigned
+   * integer; `string` preserves precision.
    */
   bfsi_M: string;
   /**
    * Shards held under each tier, keyed by tier name, value = cell
-   * count. Spec §3.4 ("a CBOR map keyed by tier name, value =
-   * unsigned integer count of cells stored under that tier"). On
-   * the JSON wire this is the structurally equivalent JSON
-   * object. This is conceptually a per-cell-count view; the
+   * count. Spec §4.5 ("an object keyed by tier name; each value is
+   * the number of the holder's cells under that tier"). This is
+   * conceptually a per-cell-count view; the
    * pre-existing `storageByTier` field surfaces a per-tier byte
    * total and is retained alongside. The value type is `number`
    * (not `string`) because a per-tier cell count is bounded in
@@ -306,9 +354,9 @@ export interface StatusSnapshot {
    * `storageByTier` field.
    */
   shards: Record<string, number>;
-  /** Sharing-contract entries visible to this holder. Spec §3.4. */
+  /** Sharing-contract entries visible to this holder. Spec §4.5. */
   contracts: ContractEntry[];
-  /** Governance-proposal entries visible to this holder. Spec §3.4. */
+  /** Governance-proposal entries visible to this holder. Spec §4.5. */
   governance: GovernanceEntry[];
 }
 
@@ -400,6 +448,7 @@ export class SaihmRuntimeClient {
     private readonly timeoutMs: number = REQUEST_TIMEOUT_MS,
   ) {
     assertEndpointUrl(endpoint);
+    if (!isSendableHeaderValue(authHeader)) throw new Error(AUTH_HEADER_INVALID);
   }
 
   static bootFromEnv(): SaihmRuntimeClient {
@@ -416,6 +465,7 @@ export class SaihmRuntimeClient {
   private async call<T>(method: string, params: unknown): Promise<T> {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), this.timeoutMs);
+    let answered = false;
     try {
       const res = await fetch(this.endpoint, {
         method: 'POST',
@@ -437,6 +487,7 @@ export class SaihmRuntimeClient {
         // error rather than something to follow.
         redirect: 'error',
       });
+      answered = true;
       if (!res.ok) {
         // A 401 from the hosted service is the SAME SYMPTOM as a bad operator token and a
         // completely different problem: that service is non-custodial, so no token makes a
@@ -483,6 +534,22 @@ export class SaihmRuntimeClient {
         throw new Error(
           `SAIHM endpoint ${method} timed out after ${this.timeoutMs}ms with no response,` +
             ' so the call was aborted. It is unknown whether the operator acted on it.',
+        );
+      }
+      // fetch throws a TypeError other than "fetch failed" when it cannot build the
+      // request, before anything is sent, and that message can quote SAIHM_ENDPOINT_URL or
+      // SAIHM_AUTH_HEADER. The constructor refuses the values known to cause one; this
+      // replaces any other with a fixed message. The original is dropped rather than kept
+      // as the cause, because the cause would carry the value along. The prefix test keeps
+      // a value that happens to contain "fetch failed" from passing as a transport error.
+      if (!answered && err instanceof TypeError && !/^fetch failed/i.test(err.message)) {
+        throw new Error(
+          `SAIHM endpoint ${method} was not sent. ` +
+            (!isSendableHeaderValue(this.authHeader)
+              ? AUTH_HEADER_INVALID
+              : hasUserinfo(this.endpoint)
+                ? ENDPOINT_HAS_USERINFO
+                : REQUEST_NOT_BUILT),
         );
       }
       // A transport failure throws TypeError('fetch failed') and puts the real reason on

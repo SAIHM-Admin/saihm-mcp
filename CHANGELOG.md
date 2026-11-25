@@ -11,11 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.18] — 2026-11-28
 
 Security maintenance and documentation. No new tools and no removed tools. One
-input-schema change: the two `saihm_share` lists gain size limits (see
-Security). The other seven tools' input schemas are unchanged from `0.3.17`.
+input-schema change: `saihm_share` gains size limits on its two lists and on
+`expiryEpoch` (see Security). The other seven tools' input schemas are
+unchanged from `0.3.17`.
 
 ### Security
 
+- **Credentials kept out of Node.js errors (security-sensitive).** Node's
+  `fetch` quotes the offending value in two of its errors: an Authorization
+  value with a line break or NUL inside it, and an endpoint URL with a user
+  name or password in it. The server returned those errors as tool output, so
+  a malformed `SAIHM_AUTH_HEADER`, or a `SAIHM_ENDPOINT_URL` of the form
+  `https://user:password@host/`, reached the model and its transcript. The
+  client now refuses both when it is constructed, on the first tool call, with
+  fixed messages that name the variable and quote no part of its value: any
+  header value `fetch` cannot send (a line break, NUL or other control
+  character inside it, or a character above U+00FF) and any endpoint URL with
+  userinfo. Any other error `fetch` raises while building a request is
+  replaced by a fixed message too. Neither shape could reach an operator
+  before, so every working configuration still works, and leading or trailing
+  whitespace in the header is trimmed as before. Draft `-03` Appendix A lists
+  this behavior for 0.3.17 (Section 8.3); 0.3.18 corrects it. It changes
+  authorization handling and URL validation, so it carries founding-maintainer
+  sign-off under `GOVERNANCE.md`. Regression tests R33-A plant sentinel
+  secrets in both shapes and check every error for them.
 - **zod `^4.6.6`.** zod 4.6.5 and earlier can exhaust memory while
   validating a large array, even one that declares a maximum length
   (GHSA-mrhx-c7xc-m3w5, CVE-2023-54404, high). zod 4.6.6 refuses an over-long
@@ -30,14 +49,16 @@ Security). The other seven tools' input schemas are unchanged from `0.3.17`.
   millions of entries and drive the server's memory past a gigabyte, or abort
   the process where the heap is smaller (measured: 4,000,000 entries took one
   call to about 1.4 GB). `granteeIdHashesHex` and `shardIds` now accept at
-  most 1,024 entries each, and each entry at most 256 characters. An
-  over-long list is refused with a single `too_big` error before any entry is
-  read and is never sent to the operator; `tools/list` advertises the limits as
-  `maxItems` and `maxLength`. The values are chosen so that no real contract is
-  refused: 1,024 grantees covers a 1,000-member syndicate contract, the largest
-  the reference deployment accepts; a contract names specific cells, and a
-  larger set can be split across contracts; and a 32-byte id is 64 hex
-  characters, 66 with a `0x` prefix.
+  most 1,024 entries each, well above the size of a typical sharing contract,
+  and each entry at most 256 characters (a 32-byte id is 64 hex characters,
+  66 with a `0x` prefix). An over-long list is refused with a single `too_big`
+  error before any entry is read and is never sent to the operator;
+  `tools/list` advertises the limits as `maxItems` and `maxLength`.
+  `expiryEpoch` now accepts at most 20 characters, enough for any 64-bit
+  epoch. Before, a 4,000,000-digit value held the server for about 3.7
+  seconds before it was forwarded, and the same value with one letter in it
+  was quoted back whole in the error. The refusal now quotes no part of it
+  (R33-B).
 - **fast-uri 3.1.9 in the lockfile.** The MCP SDK loads fast-uri, through
   ajv, when the server starts. This server gives it no client or operator
   input: on the server side the SDK uses ajv only to check elicitation
@@ -73,9 +94,11 @@ Security). The other seven tools' input schemas are unchanged from `0.3.17`.
   endpoint of the operator you run. `author` is now `SAIHM, Inc.`, with
   `ops@saihm.net` and <https://saihm.net>.
 - **Session-bootstrap prompt.** The prompt now uses the American spelling
-  "summarize". Apart from the `saihm_share` limits above, this is the only
-  change to what the server sends: tool descriptions and messages are
-  unchanged.
+  "summarize".
+- **Messages.** `saihm_status` labels its protocol fields `§4.5`, their
+  section in draft `-03`, instead of `§3.4`. With the prompt word above and
+  the refusals and limits under Security, these are the only changes to what
+  the server sends; tool descriptions are unchanged.
 - **`glama.json` removed.** The file was never part of the npm package.
 
 ### Documentation
@@ -117,10 +140,13 @@ Security). The other seven tools' input schemas are unchanged from `0.3.17`.
   `CITATION.cff` describe each cell's key as random and wrapped under a
   versioned key-encryption key, HKDF as deriving the holder's identity key, and
   key custody in the custodial profile as the operator's, as draft `-03`
-  specifies. Ed25519, which the protocol does not use, is no longer listed.
-  `ARCHITECTURE.md` gives the cell tuple and the `saihm_status` fields from
-  `-03`.
-- **README.** The free trial is one command,
+  specifies. The documents name only the primitives the protocol uses:
+  ML-DSA-65, HKDF and AEAD ciphers. `ARCHITECTURE.md` gives the cell tuple and
+  the `saihm_status` fields from `-03`.
+- **Operator results.** `ARCHITECTURE.md`, README and `ASSURANCE_CASE.md` say
+  that the server reports the operator's result after shape checks, with no
+  caching and no enrichment.
+- **README updates.** The free trial is one command,
   `npx -y @saihm/mcp-server-pro free-join`, as the `@saihm/mcp-server-pro`
   README documents. The `timeout` note explains the first `npx` download
   instead of citing a host's start-up limit. The demo list names the models the
@@ -128,14 +154,14 @@ Security). The other seven tools' input schemas are unchanged from `0.3.17`.
   points to this changelog for release history, and the operator storage
   section is tightened.
 - **Comments and spelling.** Code comments give the reason for each guard in
-  the present tense, and the docs, comments, prompt and tests use American
-  spelling.
+  the present tense and cite draft `-03` sections, and the docs, comments,
+  prompt and tests use American spelling.
   Some earlier CHANGELOG entries are reworded for clarity; what each release
   changed is described as before.
 - **License headers.** The compiled JavaScript in `dist/` now starts with the
   SPDX license identifier and copyright line that every source file carries.
-  Apart from comments, the prompt word and the `saihm_share` limits above,
-  `dist/` is identical to `0.3.17`.
+  Apart from comments and the changes listed above, `dist/` is identical to
+  `0.3.17`.
 
 ## [0.3.17] — 2026-10-11
 

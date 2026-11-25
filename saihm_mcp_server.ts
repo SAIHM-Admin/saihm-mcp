@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 SAIHM, Inc.
 /**
- * SAIHM MCP Server — bare-bones thin client.
+ * SAIHM MCP Server — forwarding client.
  *
  * Eight MCP tools that any MCP-capable AI agent (Claude Code, Claude Desktop,
  * custom agents) can call. Each tool forwards to a SAIHM operator endpoint
  * configured via env. This package holds no crypto, no storage, no protocol
- * runtime — it is a thin shell over the SaihmRuntimeClient.
+ * runtime — it forwards each call through the SaihmRuntimeClient.
  *
  *   Core (4):       saihm_remember, saihm_recall, saihm_forget, saihm_status
  *   Sharing (2):    saihm_share, saihm_revoke_share
@@ -53,7 +53,7 @@ const server = new McpServer(
     capabilities: { tools: {}, prompts: {} },
     // Sent once at initialize, to every caller, on every session — so it is a pointer, not a
     // manual. The manual is the saihm_session_bootstrap prompt, which costs nothing until an
-    // agent invokes it. HR-3 bars recommendation language here; this scopes the tools only.
+    // agent invokes it. Recommendation language does not belong here; this scopes the tools only.
     instructions:
       "SAIHM is this agent's persistent memory across sessions, models and vendors. Load it" +
       ' before other work using the saihm_session_bootstrap prompt, which also carries the rules' +
@@ -642,7 +642,7 @@ server.registerTool(
     if (snapshotEpoch !== undefined) sessionBits.push(`epoch=${snapshotEpoch}`);
     if (sessionBits.length > 0) lines.push(`  ${sessionBits.join('  ')}`);
 
-    // The §3.4 spec fields, assembled from only the parts the operator actually sent.
+    // The spec fields of draft -03 §4.5, assembled from only the parts the operator sent.
     // `contracts=0` is a real answer when the operator returns an empty list and a
     // fabrication when it returns nothing at all, so an absent array is left out
     // rather than counted as zero. With every field present this renders exactly as
@@ -662,12 +662,12 @@ server.registerTool(
     // object has no length, and `contracts=undefined` is worse than saying nothing.
     if (Array.isArray(d.contracts)) spec.push(`contracts=${d.contracts.length}`);
     if (Array.isArray(d.governance)) spec.push(`governance=${d.governance.length}`);
-    if (spec.length > 0) lines.push(`  §3.4: ${spec.join(' ')}`);
+    if (spec.length > 0) lines.push(`  §4.5: ${spec.join(' ')}`);
 
     // Name what this operator structurally cannot answer, so an absent PRS reads as a
     // property of its custody model rather than as a client that failed to display it.
-    // PRS travels either as the `prsScore` operator extension or as the §3.4 `prs`
-    // field; claiming it is unreported while the §3.4 line shows it would contradict
+    // PRS travels either as the `prsScore` operator extension or as the §4.5 `prs`
+    // field; claiming it is unreported while the §4.5 line shows it would contradict
     // the line above, so both have to be absent before saying so.
     if (prsScore === undefined && prs === undefined)
       lines.push('  PRS: not reported by this operator');
@@ -740,10 +740,8 @@ const hexToBytes = (h: string, label = 'hex value'): Uint8Array => {
  * SDK's 10 MB stdio message and drove one call to about 1.4 GB of memory (measured on
  * 0.3.18 before these bounds); a smaller heap, as in a container, aborts the process.
  *
- * - 1,024 grantees covers a 1,000-member syndicate contract, the largest the reference
- *   deployment accepts.
- * - 1,024 shards: a contract names specific cells, and a larger set can be split across
- *   contracts.
+ * - Each list accepts up to 1,024 entries, well above the size of a typical sharing
+ *   contract.
  * - 256 characters per entry, the receipt-id bound above: a 32-byte id is 64 hex
  *   characters (66 with a 0x prefix), so this rejects no real id and leaves no room for
  *   a payload.
@@ -751,6 +749,17 @@ const hexToBytes = (h: string, label = 'hex value'): Uint8Array => {
 const MAX_SHARE_GRANTEES = 1024;
 const MAX_SHARE_SHARDS = 1024;
 const MAX_SHARE_ID_LEN = 256;
+
+/**
+ * expiryEpoch is UNIX epoch seconds, an unsigned 64-bit integer in the protocol (draft -03
+ * §2.1), so it never needs more than 20 decimal digits: 2^64 - 1 is 18446744073709551615.
+ * Without a bound, a 4,000,000-digit value passed the digit check and held the event loop
+ * for about 3.7 s converting it to a BigInt and back before it was forwarded, and the same
+ * value with one non-digit was quoted back whole in the error, 4 MB of it (measured on
+ * 0.3.18 before this bound). zod refuses anything longer on its length check, and the
+ * error below quotes nothing.
+ */
+const MAX_EXPIRY_DIGITS = 20;
 
 server.registerTool(
   'saihm_share',
@@ -774,7 +783,11 @@ server.registerTool(
         .describe('Shard IDs to include in the contract'),
       type: z.enum(['temporary', 'permanent', 'syndicate']).describe('Contract type'),
       scope: z.enum(['read', 'write', 'readwrite']).describe('Access scope'),
-      expiryEpoch: z.string().optional().describe('Optional expiry epoch (decimal string)'),
+      expiryEpoch: z
+        .string()
+        .max(MAX_EXPIRY_DIGITS)
+        .optional()
+        .describe('Optional expiry epoch (decimal string)'),
     },
     annotations: {
       title: 'Share',
@@ -818,18 +831,19 @@ server.registerTool(
       seen.add(key);
     }
 
-    // z.string() accepts any text, and BigInt() answers three different ways to it:
-    // "abc" throws a bare SyntaxError, "-1" yields a past epoch that silently makes the
-    // contract dead on arrival, and "1.5" throws as well. Check it here so the message
-    // names the field and the rule. '' is excluded from the check rather than failing
-    // it: expiryEpoch is optional, so a caller with no expiry to give may send either
-    // absent or empty, and BigInt('') is 0n — reading it as a real epoch would date the
-    // contract to 1970 and report success. Empty means "not supplied", same as absent.
+    // The schema accepts any text of up to 20 characters, and BigInt() answers three
+    // different ways to it: "abc" throws a bare SyntaxError, "-1" yields a past epoch that
+    // silently makes the contract dead on arrival, and "1.5" throws as well. Check it here
+    // so the message names the field and the rule. '' is excluded from the check rather
+    // than failing it: expiryEpoch is optional, so a caller with no expiry to give may send
+    // either absent or empty, and BigInt('') is 0n — reading it as a real epoch would date
+    // the contract to 1970 and report success. Empty means "not supplied", same as absent.
     let expiry: bigint | null = null;
     if (expiryEpoch !== undefined && expiryEpoch !== '') {
       if (!/^\d+$/.test(expiryEpoch))
         throw new Error(
-          `expiryEpoch must be a non-negative whole number as a decimal string, got "${expiryEpoch}".`,
+          'expiryEpoch must be a non-negative whole number of seconds since the UNIX epoch,' +
+            ` written as a decimal string of at most ${MAX_EXPIRY_DIGITS} digits.`,
         );
       expiry = BigInt(expiryEpoch);
     }

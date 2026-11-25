@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 SAIHM, Inc.
 /**
- * Comprehensive functional test for @saihm/mcp-server bare-bones.
+ * Comprehensive functional test for @saihm/mcp-server.
  * Covers:
  *   - All 8 MCP calls via SaihmRuntimeClient against a mock HTTP server
  *   - Reporting: 4 auth paths, 6 receipt sub-kinds, registry-attestation flow,
@@ -2110,6 +2110,181 @@ async function main() {
   errServer.close();
   assert(!errMsg.includes('SECRET-TOKEN'), 'error message does not echo Authorization header');
 
+  // R33-A. Node's fetch quotes the offending value in two of its errors: an Authorization
+  // value with a line break or NUL inside it ("... is an invalid header value."), and an
+  // endpoint URL with a user name or password ("... a URL that includes credentials: <url>").
+  // Both values are credentials, and a thrown message becomes the text of an isError tool
+  // result. The constructor refuses every header value fetch cannot send, and any URL with
+  // userinfo, with fixed messages; call() replaces any request-building error that gets
+  // past it. Every error below is searched whole (message, stack and any cause) for the
+  // sentinel. Control characters are built with fromCharCode so this file holds none.
+  {
+    const SENTINEL = 'R33A-SENTINEL-7f3c';
+    const ch = (n: number): string => String.fromCharCode(n);
+    const leaks = (e: unknown): boolean => {
+      let cur: unknown = e;
+      for (let depth = 0; cur !== undefined && cur !== null && depth < 5; depth++) {
+        const err = cur as { message?: unknown; stack?: unknown; cause?: unknown };
+        const parts = [String(cur), String(err.message ?? ''), String(err.stack ?? '')];
+        if (typeof cur === 'object') {
+          parts.push(JSON.stringify(cur, Object.getOwnPropertyNames(cur)));
+        }
+        if (parts.some((p) => p.includes(SENTINEL))) return true;
+        cur = err.cause;
+      }
+      return false;
+    };
+    const thrown = (f: () => unknown): unknown => {
+      try {
+        f();
+      } catch (e) {
+        return e;
+      }
+      return undefined;
+    };
+    const thrownAsync = async (f: () => Promise<unknown>): Promise<unknown> => {
+      try {
+        await f();
+      } catch (e) {
+        return e;
+      }
+      return undefined;
+    };
+    const msg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+    // Positive control: on this runtime, fetch itself quotes the value for both shapes, so
+    // the cases below exercise the leak and not a shape Node already redacts.
+    const rawHeader = await thrownAsync(() =>
+      fetch(url, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${SENTINEL}${ch(10)}X` },
+        body: '{}',
+      }),
+    );
+    const rawUrl = await thrownAsync(() =>
+      fetch(url.replace('http://', `http://user:${SENTINEL}@`), { method: 'POST', body: '{}' }),
+    );
+    assert(
+      leaks(rawHeader) && leaks(rawUrl),
+      'R33-A positive control: fetch quotes a line-broken header and a credentialed URL in full',
+    );
+
+    const badHeaders: Array<[string, string]> = [
+      ['a line feed', `Bearer ${SENTINEL}${ch(10)}X`],
+      ['a carriage return', `Bearer ${SENTINEL}${ch(13)}X`],
+      ['an injected header line', `Bearer ${SENTINEL}${ch(13)}${ch(10)}X-Injected: 1`],
+      ['a NUL', `Bearer ${SENTINEL}${ch(0)}X`],
+      ['another control character', `Bearer ${SENTINEL}${ch(1)}X`],
+      ['DEL', `Bearer ${SENTINEL}${ch(127)}X`],
+      ['a character above U+00FF', `Bearer ${SENTINEL}${ch(0x2713)}`],
+    ];
+    for (const [label, value] of badHeaders) {
+      const e = thrown(() => new SaihmRuntimeClient(url, value));
+      assert(
+        e instanceof Error && /SAIHM_AUTH_HEADER/.test(msg(e)) && !leaks(e),
+        `R33-A a header value with ${label} is refused by name and not quoted`,
+      );
+    }
+
+    const badEndpoints: Array<[string, string]> = [
+      ['a user name and password', `https://user:${SENTINEL}@op.example.com/mcp`],
+      ['a user name only', `https://${SENTINEL}@op.example.com/mcp`],
+      ['a password only', `https://:${SENTINEL}@op.example.com/mcp`],
+      ['userinfo on the dev exception', url.replace('http://', `http://user:${SENTINEL}@`)],
+    ];
+    for (const [label, value] of badEndpoints) {
+      const e = thrown(() => new SaihmRuntimeClient(value, 'Bearer t'));
+      assert(
+        e instanceof Error && /SAIHM_ENDPOINT_URL/.test(msg(e)) && !leaks(e),
+        `R33-A an endpoint URL with ${label} is refused by name and not quoted`,
+      );
+    }
+
+    // The same refusals through the path the server uses, from the environment.
+    const savedEnv = [process.env.SAIHM_ENDPOINT_URL, process.env.SAIHM_AUTH_HEADER];
+    process.env.SAIHM_AUTH_HEADER = `Bearer ${SENTINEL}${ch(10)}X`;
+    const envHeader = thrown(() => SaihmRuntimeClient.bootFromEnv());
+    process.env.SAIHM_AUTH_HEADER = savedEnv[1];
+    process.env.SAIHM_ENDPOINT_URL = `https://user:${SENTINEL}@op.example.com/mcp`;
+    const envUrl = thrown(() => SaihmRuntimeClient.bootFromEnv());
+    process.env.SAIHM_ENDPOINT_URL = savedEnv[0];
+    assert(
+      /SAIHM_AUTH_HEADER/.test(msg(envHeader)) &&
+        /SAIHM_ENDPOINT_URL/.test(msg(envUrl)) &&
+        !leaks(envHeader) &&
+        !leaks(envUrl),
+      'R33-A bootFromEnv refuses both shapes from the environment without quoting them',
+    );
+
+    // Values fetch accepts must keep working: it trims leading and trailing whitespace and
+    // line breaks, and allows a tab and the Latin-1 range inside the value.
+    const goodHeaders: Array<[string, string, string]> = [
+      ['a trailing line feed', `Bearer tok${ch(10)}`, 'Bearer tok'],
+      ['a trailing CRLF', `Bearer tok${ch(13)}${ch(10)}`, 'Bearer tok'],
+      ['leading and trailing blanks', `${ch(9)} Bearer tok `, 'Bearer tok'],
+      ['an inner tab', `Bearer to${ch(9)}k`, `Bearer to${ch(9)}k`],
+      ['a Latin-1 character', `Bearer caf${ch(0xe9)}`, `Bearer caf${ch(0xe9)}`],
+    ];
+    for (const [label, value, sent] of goodHeaders) {
+      let ok = false;
+      try {
+        await new SaihmRuntimeClient(url, value).status();
+        ok = calls[calls.length - 1].auth === sent;
+      } catch {
+        ok = false;
+      }
+      assert(ok, `R33-A a header value with ${label} is still accepted and sent as fetch sends it`);
+    }
+    assert(
+      thrown(() => new SaihmRuntimeClient(`${url}/?token=abc#frag`, 'Bearer t')) === undefined &&
+        thrown(() => new SaihmRuntimeClient(url.replace('http://', 'http://@'), 'Bearer t')) ===
+          undefined,
+      'R33-A an endpoint with a query, a fragment or an empty userinfo is still accepted',
+    );
+
+    // The backstop in call(): values that get past the constructor (here, set after it) are
+    // replaced by a fixed message, and Node's original error is not kept as the cause.
+    const bypass = (field: 'endpoint' | 'authHeader', value: string): SaihmRuntimeClient => {
+      const c = new SaihmRuntimeClient(url, 'Bearer t');
+      (c as unknown as Record<string, string>)[field] = value;
+      return c;
+    };
+    const backstop: Array<[string, SaihmRuntimeClient, RegExp]> = [
+      ['a line-broken header', bypass('authHeader', `Bearer ${SENTINEL}${ch(10)}X`), /AUTH_HEADER/],
+      [
+        'a non-Latin-1 header',
+        bypass('authHeader', `Bearer ${SENTINEL}${ch(0x2713)}`),
+        /AUTH_HEADER/,
+      ],
+      [
+        'a credentialed URL',
+        bypass('endpoint', url.replace('http://', `http://user:${SENTINEL}@`)),
+        /ENDPOINT_URL includes a user name/,
+      ],
+      [
+        'an unparseable URL',
+        bypass('endpoint', `not a url ${SENTINEL}`),
+        /SAIHM_ENDPOINT_URL and\s+SAIHM_AUTH_HEADER/,
+      ],
+    ];
+    const callsBeforeBackstop = calls.length;
+    for (const [label, c, names] of backstop) {
+      const e = await thrownAsync(() => c.recall());
+      assert(
+        e instanceof Error &&
+          /was not sent/.test(msg(e)) &&
+          names.test(msg(e)) &&
+          e.cause === undefined &&
+          !leaks(e),
+        `R33-A call() replaces fetch's error for ${label} with a fixed message that names the variable`,
+      );
+    }
+    assert(
+      calls.length === callsBeforeBackstop,
+      'R33-A none of the refused requests reaches the operator',
+    );
+  }
+
   // ── mcp entrypoint module ──────────────────────────────────────────────────
   // Importing the bin module registers all 8 tools without starting the stdio
   // transport (main() is guarded), so the entrypoint is exercised + covered.
@@ -2294,7 +2469,7 @@ async function main() {
     'an empty status response invents no zero counts or placeholder epoch',
   );
 
-  // An operator that speaks only the §3.4 spec fields: PRS arrives as `prs`, not as
+  // An operator that speaks only the draft -03 §4.5 fields: PRS arrives as `prs`, not as
   // the `prsScore` operator extension, and it reports no contract or governance
   // arrays at all. Both halves are traps — saying PRS is unreported while printing it
   // one line above contradicts itself, and counting absent arrays as zero states
@@ -2310,11 +2485,11 @@ async function main() {
   });
   const spec = await mcpClient.callTool({ name: 'saihm_status', arguments: {} });
   const specText = textOf(spec);
-  assert(spec.isError !== true, 'a §3.4-only status response does not error');
-  assert(specText.includes('§3.4: prs=0.812'), 'a §3.4-only operator still reports PRS');
+  assert(spec.isError !== true, 'a §4.5-only status response does not error');
+  assert(specText.includes('§4.5: prs=0.812'), 'a §4.5-only operator still reports PRS');
   assert(
     !specText.includes('PRS: not reported by this operator'),
-    'PRS reported as the §3.4 field is not also announced as unreported',
+    'PRS reported as the §4.5 field is not also announced as unreported',
   );
   assert(
     !/contracts=|governance=/.test(specText),
@@ -3152,6 +3327,60 @@ async function main() {
     'R32-A the at-limit share receipt counts all 1024 shards',
   );
 
+  // R33-B. expiryEpoch had no length bound: a 4,000,000-digit value passed the digit check
+  // and held the event loop for seconds, converted to a BigInt and back, before it was
+  // forwarded, and the same value with one non-digit was quoted back whole in the error.
+  // It is UNIX epoch seconds, an unsigned 64-bit integer, so 20 digits always suffice.
+  const expiryProp = (shareProps as Record<string, { maxLength?: number }>).expiryEpoch;
+  assert(
+    expiryProp?.maxLength === 20,
+    'R33-B tools/list advertises expiryEpoch as at most 20 characters',
+  );
+  const callsBeforeExpiry = calls.length;
+  for (const [label, value] of [
+    ['21 digits', '1'.repeat(21)],
+    ['4,000,000 digits', '9'.repeat(4_000_000)],
+    ['4,000,000 digits and a letter', `${'9'.repeat(4_000_000)}x`],
+  ] as const) {
+    const t0 = performance.now();
+    const r = await mcpClient.callTool({
+      name: 'saihm_share',
+      arguments: capArgs({ expiryEpoch: value }),
+    });
+    const ms = performance.now() - t0;
+    const text = textOf(r);
+    assert(
+      r.isError === true && /Too big/.test(text) && /expiryEpoch/.test(text),
+      `R33-B an expiryEpoch of ${label} is refused by its length`,
+    );
+    assert(
+      text.length < 2000 && !text.includes('1'.repeat(21)) && !text.includes('9'.repeat(21)),
+      `R33-B the refusal for ${label} does not quote the value (${text.length} chars)`,
+    );
+    assert(ms < 1000, `R33-B an expiryEpoch of ${label} is refused quickly (${ms.toFixed(0)} ms)`);
+  }
+  const shortBad = await mcpClient.callTool({
+    name: 'saihm_share',
+    arguments: capArgs({ expiryEpoch: 'tomorrow-noon' }),
+  });
+  assert(
+    shortBad.isError === true &&
+      /expiryEpoch/.test(textOf(shortBad)) &&
+      !textOf(shortBad).includes('tomorrow-noon'),
+    'R33-B a non-numeric expiryEpoch within the bound is refused by name without being quoted',
+  );
+  assert(calls.length === callsBeforeExpiry, 'R33-B no refused expiryEpoch reaches the operator');
+  const maxExpiry = await mcpClient.callTool({
+    name: 'saihm_share',
+    arguments: capArgs({ expiryEpoch: '18446744073709551615' }),
+  });
+  assert(
+    maxExpiry.isError !== true &&
+      (calls[calls.length - 1].params as { expiryEpoch?: string }).expiryEpoch ===
+        '18446744073709551615',
+    'R33-B a 20-digit expiryEpoch (2^64 - 1) is accepted and forwarded exactly',
+  );
+
   // Every other write tool refuses its success headline without a receipt field. Of what
   // a vote returns, only weight and castAtEpoch are produced by the operator.
   responder.for = () => ({});
@@ -3450,7 +3679,7 @@ async function main() {
   // '' is NOT in that list, and that is deliberate in the handler: it is normalized to
   // "no expiry supplied" rather than refused or fed to BigInt(''), which is 0n and would
   // date the contract to the epoch. Pinned here because the distinction is invisible from
-  // the schema — expiryEpoch is z.string().optional(), so absent and empty arrive
+  // the schema — expiryEpoch is z.string().max(20).optional(), so absent and empty arrive
   // differently and only the handler decides they mean the same thing.
   const emptyExpiry = await mcpClient.callTool({
     name: 'saihm_share',
