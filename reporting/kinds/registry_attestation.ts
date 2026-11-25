@@ -56,14 +56,14 @@ export interface PublicRegistry {
 /**
  * The single definition of "which identifier identifies this target".
  *
- * It used to be decided three separate times with two different notions of
- * present: the generator's guard tested truthiness (`!agentIdHash && !cellId`)
- * while the resolver and the receipt scope both used `??`, which treats '' as a
- * value. So `{ agentIdHash: '', cellId: 'abc' }` passed the guard and was then
- * looked up — and recorded — under '' rather than 'abc'. Either the requester was
- * told "target not found" for a record that exists, or a report_generated receipt
- * was written whose scope names nobody. A receipt is a durable claim about who a
- * disclosure covered, so it must not be able to say that.
+ * The generator's guard, the resolver and the receipt scope all use this one
+ * definition, so they cannot disagree about what "present" means. A truthiness test
+ * and `??` (which treats '' as a value) would disagree on `{ agentIdHash: '',
+ * cellId: 'abc' }`: the target would pass the guard and then be looked up, and
+ * recorded, under '' rather than 'abc'. The requester would be told "target not
+ * found" for a record that exists, or a report_generated receipt would name no
+ * subject. A receipt is a durable claim about who a disclosure covered, so it must
+ * not be able to say that.
  */
 export function resolveTargetSubject(target: RegistryAttestationTarget): string | undefined {
   for (const v of [target.agentIdHash, target.cellId]) {
@@ -92,17 +92,16 @@ export class StubPublicRegistry implements PublicRegistry {
 // ============================================================================
 
 /**
- * Render one CSV cell to RFC 4180, neutralising spreadsheet formulas.
+ * Render one CSV cell to RFC 4180, neutralizing spreadsheet formulas.
  *
  * publicMetadata is free-form data from a PUBLIC registry, so its contents are
- * whatever the registering party put there. It used to be interpolated as bare
- * `JSON.stringify(v)`, which fails twice. Structurally: an object or a string
- * containing a comma or a quote spilled into extra columns, so the attestation
- * parsed as a different document than the JSON form of the same record. And an
- * attestation is an export — a value beginning with =, +, - or @ is executed as a
- * formula the moment an auditor opens the file in a spreadsheet, which is the whole
- * of CSV injection. Prefixing with an apostrophe is what stops the evaluation;
- * quoting alone does not.
+ * whatever the registering party put there. Bare `JSON.stringify(v)` would fail
+ * twice. Structurally: an object or a string containing a comma or a quote would
+ * spill into extra columns, so the attestation would parse as a different document
+ * than the JSON form of the same record. And an attestation is an export — a value
+ * beginning with =, +, - or @ is executed as a formula the moment an auditor opens
+ * the file in a spreadsheet, which is the whole of CSV injection. Prefixing with an
+ * apostrophe is what stops the evaluation; quoting alone does not.
  */
 function csvCell(value: unknown): string {
   const raw = typeof value === 'string' ? value : (JSON.stringify(value) ?? '');
@@ -148,10 +147,10 @@ export interface GenerateRegistryAttestationDeps {
  * Record the rejection, then fail with the reason for it.
  *
  * The rejection is the primary fact. emitReceipt throws when the operator's audit
- * callback returns nothing usable, and an unguarded `await` here let that replace the
- * rejection reason outright — so an operator with a broken audit ledger saw "audit
- * emission failed" for every bad credential and never learned the credential was bad.
- * Both facts are reported, cause first.
+ * callback returns nothing usable, and an unguarded `await` here would let that replace
+ * the rejection reason outright: an operator with a failing audit ledger would see
+ * "audit emission failed" for every bad credential and never learn the credential was
+ * bad. Both facts are reported, cause first.
  */
 async function rejectWithReceipt(
   reason: string,

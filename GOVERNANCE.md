@@ -239,6 +239,12 @@ Every pull request must:
 2. Receive at least one maintainer review approval.
 3. Not regress any tested behavior (`npm test` green before merge).
 
+Branch protection on `main` requires the `build (20.x)`, `build (22.x)` and
+`reuse` status checks to pass, and blocks force-pushes and deletion of `main`.
+Review approval is project policy rather than a repository setting: while the
+project has a single maintainer, GitHub requires no review, and the protection
+is not enforced for administrators.
+
 Reviews focus on:
 
 - Correctness against the protocol specification.

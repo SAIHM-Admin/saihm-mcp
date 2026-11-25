@@ -50,7 +50,7 @@ project addresses each.
 | Disclosure path | Mitigation | Verification |
 |---|---|---|
 | In-transit | HTTPS-only enforcement at `SaihmRuntimeClient` construction; plain `http://` rejected except for `127.0.0.1`/`localhost` (dev). Construction validates the configured URL only, so every request also sets `redirect: 'error'` — a redirect is refused, keeping the validated scheme and host as the ones actually used. | `tests/integration.test.ts` test cases "ctor rejects http:// non-localhost endpoint", "ctor allows http://127.0.0.1 (dev)", and the R26-A cases asserting a `307` is refused and its body never reaches the redirect target. Code: `saihm_runtime_client.ts` constructor URL check and the `redirect: 'error'` fetch option. |
-| At-rest (filesystem) | Nothing is written to disk, and no configuration, credential, or user data is read from it — configuration is exclusively via env vars. The server opens one file, its own `package.json`, to report `serverInfo.version`. | Source review over every `node:fs` call in shipped source, not only the client: the sole reader is `readPackageVersion()` in `saihm_mcp_server.ts`, which reads `package.json` and falls back to `0.0.0-dev`. `saihm_runtime_client.ts` reads no files at all. `HARDENING.md` §"No on-disk persistence". This row previously asserted the server read *no* files, citing a source review that would have found this one — the read landed in 0.3.1 and the row was not revisited until 0.3.11. |
+| At-rest (filesystem) | Nothing is written to disk, and no configuration, credential, or user data is read from it — configuration is exclusively via env vars. The server's only file read is a `package.json`, for the version it reports as `serverInfo.version`: its own packaged `package.json`, or `package.json` in the current working directory if that cannot be read. Only the `version` field is used. | Source review over every `node:fs` call in shipped source, not only the client: the sole reader is `readPackageVersion()` in `saihm_mcp_server.ts`, which tries the packaged `package.json` and then the working directory's, uses only `version`, and falls back to `0.0.0-dev`. `saihm_runtime_client.ts` reads no files at all. `HARDENING.md` §"No on-disk persistence". |
 | Via-error | Error messages explicitly do not include the header value. | `tests/integration.test.ts` test "error message does not echo Authorization header" — uses sentinel `Bearer SECRET-TOKEN-DO-NOT-LEAK` and asserts the token does not appear in any thrown error's `.message`. |
 | Via-logging | Nothing is written to stdout or stderr except one line: `saihm_mcp_server.ts` writes a fatal startup error to stderr before exiting. The header is never part of it. | Source review over **every** write path, not just `console.*`: the only match for `console.` / `process.stdout` / `process.stderr` in shipped source is that single `process.stderr.write(String(e))`. A reviewer grepping for `console.log` alone would find nothing and conclude clean without having checked the path that actually writes. |
 | Via-third-party reflection | The MCP server forwards operator responses verbatim, with no enrichment that could echo header content. | Source review: `SaihmRuntimeClient.call()` returns parsed JSON; no header is folded into the returned object. |
@@ -80,7 +80,7 @@ exercise rarely-tested code paths). The project caps each.
 
 | Resource | Limit | Verification |
 |---|---|---|
-| Time | 30-second per-call abort via `AbortController` | `saihm_runtime_client.ts` abort wiring. `tests/integration.test.ts` R26-B cases: a server that accepts the request and never answers, against a client constructed with a 60 ms window, throws "timed out after 60ms" in well under a second; further cases assert the message does not echo the header, states the outcome is unknown rather than implying failure, and that the shipped default is still 30 s. The abort window is a constructor parameter defaulting to `REQUEST_TIMEOUT_MS` **so that this row can cite a real test** — the previous citation pointed at an assertion that always passed. |
+| Time | 30-second per-call abort via `AbortController` | `saihm_runtime_client.ts` abort wiring. `tests/integration.test.ts` R26-B cases: a server that accepts the request and never answers, against a client constructed with a 60 ms window, throws "timed out after 60ms" in well under a second; further cases assert the message does not echo the header, states the outcome is unknown rather than implying failure, and that the shipped default is still 30 s. The abort window is a constructor parameter defaulting to `REQUEST_TIMEOUT_MS`, so the test can exercise it with a short window. |
 | Memory | 16 MB cap, enforced twice: a declared `Content-Length` over the cap is rejected before the body is read, and independently the body is measured while it streams and the read is aborted on exceeding the cap — so the cap does not depend on the sender declaring an honest `Content-Length`, or any at all | `tests/integration.test.ts` tests "Content-Length over 16 MB rejected" (server advertises 20 MB; call throws "response too large") and "R14-A chunked response over 16 MB rejected (no Content-Length)" (17x1 MB chunked reply with no header; call throws "while still streaming"). |
 | Surface | Eight-tool protocol invariant — no ninth tool without a breaking-change process | `GOVERNANCE.md` §"Decision process" + `CONTRIBUTING.md` §"Coding conventions" both restate the cap. |
 
@@ -104,21 +104,21 @@ bind a published tarball to a specific GitHub Actions workflow run
 and a specific source commit. `npm audit signatures` verifies the
 attestation chain locally.
 
-This argument holds **from 0.3.6 onward**, and the scope is stated
-rather than glossed. The automated release pipeline went live at
-0.3.6; the ten earlier versions (`0.1.0`–`0.3.5`) were published by
-hand and carry no attestation. Verified per version with
-`npm view @saihm/mcp-server@<v> dist.attestations`.
+This argument holds **from 0.3.6 onward**. The automated release
+pipeline went live at 0.3.6, and every version since carries an
+attestation; the ten earlier versions (`0.1.0`–`0.3.5`) were
+published by hand and carry none. Verified per version with
+`npm view @saihm/mcp-server@<version> dist.attestations`.
 
 ### Evidence
 
 | Property | Evidence |
 |---|---|
-| Provenance generated at publish | `.github/workflows/release.yml` publishes from GitHub Actions with `id-token: write` and OIDC trusted publishing, which generates the SLSA attestation automatically (no `--provenance` flag, no npm token). Confirmed live: `npm view @saihm/mcp-server@0.3.10 --json` reports `dist.attestations` with predicate type `https://slsa.dev/provenance/v1`. |
-| Provenance verifiable by user | `npm audit signatures` works against the published `@saihm/mcp-server` package; `npm view @saihm/mcp-server --json | jq .dist` shows the attestation URLs. Attestations are present on `0.3.6`–`0.3.10` and absent on `0.1.0`–`0.3.5`. |
+| Provenance generated at publish | `.github/workflows/release.yml` publishes from GitHub Actions with `id-token: write` and OIDC trusted publishing, which generates the SLSA attestation automatically (no `--provenance` flag, no npm token). To confirm on the current release: `npm view @saihm/mcp-server@latest dist.attestations --json` reports predicate type `https://slsa.dev/provenance/v1`. |
+| Provenance verifiable by user | `npm audit signatures` works against the published `@saihm/mcp-server` package; `npm view @saihm/mcp-server --json | jq .dist` shows the attestation URLs. Attestations are present on `0.3.6` and later and absent on `0.1.0`–`0.3.5`. |
 | CI provenance | `.github/workflows/ci.yml` is the CI workflow; runs are public at <https://github.com/SAIHM-Admin/saihm-mcp/actions> |
-| Version-to-commit mapping, with its gaps stated | Every published npm version from `0.3.0` onward has a git tag of the same name, so it maps to a commit. Two gaps a reviewer will otherwise find alone: `0.1.1` is on npm with **no** tag and **no** changelog entry, and `v0.3.2`, `v0.3.4` and `v0.3.5` have tags but **no GitHub Release** (they predate the automated pipeline). `/releases/tag/<tag>` resolves for a bare tag, so the `CHANGELOG.md` links still work. |
-| Tag signing — not a control | **No tag is signed.** The situation is not uniform, and an earlier version of this row described them all as lightweight, which was wrong about most of them: `v0.1.0`, `v0.2.0` and `v0.3.0`–`v0.3.5` are **annotated** tags that simply were never signed, while `v0.1.2` and `v0.3.6`–`v0.3.10` hold no tag object at all. Closing the gap therefore means re-signing the first group and recreating the second. Recorded in `HARDENING.md` §"Distribution integrity" as a gap, not claimed as a control; for `0.3.6`+ the artifact-to-source link to rely on is the provenance attestation above. |
+| Version-to-commit mapping | Every published npm version from `0.3.0` onward has a git tag of the same name, so it maps to a commit. Two exceptions: `0.1.1` is on npm with no tag, and `v0.3.2`, `v0.3.4` and `v0.3.5` have tags but no GitHub Release (they predate the automated pipeline). `/releases/tag/<tag>` resolves for a bare tag, so the `CHANGELOG.md` links still work. |
+| Tag signing — not a control | Release tags are unsigned. `v0.1.2` and `v0.3.6`–`v0.3.10` are lightweight tags; the other release tags are annotated, and an annotated tag can be signed in place. Recorded in `HARDENING.md` §"Distribution integrity" as a gap, not claimed as a control; for `0.3.6` and later the artifact-to-source link to rely on is the provenance attestation above. |
 
 ### Residual risk
 
@@ -170,7 +170,7 @@ does not need to change to accommodate such a rotation.
 
 ## G5 — Process controls prevent unauthorized changes
 
-**Claim.** Code, configuration, and release artefacts cannot be
+**Claim.** Code, configuration, and release artifacts cannot be
 modified without traceable maintainer action.
 
 ### Argument
@@ -184,8 +184,8 @@ commit), review (who can approve), and release (who can publish).
 |---|---|
 | Source control | Repository is on GitHub; only the founding maintainer (and any future maintainers added per `GOVERNANCE.md`) has push access. |
 | Sign-off | **Gap — documented, not enforced.** `CONTRIBUTING.md` §"Licensing and DCO sign-off" asks inbound contributions to carry a `Signed-off-by:` trailer (DCO 1.1); the remedy it describes is a manual rebase request. No DCO check or app enforces it, and most commits on `main` carry no trailer. `HARDENING.md` §"Process hardening". |
-| Review | **Gap — convention, not enforced.** `GOVERNANCE.md` §"Code review" describes maintainer approval, but `main` has no branch protection and no rulesets, so no approval is mechanically required, and the founding maintainer at SAIHM, Inc. commits to `main` directly. |
-| CI | Lint, format check, typecheck, build and the full test suite run on Node 20.x + 22.x for every PR and every push to `main` (`.github/workflows/ci.yml`). **Not a merge gate** — no required status check is configured. |
+| Review | **Gap — convention, not enforced.** `GOVERNANCE.md` §"Code review" describes maintainer approval. Branch protection on `main` requires no review while the project has a single maintainer, and the founding maintainer at SAIHM, Inc. commits to `main` directly. |
+| CI | Lint, format check, typecheck, build and the full test suite run on Node 20.x + 22.x for every PR and every push to `main`, together with a REUSE licensing check (`.github/workflows/ci.yml`). Branch protection on `main` requires the `build (20.x)`, `build (22.x)` and `reuse` status checks to pass and blocks force-pushes and deletion. It is not enforced for administrators, so the admin account can still push to `main` without the checks. |
 | Release | Publishing runs only from `.github/workflows/release.yml` on GitHub Actions using OIDC trusted publishing — no long-lived npm token exists to steal, and the SLSA provenance attestation is generated automatically. Release process described in `ARCHITECTURE.md` §"Build, test, release flow". |
 | Security-sensitive changes | Founding-maintainer (or, once formed, TSC) sign-off required. `GOVERNANCE.md` §"Implementation decisions" → "Security-sensitive changes". |
 | Dependency update review | Dependabot opens PRs that go through the same review + CI process. Dependabot config: `.github/dependabot.yml`. |
@@ -200,16 +200,15 @@ pre-1.0 pragmatic choice (and one OpenSSF Best Practices flags via the
 organization, the TSC is formed and approval can be distributed
 across organizations.
 
-The single approver is one of several residual risks here. The sign-off,
-review and CI controls above are conventions rather than mechanisms:
-`main` carries no branch protection and no rulesets, so nothing stops
-an unreviewed, unsigned, CI-red push. They hold because one maintainer
-chooses to follow them, and the sign-off convention has already lapsed
-— most commits on `main` carry no trailer. Closing this is a
-repository-settings change (required status checks, required review, a
-DCO check) rather than a code change, and it is tracked as an open gap
-alongside release-tag signing. Until 0.3.11 this section claimed all
-three as enforced controls.
+The single approver is one of several residual risks here. Branch
+protection on `main` requires the CI and REUSE checks and blocks
+force-pushes and deletion, but it is not enforced for administrators
+and requires no review, so an administrator can still push to `main`
+without review, sign-off or green checks. The sign-off and review
+controls above are therefore conventions the maintainer follows rather
+than mechanisms, and most commits on `main` carry no sign-off trailer.
+The remaining repository-settings changes (required review, a DCO
+check) are tracked as open gaps alongside release-tag signing.
 
 ## Counterarguments considered (and dismissed or scoped)
 
@@ -220,14 +219,15 @@ three as enforced controls.
    The operator has additional promises (key custody, audit-anchor
    correctness) that are out of scope for this assurance case but
    documented in the protocol draft.
-2. **"OpenSSF Best Practices criteria are paperwork, not real
-   security."** The criteria's value here is precisely that they
-   force the project to *write down* the controls that already exist,
-   so independent reviewers can spot gaps without having to read all
-   the source code. The assurance case above is the human-friendly
-   index into that documentation.
-3. **"Single maintainer = brittle = unsafe to depend on."** Real
-   risk, documented under `bus_factor`. Continuity rests on SAIHM, Inc.
+2. **"Do the OpenSSF Best Practices criteria add security, or only
+   documentation?"** Their value here is that they require the project
+   to *write down* the controls that exist, so independent reviewers
+   can check them without having to read all the source code. The
+   assurance case above is the human-friendly index into that
+   documentation.
+3. **"Does a single maintainer make the project a continuity risk?"**
+   It is a recognized risk, documented under `bus_factor`. Continuity
+   rests on SAIHM, Inc.
    as the owning entity: the company owns the project and its
    trademarks (`GOVERNANCE.md` §"Intellectual property"), and
    `GOVERNANCE.md` §"Adding and removing maintainers" covers
@@ -269,7 +269,7 @@ follow this checklist:
       test matrix.
 
 If any item above does not behave as described, please report via
-the private channel in [`SECURITY.md`](./SECURITY.md).
+one of the private channels in [`SECURITY.md`](./SECURITY.md).
 
 ## Document scope and lifecycle
 

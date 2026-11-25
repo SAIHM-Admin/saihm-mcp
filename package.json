@@ -2,7 +2,7 @@
   "name": "@saihm/mcp-server",
   "version": "0.3.18",
   "mcpName": "io.github.SAIHM-Admin/saihm-mcp",
-  "description": "MCP standards client for your own custodial SAIHM operator (endpoint URL + operator token). Free hosted start: @saihm/mcp-server-pro.",
+  "description": "MCP client for self-hosted SAIHM operators: organizations running their own operator endpoint. For the hosted service at saihm.net, use @saihm/mcp-server-pro.",
   "type": "module",
   "main": "dist/saihm_mcp_server.js",
   "types": "dist/saihm_mcp_server.d.ts",
@@ -89,7 +89,11 @@
     "enterprise"
   ],
   "license": "Apache-2.0",
-  "author": "SAIHM",
+  "author": {
+    "name": "SAIHM, Inc.",
+    "email": "ops@saihm.net",
+    "url": "https://saihm.net"
+  },
   "homepage": "https://saihm.net",
   "funding": {
     "type": "github",

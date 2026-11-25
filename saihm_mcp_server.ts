@@ -73,7 +73,7 @@ function getRuntime(): SaihmRuntimeClient {
  *
  * The declared types describe what an operator SHOULD send; the wire decides what
  * it actually sends, and the client casts the JSON without validating it. Present
- * is therefore not the same as numeric: an operator that serialises numbers as
+ * is therefore not the same as numeric: an operator that serializes numbers as
  * strings is entirely normal here — `bfsi_R`, `bfsi_M` and `snapshotEpoch` are
  * declared as strings for exactly that reason — and calling `.toFixed()` on one
  * crashes the tool with `d.bfsi.toFixed is not a function`, which tells the user
@@ -122,14 +122,14 @@ function asHashString(v: unknown): string | undefined {
  * Read a field that decides something, where a bare `=== true` is too narrow.
  *
  * The rest of this file already accepts `"495912"` as the number 495912, on the grounds
- * that an operator serialising a scalar as a string is normal. The same operator
- * serialises `false` as `"false"` — and against a `typeof v === 'boolean'` test that
+ * that an operator serializing a scalar as a string is normal. The same operator
+ * serializes `false` as `"false"` — and against a `typeof v === 'boolean'` test that
  * reads as "not reported", which is how a vote recorded in the OPPOSITE direction slips
  * past the mismatch check that exists to catch exactly it.
  *
  * Which way to lean is not symmetric between the two callers, and that decides how wide
- * this goes. Reading an unrecognised `revoked` as "not true" errs safe: it warns about
- * access that was in fact withdrawn. Reading an unrecognised `approve` as "not reported"
+ * this goes. Reading an unrecognized `revoked` as "not true" errs safe: it warns about
+ * access that was in fact withdrawn. Reading an unrecognized `approve` as "not reported"
  * errs UNSAFE: it drops the mismatch and prints the direction the caller asked for. So
  * for a field the operator declares boolean, every spelling that unambiguously means
  * true or false is accepted — `1`/`0` included — and only genuinely ambiguous values
@@ -151,9 +151,9 @@ const MAX_RECEIPT_ID_LEN = 256;
  * written, erased or shared.
  *
  * These are the only operator-controlled values in this file that reach the output as
- * STRUCTURE rather than as content, and they were the only ones emitted with no shape
- * check at all. Every field beside them is defended: asScalar refuses non-primitives,
- * and the hashes are truncated before they are printed. An id was not.
+ * STRUCTURE rather than as content, so they get a shape check of their own, as every
+ * field beside them does: asScalar refuses non-primitives, and the hashes are truncated
+ * before they are printed.
  *
  * A newline is what makes that matter. `FORGOTTEN [<id>] erased` is a receipt,
  * and the handler below refuses to print it without an id precisely because erasure is
@@ -225,7 +225,7 @@ server.registerTool(
 
     // A receipt with no cell id does not confirm a write: there is nothing to quote
     // back and nothing to hand saihm_forget later. Reporting it as REMEMBERED would
-    // tell the user their memory is safe on the strength of an acknowledgement the
+    // tell the user their memory is safe on the strength of an acknowledgment the
     // operator never actually gave.
     const cellId = asReceiptId(r.cellId);
     if (cellId === undefined)
@@ -488,7 +488,7 @@ server.registerTool(
     // Erasure is the one claim in this surface that a user cannot verify afterwards —
     // by construction there is nothing left to look at. So it is reported only on a
     // receipt that identifies WHICH cell was destroyed. `success: true` with no cell id
-    // is an acknowledgement, not evidence, and "FORGOTTEN [undefined]" would tell
+    // is an acknowledgment, not evidence, and "FORGOTTEN [undefined]" would tell
     // someone their GDPR Art. 17 request completed on the strength of it.
     const cellId = asReceiptId(r.cellId);
     if (cellId === undefined)
@@ -603,11 +603,11 @@ server.registerTool(
     // Object.entries on a string enumerates its characters, so a storageByTier that
     // arrives as anything but an object would print per-character garbage as storage.
     //
-    // The container check was not enough on its own. An array passes `typeof === 'object'`
-    // and renders its indices as tier names (`0=…B`), and a byte count that arrives as an
-    // object renders `filecoin=[object Object]B` — the one place left in this file where
-    // an operator value reached the output without going through a reader. A tier map is
-    // a non-null, non-array object whose values are printable scalars.
+    // A container check is not enough on its own. An array passes `typeof === 'object'`
+    // and would render its indices as tier names (`0=…B`), and a byte count that arrives
+    // as an object would render `filecoin=[object Object]B`, so this value goes through a
+    // reader like every other operator value. A tier map is a non-null, non-array object
+    // whose values are printable scalars.
     let tiers = '';
     if (
       typeof d.storageByTier === 'object' &&
@@ -705,10 +705,10 @@ server.registerTool(
  * Decode a hex agent-id hash, rejecting anything that is not hex.
  *
  * This decides WHO a sharing contract grants access to, so a permissive decode is a
- * confidentiality bug rather than a formatting one. `parseInt` was the problem: it
- * stops at the first character it does not understand and returns NaN otherwise, and
- * a Uint8Array stores NaN as 0 — so every malformed id still produced a well-formed,
- * plausible-looking identity that simply was not the one the user named:
+ * confidentiality bug rather than a formatting one. A `parseInt` decode is unsuitable:
+ * it stops at the first character it does not understand and returns NaN otherwise,
+ * and a Uint8Array stores NaN as 0 — so every malformed id would still produce a
+ * well-formed, plausible-looking identity that is not the one the user named:
  *
  *   "a1b24gd4" -> a1b204d4   one typo, a DIFFERENT valid grantee, no error
  *   "zzzzzzzz" -> 00000000   all-zero identity, no error
@@ -736,11 +736,11 @@ server.registerTool(
   {
     title: 'Share',
     description:
-      // The values named here must be the ones the schema accepts. This used to list the
-      // three contract types in upper case — the TypeScript enum's key names — while the
-      // wire schema is a lower-case z.enum, and zod enums are case-sensitive. The
-      // description is the agent's main signal for what to send, so it was steering
-      // callers into a validation rejection. A test asserts the casing stays in step.
+      // The values named here must be the ones the schema accepts. The wire schema is a
+      // lower-case z.enum and zod enums are case-sensitive, so the description names the
+      // lower-case values rather than the TypeScript enum's upper-case key names. The
+      // description is the agent's main signal for what to send. A test asserts the
+      // casing stays in step.
       "Grant other agents access to specific memory shards. Set type to 'temporary', 'permanent' or 'syndicate', and scope to 'read', 'write' or 'readwrite'. Grantees are hex agent-id hashes, not names, and shardIds lists exactly what is shared: nothing outside it is exposed, and sharing does not copy the memory.",
     inputSchema: {
       granteeIdHashesHex: z.array(z.string()).describe('Hex-encoded grantee agent ID hashes'),
@@ -764,8 +764,8 @@ server.registerTool(
       throw new Error('No grantees given, so this contract would grant access to nobody.');
 
     // The same mistake pointed the other way: a contract over no shards grants access to
-    // nothing, for the same creation fee, under the same SHARED headline. Refusing one
-    // and accepting the other was an inconsistency, not a policy.
+    // nothing, for the same creation fee, under the same SHARED headline, so it is
+    // refused on the same terms.
     if (shardIds.length === 0)
       throw new Error('No shards given, so this contract would grant access to nothing.');
 
@@ -897,11 +897,10 @@ server.registerTool(
 
     const epoch = asScalar(r.epoch);
 
-    // The headline used to read REVOKED whatever came back, with the operator's actual
-    // answer tucked into a `revoked=` field beside it — so `revoked=false` and
-    // `revoked=undefined` both announced themselves as a successful revocation. Someone
-    // reading the first word stops checking, and a grantee they believe they cut off
-    // still has access. Only `true` is a withdrawal; everything else says so up front.
+    // The headline is decided by the operator's actual answer. Only `true` is a
+    // withdrawal; `revoked=false` and an absent field each say so up front instead of
+    // sitting in a detail field under a REVOKED headline. Someone reading the first word
+    // stops checking, and a grantee they believe they cut off would still have access.
     //
     // Read it through asBoolean for the same reason the numerics go through asNumber: a
     // bare `!== true` treats an operator's `"true"` as a failed revocation and tells the
@@ -1051,11 +1050,10 @@ server.registerTool(
     const returnedApprove = asBoolean(v.approve);
 
     // The two ways the operator can say it recorded something other than what was asked
-    // for. They were not treated alike: the direction led with its own headline while a
-    // disagreeing proposal id was appended to the detail line, under a `VOTED [<the id
-    // you asked for>]` headline that asserted the vote went where it did not. Wrong
-    // proposal and wrong direction are the same failure — the vote does not represent
-    // the caller — and neither can be corrected by voting again, so both lead.
+    // for. Both lead the result with their own headline, rather than a disagreeing
+    // proposal id sitting in the detail line under a `VOTED [<the id you asked for>]`
+    // headline. Wrong proposal and wrong direction are the same failure — the vote does
+    // not represent the caller — and neither can be corrected by voting again.
     const wrongDirection = returnedApprove !== undefined && returnedApprove !== approve;
     const wrongProposal = returnedId !== undefined && returnedId !== proposalId;
     const disagreement =
@@ -1171,7 +1169,7 @@ server.registerPrompt(
           text:
             'Before anything else, call the saihm_recall tool (no query, or a keyword if you' +
             ' have one) to load my SAIHM persistent memory for this session, then briefly' +
-            ' summarise what you recalled.\n\n' +
+            ' summarize what you recalled.\n\n' +
             'Then follow these rules for the rest of the session:\n' +
             '- Store with saihm_remember when I state something durable: a preference, a' +
             ' decision, a project fact, or context that should outlive this session. Do not' +

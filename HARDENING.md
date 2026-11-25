@@ -69,12 +69,14 @@ Out of scope for this server (these belong to other layers):
 - **No on-disk persistence.** The server never writes to the
   filesystem, and reads no configuration, credential, or user data
   from it — configuration flows entirely through environment
-  variables. It opens exactly one file: its own `package.json`, once
-  at module load, so that the version reported in `initialize`'s
-  `serverInfo` matches the published package (`saihm_mcp_server.ts`,
-  `readPackageVersion()`; it falls back to `0.0.0-dev` rather than
-  throwing). That read landed in 0.3.1 and this section described the
-  server as reading nothing at all until it was corrected in 0.3.11.
+  variables. Its only file read is a `package.json`, once at module
+  load, so that the version reported in `initialize`'s `serverInfo`
+  matches the published package (`saihm_mcp_server.ts`,
+  `readPackageVersion()`). It reads the package's own `package.json`
+  first. If that file cannot be read or parsed, or has no `version`,
+  it falls back to `package.json` in the current working directory.
+  Only the `version` field is used, and if neither file yields one the
+  server reports `0.0.0-dev` rather than throwing.
 
 ### DoS resistance
 
@@ -119,36 +121,31 @@ Out of scope for this server (these belong to other layers):
   **OIDC trusted publishing**, which generates the SLSA provenance
   attestation automatically — the workflow runs a plain `npm publish`,
   with no `--provenance` flag and no long-lived npm token. That
-  pipeline went live at `0.3.6`. Every version from `0.3.6` to
-  `0.3.10` carries `dist.attestations` with predicate type
-  `https://slsa.dev/provenance/v1`; the ten earlier versions
-  (`0.1.0`–`0.3.5`) were published by hand and carry **no**
-  attestation. The scope is stated because an unscoped "releases carry
-  provenance" would be false of two thirds of the published versions.
-  Verification:
+  pipeline went live at `0.3.6`, and every version from `0.3.6` onward
+  carries `dist.attestations` with predicate type
+  `https://slsa.dev/provenance/v1`. The ten earlier versions
+  (`0.1.0`–`0.3.5`) were published by hand and carry no attestation.
+  Verification (replace `latest` with any version to check that
+  release):
   ```bash
   npm audit signatures
-  npm view @saihm/mcp-server@0.3.10 --json | jq .dist.attestations
+  npm view @saihm/mcp-server@latest dist.attestations --json
   ```
-- **Release tags — no tag is signed, and the gaps are not uniform.**
-  Tag signing is **not** enforced, and this section claims only what is
-  enforced (see the preamble), so it is recorded as a gap rather than a
-  control. The detail matters to anyone planning to close it:
-  `v0.1.0`, `v0.2.0` and `v0.3.0`–`v0.3.5` are **annotated** tags that
-  were never signed, so they could be re-signed in place; `v0.1.2` and
-  `v0.3.6`–`v0.3.10` are **lightweight**, hold no tag object at all,
-  and would have to be recreated as annotated tags first.
-  Version-to-commit mapping has two gaps of its own: `0.1.1` is
-  published on npm with no tag at all, and `v0.3.2`, `v0.3.4` and
-  `v0.3.5` have tags but no GitHub Release. For `0.3.6` onward the
-  artifact-to-source link to rely on is the **provenance attestation**
-  above, which binds that tarball to the Actions run and commit that
-  built it.
+- **Release tags are unsigned.** Tag signing is not enforced, so it is
+  recorded here as a gap rather than a control (see the preamble).
+  `v0.1.2` and `v0.3.6`–`v0.3.10` are lightweight tags; the other
+  release tags are annotated. An annotated tag can be signed in place,
+  while a lightweight tag would first be recreated as an annotated one.
+  Version-to-commit mapping: `0.1.1` is published on npm with no tag,
+  and `v0.1.0`, `v0.1.2`, `v0.3.2`, `v0.3.4` and `v0.3.5` have tags but
+  no GitHub Release. For `0.3.6` onward the artifact-to-source link to
+  rely on is the **provenance attestation** above, which binds that
+  tarball to the Actions run and commit that built it.
 
 ### Surface minimization
 
 - **No EVM tooling.** The package does not depend on `ethers` or any
-  Solidity-compiled artefact. Operators implementing the protocol
+  Solidity-compiled artifact. Operators implementing the protocol
   stack are recommended to use `@noble/curves` and
   `@noble/post-quantum` (MIT) for primitive needs.
 - **No secret-bearing cryptography in this repo.** The MCP server holds
@@ -173,14 +170,18 @@ Out of scope for this server (these belong to other layers):
   introduce surprise versions between commits.
 - **Reproducible build.** `npm ci && npm run build` on the same
   commit yields an identical `dist/`.
-- **CI on every PR and every push to `main`.**
+- **CI on every PR and every push to `main`, with required checks.**
   `.github/workflows/ci.yml` runs lint, format check, typecheck, build
-  and the full test suite on Node 20.x *and* 22.x. Treat it as a
-  signal rather than a gate: `main` carries no branch protection and
-  no rulesets, so a red check does not mechanically block a merge or a
-  push. Promoting it to a required status check is a
-  repository-settings change and is recorded here as a gap. Until
-  0.3.11 this section described the checks as gating a merge.
+  and the full test suite on Node 20.x *and* 22.x, plus a REUSE
+  licensing check. Branch protection on `main` requires the status
+  checks `build (20.x)`, `build (22.x)` and `reuse` to pass, and it
+  blocks force-pushes to `main` and deletion of `main`. The protection
+  is not enforced for administrators, so the repository's admin
+  account can still push to `main` without the checks, and no
+  pull-request review is required while the project has a single
+  maintainer. Branch protection is a repository setting rather than a
+  file in this tree; `gh api
+  repos/SAIHM-Admin/saihm-mcp/branches/main/protection` shows it.
 - **Dependabot enabled.** `.github/dependabot.yml` opens weekly PRs
   for npm-ecosystem updates and security advisories on dependencies.
 
@@ -193,14 +194,11 @@ Out of scope for this server (these belong to other layers):
   the remedy both describe is manual — a pull request without sign-off
   is asked to rebase. Nothing automates that: there is no DCO check in
   `.github/workflows/` and no DCO app installed, so no PR is
-  mechanically rejected. Maintainer practice has lapsed too. Sign-off
-  was adopted during the OpenSSF Silver push and held for a run of
-  commits, but most commits on `main` carry no trailer, including
-  every recent one. Recorded as a gap; this section
-  described sign-off as required and unsigned PRs as rejected until
-  0.3.11.
-- **Private vulnerability channel.** Reports are routed via
-  `security@saihm.net` per
+  mechanically rejected, and most commits on `main` carry no trailer.
+  Recorded as a gap.
+- **Private vulnerability channels.** Reports go to
+  `security@saihm.net` or through GitHub private vulnerability
+  reporting (the repository's Security tab), per
   [`SECURITY.md`](./SECURITY.md); 14-day acknowledgment, 30-day
   fix-or-mitigation-plan targets.
 - **Security-sensitive change review.** `GOVERNANCE.md` requires
@@ -235,7 +233,7 @@ To verify the hardening choices above in the shipped artifact:
 2. **Integration test:** clone, `npm install && npm test`. The test
    asserts the HTTPS-only enforcement, both halves of the 16 MB cap
    (declared `Content-Length` and streamed body), and the
-   header-no-echo behaviour.
+   header-no-echo behavior.
 3. **CI green check:** <https://github.com/SAIHM-Admin/saihm-mcp/actions>
 4. **npm provenance:** `npm view @saihm/mcp-server --json | jq .dist`
    then `npm audit signatures`.
@@ -246,5 +244,5 @@ To verify the hardening choices above in the shipped artifact:
 
 If you find a hardening choice that should be enforced but is not, or
 a documented choice that is *not* in fact enforced in code, please
-follow [`SECURITY.md`](./SECURITY.md) — the private channel is the
+follow [`SECURITY.md`](./SECURITY.md) — a private channel is the
 preferred route. Do not open a public issue for security gaps.

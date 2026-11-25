@@ -287,7 +287,7 @@ operator-integrity threshold (the reference deployment publishes
 
 - **The agent trusts the user's choice of operator endpoint.** The
   MCP server does not vouch for any particular operator. Operator
-  selection (and the trust judgement that comes with it) is the user's
+  selection (and the trust judgment that comes with it) is the user's
   responsibility.
 - **The agent trusts the operator's response verbatim.** Cell IDs,
   audit anchors, and report receipts returned from the operator are
@@ -301,7 +301,7 @@ operator-integrity threshold (the reference deployment publishes
   body — to a host the URL check never saw.
 - **The operator does not see the user's private key.** The protocol
   is wallet-bound; the user holds their signing key, and operator-issued
-  Bearer tokens reflect a prior key-bound enrolment. Rotating the
+  Bearer tokens reflect a prior key-bound enrollment. Rotating the
   Bearer token rotates the operator-visible auth surface without
   touching the user's wallet key.
 
@@ -312,7 +312,7 @@ operator-integrity threshold (the reference deployment publishes
 | Authorization-header leak in transit | HTTPS-only enforcement (except localhost), plus `redirect: 'error'` so the validated scheme is the one used |
 | Request body diverted to an unvalidated host | `redirect: 'error'`; a `307`/`308` preserves method and body, and for `saihm_remember` the body is the memory plaintext |
 | Authorization-header leak via error | Header value never included in `Error.message` |
-| Operator endpoint compromised | User can rotate to a different operator; cells encrypted under user-bound DEKs cannot be decrypted by a new operator without user re-enrolment |
+| Operator endpoint compromised | User can rotate to a different operator; cells encrypted under user-bound DEKs cannot be decrypted by a new operator without user re-enrollment |
 | Hung operator (DoS to MCP server) | 30-second per-call abort |
 | Oversized response (DoS / memory exhaustion) | 16 MB cap, enforced both on declared `Content-Length` and on the streamed body |
 | Crypto algorithm break | `kekVersion` rotation + `crypto_algorithm_agility` (see protocol draft) |

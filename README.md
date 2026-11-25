@@ -1,9 +1,12 @@
 # SAIHM MCP Server
 
-**The standards client for your own custodial SAIHM operator.** It carries no
-cryptography of its own and expects an operator endpoint URL plus an operator
-token. If you just want memory working, free, in about a minute, use
-**`@saihm/mcp-server-pro`** and ask your agent to *"Join SAIHM"*.
+**The MCP client for self-hosted SAIHM operators.** `@saihm/mcp-server` is
+intended for organizations that run their own SAIHM operator endpoint. It carries
+no cryptography of its own and connects with the endpoint URL and operator token
+that your operator issues. It is not the client for SAIHM, Inc.'s hosted service:
+if you use the hosted service at <https://saihm.net>, install
+**`@saihm/mcp-server-pro`**, which encrypts on your machine so the service holds
+only ciphertext, and ask your agent to *"Join SAIHM"*.
 
 [![npm version](https://img.shields.io/npm/v/@saihm/mcp-server)](https://www.npmjs.com/package/@saihm/mcp-server)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12898/badge)](https://www.bestpractices.dev/projects/12898)
@@ -16,19 +19,20 @@ token. If you just want memory working, free, in about a minute, use
 This package is the **standards client**: eight memory tools any MCP agent —
 Claude Code, Claude Desktop, Cursor, or your own — can call. It carries **no
 cryptography of its own**. It speaks the publicly documented SAIHM memory
-protocol over plain MCP and reaches whichever SAIHM operator you point it at.
+protocol over plain MCP and reaches the SAIHM operator endpoint you run.
 
 **Which package do I want?**
 
-- **You run, or subscribe to, your own SAIHM operator** — this one. Being
-  crypto-free and dependency-light is the point: it drops into a **custodial**
-  operator that performs the cryptography server-side.
+- **You run your own SAIHM operator endpoint** — this one. Being crypto-free
+  and dependency-light is the point: it drops into a **custodial** operator that
+  performs the cryptography server-side.
   → [Install](#install) · [Configure](#configure)
-- **You just want memory working, free, in about a minute** — use
+- **You use the hosted SAIHM service at <https://saihm.net>, or want memory
+  working in about a minute** — use
   **[`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)**
-  and ask your agent to *"Join SAIHM"*. It seals cells on your own machine, so it
-  can use the hosted **non-custodial** service — which this crypto-free package
-  cannot. No card. → [Free trial](#free-trial-sign-in-with-github)
+  and ask your agent to *"Join SAIHM"*. It seals cells on your own machine, so
+  the hosted **non-custodial** service holds only ciphertext. The free trial
+  needs no card. → [Free trial](#free-trial-sign-in-with-github)
 
 **Want to watch it work first?** Runnable demos across every major model,
 offline, no account — **[See it run](#see-it-run)**.
@@ -112,30 +116,29 @@ SAIHM_AUTH_HEADER=Bearer <token-issued-by-your-operator>
 ```
 
 > **Don't have an endpoint and token yet?** They're issued by a SAIHM *operator*.
-> This package is deliberately **crypto-free**, so it needs a **custodial**
-> operator — one that performs cryptography server-side and returns plaintext.
+> This package is deliberately **crypto-free**, so it works with a **custodial**
+> operator — one that performs cryptography server-side and returns plaintext —
+> such as the operator endpoint your organization runs.
 >
-> **The hosted SAIHM service at <https://saihm.net> is not one.** It is
-> non-custodial by design: it stores only ciphertext and never holds your keys,
-> so cells sealed there can only be opened by a client that holds them. To use
-> the hosted service — including the **free trial** (sign in with GitHub, no
-> card) — use
-> **[`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)**,
-> which seals and opens on your own machine. See
+> **The hosted SAIHM service at <https://saihm.net> uses
+> [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro).**
+> The service is non-custodial by design: it stores only ciphertext and never
+> holds your keys, so cells sealed there are opened by the client that holds
+> them. `@saihm/mcp-server-pro` seals and opens on your own machine, and it also
+> runs the **free trial** (sign in with GitHub, no card). See
 > [Free trial](#free-trial-sign-in-with-github) and
 > [Join SAIHM](#prefer-not-to-run-storage-yourself-join-saihm) below.
 >
-> Use *this* package against a custodial operator you run or subscribe to.
-> Until one is configured, the tools have nowhere to reach and will return an
-> error.
+> Use *this* package with the custodial operator endpoint you run. Until one is
+> configured, the tools have nowhere to reach and will return an error.
 
 - **`SAIHM_ENDPOINT_URL`** — the endpoint of the **custodial** SAIHM operator you
-  run or subscribe to. Not the hosted service at <https://saihm.net>,
-  which is non-custodial — see the note above.
+  run. For the hosted service at <https://saihm.net>, which is non-custodial,
+  use `@saihm/mcp-server-pro` — see the note above.
 - **`SAIHM_AUTH_HEADER`** — the `Authorization` header value the operator
   expects (typically a `Bearer <token>` issued to you after key-bound
-  enrolment). The server is authentication-agnostic and **never transmits
-  raw private keys**; the operator's enrolment flow keeps your
+  enrollment). The server is authentication-agnostic and **never transmits
+  raw private keys**; the operator's enrollment flow keeps your
   signing key on your machine.
 
 Both are read from the process environment. This package loads no `.env` file —
@@ -206,11 +209,11 @@ anything on top of it.
 | no SAIHM tools offered at all | the host never started the server | keep `timeout` in the JSON below, then restart the host |
 | tools offered, but the agent never calls them | it has no standing instruction to | see **Tell your agent to use it** below — this is the common one |
 | recall runs but comes back empty | nothing was stored on the first turn | ask for `saihm_remember` by name, then recall again |
-| `401` or `403`, and your endpoint is `saihm.net` or `saihm.coti.global` | that service is non-custodial — this client cannot read it | use `@saihm/mcp-server-pro` instead; see the free trial above |
+| `401` or `403`, and your endpoint is `saihm.net` or `saihm.coti.global` | that service is non-custodial and pairs with `@saihm/mcp-server-pro` | use `@saihm/mcp-server-pro` for it; see the free trial above |
 | `401` or `403` from your own operator | no valid token | re-issue it with that operator |
 | `could not reach ...` | endpoint wrong or unreachable | check `SAIHM_ENDPOINT_URL`; the message names the cause |
 
-> **Host note (2026-09-23).** The hosted endpoint is `https://saihm.net/mcp`. The previous host, `saihm.coti.global`, serves the identical service until 2026-12-31 and is then discontinued; a configuration that still names it should switch `SAIHM_ENDPOINT_URL` to `https://saihm.net/mcp`.
+> **Host note (2026-09-23).** The hosted endpoint is `https://saihm.net/mcp`. The previous host, `saihm.coti.global`, serves the identical service until 2026-12-31 and is then discontinued; a `@saihm/mcp-server-pro` configuration that still names it should switch `SAIHM_ENDPOINT_URL` to `https://saihm.net/mcp`.
 
 ## Wire into Claude Code
 
@@ -231,7 +234,7 @@ anything on top of it.
 ```
 
 Keep `timeout`, and keep the block as strict JSON with no trailing commas.
-Hosts that don't recognise `timeout` ignore it, but Cline allows a server only
+Hosts that don't recognize `timeout` ignore it, but Cline allows a server only
 1.5 s to start — too short for `npx` to resolve and launch a package — and a
 server that misses the deadline is skipped **silently**, with no error in the
 chat.
@@ -264,11 +267,12 @@ setting explicitly rather than hoping the agent infers it.
 
 ## What gets persisted, where
 
-The server itself persists nothing. The operator endpoint runs the
-full protocol stack: it encrypts and persists cells to its configured durable
-storage and records audit events. How it encrypts, and whether its erasure is
-cryptographic or access-control, are set by the operator: see the operator's
-documentation for those and for tier details,
+The server itself persists nothing: it writes nothing to disk and keeps no
+cache of memory. The operator endpoint runs the full protocol stack: it persists
+cells to its configured durable storage, records audit events, and is
+responsible for keeping stored memory encrypted at rest. How it encrypts, and
+whether its erasure is cryptographic or access-control, are set by the operator:
+see the operator's documentation for those and for tier details,
 and **[Storage is the operator's responsibility (by design)](#storage-is-the-operators-responsibility-by-design)**
 below.
 
@@ -302,6 +306,13 @@ What you configure (your operator deployment guide lists the exact settings):
 - credentials for at least one Filecoin / IPFS pinning provider for durable
   deep-archive.
 
+**Encryption at rest is the operator runtime's responsibility.** This client
+stores nothing locally: memory text goes from it straight to your operator
+endpoint and is held only there. Keep stored memory encrypted at rest in every
+tier your operator writes to, including the local node, the deep-archive
+provider and any backups. This is a recommendation for every deployment; your
+operator runtime's documentation describes how it encrypts stored cells.
+
 If neither is configured, the endpoint has nowhere durable to put cells and
 will **reject writes rather than lose data**. That refusal is intentional.
 
@@ -316,7 +327,7 @@ You have two paths, and either is fine:
    (see [`@saihm/client-pro`](https://www.npmjs.com/package/@saihm/client-pro)
    and [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)),
    it only ever stores **ciphertext** and never holds your keys — so you get
-   managed storage without giving up custody. Enrol via **Join SAIHM** at
+   managed storage without giving up custody. Enroll via **Join SAIHM** at
    <https://saihm.net> (a paid hosted service).
 
 ## Reporting engine
@@ -451,7 +462,7 @@ The server enforces a small set of defaults so misconfiguration cannot leak the 
 - **Per-call abort window.** Each request runs under an `AbortController` that aborts after 30s, preventing a hung endpoint from starving the MCP server.
 - **Response-size cap.** 16 MB, enforced twice. A `Content-Length` over the cap is rejected before the body is read at all; independently, the body is measured while it streams and the read is aborted the moment it exceeds the cap. The cap therefore does not depend on the sender declaring an honest `Content-Length`, or any at all.
 - **No header echo.** `Authorization` is never included in thrown error messages or stdout.
-- **No configuration or user data read from disk.** Configuration flows entirely through env vars, and nothing is ever written to disk. The package opens exactly one file: its own `package.json`, once at startup, so `serverInfo.version` matches the published version (falling back to `0.0.0-dev` if it cannot be read). No credential, cell, or user-data path touches the filesystem.
+- **No configuration or user data read from disk.** Configuration flows entirely through env vars, and nothing is ever written to disk. The only file read is a `package.json`, once at startup, so `serverInfo.version` matches the published version: the package's own `package.json`, or, if that cannot be read, `package.json` in the current working directory. Only its `version` field is used, and the server reports `0.0.0-dev` if neither file yields one. No credential, cell, or user-data path touches the filesystem.
 - **Zero EVM tooling.** No `ethers`, no `eth_*`, no Solidity. If operators inject signature verifiers via `AuthVerifiers`, they should use pure-crypto libraries (`@noble/curves`, `@noble/post-quantum`).
 
 Trust model: this client trusts whatever endpoint the operator configures. Cell IDs, audit anchors, and report receipts returned from that endpoint are surfaced to the agent verbatim — operators are the authority for content shown via `saihm_recall`. Verifying receipts against the operator's audit records is out of scope for this server; consume the `cellId` and `auditCellId` fields and verify them through your operator's own audit read path.
@@ -506,12 +517,12 @@ pull-request checklist is in
   standing in the IETF standards process.** The current revision, `-03`, is available on
   the datatracker as the reference text.
   <https://datatracker.ietf.org/doc/draft-saihm-memory-protocol/>
-- **npm registry** — releases from `0.3.6` (2026-06-30) onward are published
-  from GitHub Actions over OIDC trusted publishing and carry an npm sigstore
-  provenance attestation; `0.3.6`–`0.3.10` all do, and the ten earlier
-  versions (`0.1.0`–`0.3.5`), published by hand, do not — see `HARDENING.md`
-  §"Distribution integrity", which also records that no release tag is signed.
-  `0.3.4` (2026-06-22) adds a
+- **npm registry** — every release from `0.3.6` (2026-06-30) onward is
+  published from GitHub Actions over OIDC trusted publishing and carries an npm
+  sigstore provenance attestation; the ten earlier versions (`0.1.0`–`0.3.5`)
+  were published by hand and carry none. Release tags are not signed.
+  `HARDENING.md` §"Distribution integrity" has the details and the commands to
+  verify them. `0.3.4` (2026-06-22) adds a
   conspicuous "Storage is the operator's responsibility (by design)" section —
   documenting BYO storage and the Join-SAIHM hosted, non-custodial option.
   `0.3.3` (2026-06-22) was
@@ -536,22 +547,37 @@ pull-request checklist is in
 
 ## Roadmap
 
-Near-term tracks, by quarter:
+Tracks by quarter:
 
-- **2026-Q2 (closed — one gap carried forward)** — Of the OpenSSF Silver
-  pursuit, governance, code-of-conduct, DCO sign-off, coverage tooling and the
-  assurance case all landed. Release-tag signing did **not**; `GOVERNANCE.md`
-  §"Releases" and `HARDENING.md` §"Distribution integrity" both record it as an
-  open gap, and it is carried into the Silver track below.
-- **2026-Q3** — First 2–3 external organization deployments.
-- **2026-Q4** — NIST AI RMF crosswalk public review; EU AI Act
-  compliance-checklist generator. OpenSSF Silver award (target).
-- **2027-Q1** — v1.0 reference implementation. The specification's
-  standards path is open: the ISE route closed on 2026-07-25, and the
-  intent is to re-anchor the normative reference on an IETF
-  working-group document once one exists that can be cited. No
-  publication date is being claimed for that, because none is in the
-  project's gift.
+- **2026-Q2 (closed — release-tag signing carried forward)** — Of the OpenSSF
+  Silver work, these landed: governance, a code of conduct, a documented DCO
+  sign-off policy, coverage tooling and the assurance case. Release-tag signing
+  is tracked in `GOVERNANCE.md` §"Releases" and `HARDENING.md` §"Distribution
+  integrity". Releases from `0.3.6` onward carry an npm provenance attestation
+  that ties each package to the commit that built it (see
+  [Achievements](#achievements)).
+- **2026-Q4** — OpenSSF Silver badge (target).
+- **2027-Q1** — v1.0 reference implementation. The specification's standards
+  path is open: on 2026-07-25 the ISE concluded its consideration and directed
+  the work toward IETF working-group activity (the `agentproto` effort), and the
+  intent is to re-anchor the normative reference on a working-group document
+  once one exists that can be cited. No publication date is claimed, because
+  the timing depends on the working group.
+- **2027-Q2 to 2027-Q4** — Open items, none with a date:
+  - Repository-settings controls on `main` (required review, a DCO check) and
+    signed release tags, tracked in `ASSURANCE_CASE.md` and `HARDENING.md`. CI
+    already runs on every pull request and push to `main`, and branch
+    protection requires its checks to pass.
+  - A Technical Steering Committee, formed the first time a second core
+    maintainer joins from a different organization than the founding
+    maintainer's, under a charter committed to this repository before its first
+    decision (`GOVERNANCE.md` §"Technical Steering Committee (TSC)"). The route
+    to maintainer is in `GOVERNANCE.md` §"Adding and removing maintainers".
+
+Not planned for this repository, by design (`ARCHITECTURE.md` §"Anti-overreach
+principles"): an operator-endpoint reference implementation (operators run that
+component separately), a memory store inside the server, vector-database
+semantics and agent-runtime semantics.
 
 ## Support
 

@@ -5,7 +5,8 @@ start" first — for this package it changes what you should install.
 
 ## What this server is
 
-The **standards client** for a *custodial* SAIHM operator: a server that performs
+The **standards client** for a *custodial* SAIHM operator, intended for
+organizations that run their own SAIHM operator endpoint: a server that performs
 the cryptography and returns plaintext. This package is deliberately crypto-free,
 holds no keys, and persists nothing itself. It exposes the eight canonical
 protocol tools — `saihm_remember`, `saihm_recall`, `saihm_forget`,
@@ -14,19 +15,21 @@ protocol tools — `saihm_remember`, `saihm_recall`, `saihm_forget`,
 
 ## Before you start — pick the right package
 
-This one needs an endpoint URL **and** an operator-issued token. It cannot
-self-onboard, and there is no free path through it.
+This one connects with an endpoint URL **and** an operator-issued token, both
+from the operator the user runs; it does not self-onboard.
 
-- **The user already has an operator endpoint and token** → continue here.
-- **They don't, or they want to start free** → install
+- **The user runs an operator endpoint and has a token** → continue here.
+- **They use the hosted service at <https://saihm.net>, have no endpoint yet,
+  or want to start with the free trial** → install
   [`@saihm/mcp-server-pro`](https://www.npmjs.com/package/@saihm/mcp-server-pro)
   instead and follow its own `llms-install.md`. It self-onboards, seals cells on
-  the user's machine, and needs no token from anyone. Do not try to make this
-  package work without an operator; it will fail on first call, not at startup.
+  the user's machine, and needs no token from anyone. This package needs an
+  operator endpoint: without one it starts normally and reports a setup error on
+  the first tool call.
 
-The hosted service at <https://saihm.net> is **not** a custodial
-operator — it is non-custodial by design and stores only ciphertext. Pointing
-this package at it will not work. That is what the pro client is for.
+The hosted service at <https://saihm.net> is non-custodial by design and stores
+only ciphertext, so it pairs with the pro client, which encrypts on the user's
+machine.
 
 ## Step 1 — write the MCP config
 
@@ -75,12 +78,12 @@ and stop — do not also dump the configuration back to them.
 | what you see | cause | what to do |
 |---|---|---|
 | no SAIHM tools offered at all | the host never started the server | confirm `timeout` is present, then restart the host |
-| `401`/`403` and the endpoint is `saihm.net` or `saihm.coti.global` | that service is non-custodial; this client cannot read it | install `@saihm/mcp-server-pro` instead — see "Before you start" |
+| `401`/`403` and the endpoint is `saihm.net` or `saihm.coti.global` | that service is non-custodial and pairs with `@saihm/mcp-server-pro` | install `@saihm/mcp-server-pro` for it — see "Before you start" |
 | `401`/`403` from the user's own operator | token missing, wrong, or expired | ask the user to re-issue it with their operator |
 | `could not reach <url>` | endpoint wrong or unreachable from this machine | the message names the cause (DNS, refused, TLS); fix the URL |
 | tools present but never used | the agent has no standing instruction | tell the user to add a line to their persistent instructions asking the agent to recall at session start and remember what matters |
 
-Host note (2026-09-23): The hosted endpoint is `https://saihm.net/mcp`. The previous host, `saihm.coti.global`, serves the identical service until 2026-12-31 and is then discontinued; a configuration that still names it should switch `SAIHM_ENDPOINT_URL` to `https://saihm.net/mcp`.
+Host note (2026-09-23): The hosted endpoint is `https://saihm.net/mcp`. The previous host, `saihm.coti.global`, serves the identical service until 2026-12-31 and is then discontinued; a `@saihm/mcp-server-pro` configuration that still names it should switch `SAIHM_ENDPOINT_URL` to `https://saihm.net/mcp`.
 
 Do not retry a failing call in a loop. Each of the causes above needs a human
 decision, and repeated calls will not change any of them.

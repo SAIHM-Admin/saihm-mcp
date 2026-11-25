@@ -5,8 +5,9 @@
  *
  * Forwards MCP tool calls to a SAIHM operator endpoint over HTTPS. The endpoint
  * is operator-supplied and runs the full SAIHM protocol stack behind the 8 MCP tools.
- * This client holds no crypto and no storage — it signs the JSON-RPC envelope
- * with the operator's signing key and lets the endpoint do the protocol work.
+ * This client forwards each call as an HTTPS POST with the configured
+ * Authorization header and lets the endpoint do the protocol work. It holds no
+ * keys, does no signing and keeps no storage.
  *
  * Configure via env:
  *   SAIHM_ENDPOINT_URL  HTTPS endpoint, e.g. https://operator.example.com/mcp
@@ -53,9 +54,9 @@ export function safeEndpoint(raw: string): string {
 }
 
 /**
- * The hosted SAIHM service is non-custodial; this crypto-free client cannot use it.
- * Both hostnames are the same operator: the original host keeps serving indefinitely
- * (installed clients dial it), and saihm.net is the canonical brand host.
+ * The hosted SAIHM service is non-custodial and pairs with @saihm/mcp-server-pro, not
+ * this crypto-free client. Both hostnames are the same operator: the original host,
+ * saihm.coti.global, is served until 2026-12-31, and saihm.net is the canonical host.
  */
 const HOSTED_NON_CUSTODIAL_HOSTS: ReadonlySet<string> = new Set(['saihm.coti.global', 'saihm.net']);
 export function isHostedNonCustodial(endpoint: string): boolean {
@@ -85,7 +86,7 @@ function assertEndpointUrl(endpoint: string): void {
     // The value is not quoted back. This branch is reached only by a string that
     // failed to parse as a URL, so every value that arrives here is the wrong value,
     // and the likeliest wrong value is the contents of SAIHM_AUTH_HEADER put in the
-    // neighbouring variable. A thrown message becomes the text of an isError tool
+    // neighboring variable. A thrown message becomes the text of an isError tool
     // result, which is handed to the model and written to the transcript, so quoting
     // it would copy a bearer token into both. Name the variable and the shape it
     // should have instead — which is what the https branch below already does, and
@@ -219,7 +220,7 @@ export interface GovernanceEntry {
   /** Voting-window close, UNIX epoch seconds (decimal string). Spec §3.4. */
   closes_ts: string;
   /**
-   * Vote-weight tally in favour (decimal string). Spec §3.4
+   * Vote-weight tally in favor (decimal string). Spec §3.4
    * specifies unsigned integer; surfaced as `string` so unbounded
    * weight aggregates beyond 2^53 - 1 remain exact.
    */
@@ -348,10 +349,9 @@ export interface GovernanceVoteResult {
  * A chunked response carries no Content-Length at all — which is what Node's own
  * http server sends whenever it does not set the length itself — so the header
  * lookup yields null, `Number(null ?? '0')` is 0, and the check waves it through.
- * Everything that streams its reply therefore reached res.json() with no limit on
- * how much it could buffer. Counting bytes as they arrive is what actually bounds
- * memory, and cancelling mid-stream means a hostile endpoint is cut off rather
- * than downloaded in full and complained about afterwards.
+ * Counting bytes as they arrive is therefore what bounds memory for a streamed
+ * reply, and canceling mid-stream means a hostile endpoint is cut off rather than
+ * downloaded in full and rejected afterwards.
  *
  * Decoding is streamed too: a UTF-8 character can straddle a chunk boundary, and
  * decoding each chunk independently would corrupt it into replacement characters.
@@ -390,12 +390,9 @@ async function readCapped(res: Response, method: string): Promise<string> {
 
 export class SaihmRuntimeClient {
   /**
-   * `timeoutMs` defaults to the shipped 30s window and exists so the abort path can be
-   * exercised. It previously could not be: the only way to reach it was to wait 30
-   * seconds, so the suite skipped it and asserted a bare `true` instead — a test that
-   * always passed, counted as a pass, and was cited by ASSURANCE_CASE.md as the
-   * verification for the availability claim. A control that cannot be tested in the
-   * suite ends up evidenced by a placeholder, so the control is made testable.
+   * `timeoutMs` defaults to the shipped 30s window. It is a parameter so the test suite
+   * can exercise the abort path with a short window instead of waiting 30 seconds, which
+   * keeps the availability control covered by a real test.
    */
   constructor(
     private readonly endpoint: string,

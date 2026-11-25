@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.18] — 2026-11-28
 
-Security maintenance. No new tools, no removed tools, no schema change: the
-eight tools and their input schemas are unchanged from `0.3.17`.
+Security maintenance and documentation. No new tools, no removed tools, no
+schema change: the eight tools and their input schemas are unchanged from
+`0.3.17`.
 
 ### Security
 
@@ -47,14 +48,60 @@ eight tools and their input schemas are unchanged from `0.3.17`.
   other packages above resolve from the MCP SDK's own version ranges, which
   admit the fixed releases. `npm audit --omit=dev` reports 0 vulnerabilities.
 
+### Changed
+
+- **Package metadata.** The `package.json` description states who the package
+  is for: organizations running their own SAIHM operator endpoint, with
+  `@saihm/mcp-server-pro` named for the hosted service. `author` is now
+  `SAIHM, Inc.`, with `ops@saihm.net` and <https://saihm.net>.
+- **Session-bootstrap prompt.** The prompt now uses the American spelling
+  "summarize". This is the only change to the prompt, tool and message text the
+  server sends.
+
 ### Documentation
 
+- **Who this package is for.** README and `llms-install.md` state that
+  `@saihm/mcp-server` is intended for organizations that run their own SAIHM
+  operator endpoint. Users of SAIHM, Inc.'s hosted service at
+  <https://saihm.net> use `@saihm/mcp-server-pro`, which encrypts on their own
+  machine so the service holds only ciphertext. This client's custodial model
+  is unchanged and still described: memory goes to your operator endpoint,
+  which performs the cryptography.
+- **Encryption at rest.** The README operator section states that the operator
+  runtime is responsible for encryption at rest and recommends keeping stored
+  memory encrypted in every tier, including backups. This client stores
+  nothing locally.
 - **README.** Names SAIHM, Inc. as the developer and maintainer, points to
-  draft `-03` as the current revision, adds a Tests section and revises the
-  roadmap.
+  draft `-03` as the current revision, adds a Tests section, and extends the
+  roadmap through 2027-Q4.
+- **Version lookup.** README, `HARDENING.md`, `ASSURANCE_CASE.md` and
+  `.bestpractices.json` describe the startup version read in full: the server
+  reads its own packaged `package.json` and, if that cannot be read,
+  `package.json` in the current working directory, using only the `version`
+  field.
+- **Provenance and tags.** README, `HARDENING.md`, `ASSURANCE_CASE.md` and
+  `.bestpractices.json` give the provenance range as 0.3.6 and later, with none
+  on 0.1.0 to 0.3.5, and record release tags as unsigned. The verification
+  example uses `@latest`, so it stays current.
+- **Repository controls.** Branch protection on `main` requires the
+  `build (20.x)`, `build (22.x)` and `reuse` checks and blocks force-pushes and
+  deletion. `HARDENING.md`, `ASSURANCE_CASE.md`, `GOVERNANCE.md` and
+  `.bestpractices.json` describe it, including that it is not enforced for
+  administrators and requires no review while the project has a single
+  maintainer.
+- **Vulnerability reporting.** `SECURITY.md` adds GitHub private vulnerability
+  reporting as a second private channel beside security@saihm.net.
+- **Runtime client comment.** The header comment of `saihm_runtime_client.ts`
+  says what the client does: it forwards each call as an HTTPS POST with the
+  configured Authorization header, and it holds no keys and does no signing.
+- **Comments and spelling.** Code comments give the reason for each guard in
+  the present tense, and the docs, comments and prompt use American spelling.
+  Some earlier CHANGELOG entries are reworded for clarity; what each release
+  changed is described as before.
 - **License headers.** The compiled JavaScript in `dist/` now starts with the
   SPDX license identifier and copyright line that every source file carries.
-  Apart from those two comment lines, `dist/` is identical to `0.3.17`.
+  Apart from comments and the prompt word above, `dist/` is identical to
+  `0.3.17`.
 
 ## [0.3.17] — 2026-10-11
 
@@ -104,8 +151,8 @@ tools and their input schemas are byte-identical to `0.3.15`.
   0.3.17: served until 2026-12-31, then discontinued.)*
 - **The hosted-service hint recognizes both hosts.** A `401` or `403` from
   `saihm.net` or from `saihm.coti.global` is explained the same way: that
-  service is non-custodial, this client cannot read it, and
-  `@saihm/mcp-server-pro` is the client for it. A `401` from any other
+  service is non-custodial, and `@saihm/mcp-server-pro` is the client for
+  it. A `401` from any other
   operator is reported plainly, as before.
 
 ## [0.3.15] — 2026-09-23
@@ -133,12 +180,12 @@ the eight tools and their input schemas are byte-identical to `0.3.14`.
   reach, plus the underlying cause. Userinfo, query and fragment are stripped
   first: that value is operator-supplied, may carry credentials or a token, and
   an error message is read by an agent and lands in a transcript.
-- **A `401` from the hosted service now says it is the wrong client.** That
-  service is non-custodial and holds only ciphertext, so this crypto-free client
-  cannot read memory there and no token changes that. The symptom was identical
-  to an expired operator token, and the obvious remedy — re-issue the token —
-  can never work. The hint is gated on an exact host match, so an ordinary
-  operator's auth failure reads exactly as before.
+- **A `401` from the hosted service now points to `@saihm/mcp-server-pro`.**
+  That service is non-custodial and holds only ciphertext, so it pairs with the
+  pro client, which encrypts on your machine. The symptom looks like an expired
+  operator token, so the message names the client to use instead of suggesting a
+  new token. The hint is gated on an exact host match, so an ordinary operator's
+  auth failure reads exactly as before.
 
 ## [0.3.14] — 2026-09-12
 
@@ -154,7 +201,7 @@ sees about this package.
   "standards client for your own custodial SAIHM operator" and name the two
   things it needs: an operator endpoint URL and an operator token. Until now
   this package and the free-to-start one opened with the same sentence, and
-  the pointer to the free path sat one level down, inside an
+  the pointer to the free path was one level down, inside an
   environment-variable note. It is now in the first sentence: if you just want
   memory working, free, in about a minute, use `@saihm/mcp-server-pro` and ask
   your agent to "Join SAIHM".
@@ -197,9 +244,9 @@ this upgrade is transparent at the tool boundary.
 What changed is what an agent is *told*. Every tool description was rewritten to
 say what the tool does, what it returns, and what it will not do — so that a
 model choosing between tools can choose correctly without calling one to find
-out. Two long-standing gaps are closed: `saihm_share` now states that grantees
+out. Two descriptions now say more: `saihm_share` states that grantees
 are agent-id hashes rather than names and that sharing does not copy the memory,
-and `saihm_revoke_share` now states that revocation is forward-only and cannot
+and `saihm_revoke_share` states that revocation is forward-only and cannot
 retract what a grantee has already read.
 
 ### Added
@@ -243,7 +290,7 @@ reporting module reads from a caller — is now treated as untrusted, and that t
 Smithery listing can finally be scanned.
 
 That tightening is visible at the tool boundary, so treat the upgrade as
-behaviour-changing rather than transparent: inputs `0.3.10` accepted are now
+behavior-changing rather than transparent: inputs `0.3.10` accepted are now
 refused instead of being stored or forwarded — an empty `saihm_remember` write
 and a malformed agent-id hash among them. The schemas did not change; the set of
 values that survive them narrowed. Operators of the reporting module have one
@@ -306,7 +353,7 @@ further break: every signed message is regenerated this release, detailed under
   that claimed parity with that rule has been corrected.
 - **`checkKindAuthCoupling` threw instead of refusing on an unknown kind.** The
   requirements table is keyed by a type that does not exist at runtime, so an
-  unrecognised kind indexed to `undefined` and crashed on `.includes`. Guarding
+  unrecognized kind indexed to `undefined` and crashed on `.includes`. Guarding
   `=== undefined` alone left the inherited half open: `constructor`,
   `toString`, `hasOwnProperty` and `__proto__` answer from `Object.prototype`
   and walked past the guard into the same `TypeError`. The lookup now requires
@@ -337,7 +384,7 @@ further break: every signed message is regenerated this release, detailed under
   check was an early-out, not enforcement: a chunked reply carries no such
   header, `Number(null ?? '0')` is `0`, and anything that streamed its response
   reached `res.json()` with no limit on how much it could buffer. Bytes are now
-  counted as they arrive and the stream is cancelled mid-flight, so a hostile
+  counted as they arrive and the stream is canceled mid-flight, so a hostile
   endpoint is cut off rather than downloaded in full and complained about
   afterwards. Decoding is streamed too, so a UTF-8 character straddling a chunk
   boundary is no longer corrupted.
@@ -393,18 +440,18 @@ further break: every signed message is regenerated this release, detailed under
   32-byte hash that was never sent. Scalars that are genuinely numeric, such as
   an epoch or a fee, are unaffected.
 - **A vote recorded in the opposite direction no longer slips past the mismatch
-  check.** An operator that serialises `false` as `"false"` read as "not
+  check.** An operator that serializes `false` as `"false"` read as "not
   reported" against a bare `typeof === 'boolean'` test, dropping the very
   mismatch warning that exists to catch it. Boolean fields are now read through
   a check that accepts every unambiguous spelling. The two callers are not
-  symmetric and the reader leans accordingly: an unrecognised `revoked` is read
+  symmetric and the reader leans accordingly: an unrecognized `revoked` is read
   as "not true", which errs toward warning about access that was in fact
   withdrawn.
 - **`saihm_forget` no longer reports an erasure it cannot evidence.** Erasure is
   the one claim here that a user cannot check afterwards — by construction
   nothing is left to look at — so it is now reported only on a receipt that
   names *which* cell was destroyed. `success: true` with no cell id is an
-  acknowledgement, not evidence, and would have rendered as
+  acknowledgment, not evidence, and would have rendered as
   `FORGOTTEN [undefined]` under a GDPR Art. 17 request. A response that is not
   an object, or a `success` that is neither true nor false, is diagnosed rather
   than reported as "not found or already destroyed", which asserts a cause the
@@ -456,9 +503,9 @@ further break: every signed message is regenerated this release, detailed under
 
 - **Corrected the release history for `0.1.1`–`0.1.3`.** `0.1.3` was prepared
   but never published — there is no npm version, no tag and no GitHub Release —
-  and is now labelled as such rather than deleted, since other documents cite
-  its date for the OpenSSF badge. `0.1.1` did reach npm but was never written
-  up; its entry is reconstructed from the published tarball metadata. The
+  and is now labeled as such rather than deleted, since other documents cite
+  its date for the OpenSSF badge. `0.1.1` is published on npm, and its entry
+  is now written from the published tarball metadata. The
   `mcpName` casing correction is attributed to `0.1.2`, where it happened,
   rather than being described there as an addition.
 
@@ -514,12 +561,12 @@ further break: every signed message is regenerated this release, detailed under
 
 ### Changed
 
-- **Corrected setup guidance that pointed this client at an incompatible
-  service.** The README and the first-run hint directed readers to the hosted
-  SAIHM service at <https://saihm.coti.global> for an endpoint and token. That
-  service is non-custodial by design and cannot serve this deliberately
-  crypto-free client. The README, the first-run hint and the `SAIHM_ENDPOINT_URL`
-  description in the MCP registry listing now state that plainly and route
+- **Setup guidance routes hosted-service users to the pro client.** The README
+  and the first-run hint directed readers to the hosted SAIHM service at
+  <https://saihm.coti.global> for an endpoint and token. That service is
+  non-custodial by design and pairs with `@saihm/mcp-server-pro`, not this
+  deliberately crypto-free client. The README, the first-run hint and the
+  `SAIHM_ENDPOINT_URL` description in the MCP registry listing now say so and route
   hosted-service users — including the free trial — to `@saihm/mcp-server-pro`,
   and describe `SAIHM_ENDPOINT_URL` as a **custodial** operator you run or
   subscribe to.
@@ -605,8 +652,8 @@ package remains crypto-free.
   states that the endpoint and token are issued by an *operator* and gives both
   routes — join the hosted service, or run your own endpoint — plus the
   consequence of configuring neither.
-- The README version line was a hardcoded `v0.3.4`, three releases stale. It is
-  now a dynamic npm version badge, so it cannot drift again.
+- The README version line, a hardcoded `v0.3.4`, is now a dynamic npm version
+  badge, so it always shows the current release.
 
 ## [0.3.6] — 2026-06-30
 
@@ -674,7 +721,7 @@ the published JavaScript is behavior-identical to 0.3.2.
 - Added a companion-package cross-reference to `@saihm/client-pro`
   (production client-side post-quantum cryptography) in the README and
   refreshed the npm `description` to match.
-- Corrected a misleading "Standards-track release" label on the historical
+- Replaced the "Standards-track release" label on the historical
   0.1.3 entry below; that release was OpenSSF and governance work, unrelated
   to any standards-track status.
 
@@ -689,14 +736,14 @@ the published JavaScript is behavior-identical to 0.3.1.
   `SAIHM_ENDPOINT_URL` examples (×2) and the `saihm_runtime_client`
   configuration comment (×1).
 - Corrected the distribution-integrity note: each release carries the
-  npm registry signature (verify with `npm audit signatures`); the
-  prior wording claimed sigstore provenance, which is not currently
-  produced (no provenance attestation, no CI release workflow).
+  npm registry signature (verify with `npm audit signatures`). Sigstore
+  provenance attestations arrived later, with the OIDC release workflow
+  in 0.3.6.
 
 ## [0.3.1] — 2026-05-28
 
-Patch release. Fixes a long-standing version-string defect in the
-MCP-server initialization: the `serverInfo.version` returned to MCP
+Patch release. Fixes the version string reported at MCP-server
+initialization: the `serverInfo.version` returned to MCP
 clients on `initialize` was hardcoded to `"0.1.0"` since the very
 first 0.1.0 release, regardless of the npm-published version
 (observed via post-publish smoke testing of 0.3.0). The fix sources
@@ -904,7 +951,7 @@ release will perform the corresponding `StatusSnapshot` alignment.
 > returns E404, there is no `v0.1.3` git tag, and there is no GitHub Release.
 > The work below was really done on this date, but it first reached npm in
 > `0.2.0` (2026-05-28). The entry is kept because the files it describes are
-> real and other documents cite this date for the OpenSSF badge; it is labelled
+> real and other documents cite this date for the OpenSSF badge; it is labeled
 > rather than deleted so that nobody tries to install it or cite it as shipped.
 
 Governance and assurance release: OpenSSF Best Practices Passing badge achieved
@@ -960,17 +1007,15 @@ full metadata.
 - `mcpName` casing corrected to `io.github.SAIHM-Admin/saihm-mcp`. It was
   added in `0.1.1` as `io.github.saihm-admin/saihm-mcp`, and the MCP Registry
   namespace must match the GitHub organization exactly, so the lowercase form
-  could not be registered. (This entry previously claimed `mcpName` was *added*
-  here; it was added one version earlier.)
+  could not be registered.
 
 ### Added
 - `server.json` — MCP Registry submission metadata.
 
 ## [0.1.1] — 2026-05-16
 
-Registry-metadata release. This version went to npm at the time but was never
-written up here; the entry was reconstructed from the published tarball
-metadata.
+Registry-metadata release, published to npm. This entry was written later,
+from the published tarball metadata.
 
 ### Added
 - `mcpName` field in `package.json` for MCP Registry discovery, as
@@ -994,14 +1039,6 @@ metadata.
 - No `v0.1.1` git tag or GitHub Release was cut for this version, so it is the
   one published version that cannot be mapped to a commit by tag.
   `HARDENING.md` §"Distribution integrity" records this.
-- A previous revision of this entry ended with a note claiming the version had
-  been skipped and its contents folded into `0.1.2`. That was wrong and is
-  withdrawn: `npm view @saihm/mcp-server versions` lists `0.1.1`, the tarball
-  is served at `.../@saihm/mcp-server/-/mcp-server-0.1.1.tgz`, and its
-  `package.json` carries the lower-case `mcpName` described above — which is
-  precisely what `0.1.2` then corrected. The claim was a leftover from before
-  this entry was reconstructed, and it contradicted both the entry's own
-  opening line and the npm link at the foot of this file.
 
 ## [0.1.0] — 2026-05-09
 

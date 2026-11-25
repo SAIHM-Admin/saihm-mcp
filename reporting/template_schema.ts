@@ -81,9 +81,9 @@ export function validateBespokeTemplate(input: unknown): ValidationResult {
 
   for (const field of t.fieldProjections) {
     if (!isFieldInUniverse(field)) {
-      // Size read from the set, not written as a literal. The message used to say
-      // "262-field universe" while enforcement ran against all 280 (262 framework +
-      // 18 ledger), so an operator debugging a rejection counted the wrong boundary.
+      // Size read from the set, not written as a literal, so the message always names
+      // the boundary that is enforced: framework and ledger fields together, as the
+      // operator debugging a rejection needs to count them.
       errors.push(
         `fieldProjections: '${field}' not in ${FIELD_UNIVERSE_SET.size}-field universe` +
           ' (security boundary)',

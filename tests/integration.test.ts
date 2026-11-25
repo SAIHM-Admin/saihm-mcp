@@ -4054,25 +4054,23 @@ async function main() {
     'R26-H README no longer instructs a .env file as the configuration mechanism',
   );
 
-  // ── R27-A. Process controls documented as enforced, with nothing enforcing them. ──
-  // HARDENING.md §"Process hardening" claimed "PRs without sign-off are rejected" and
-  // "Tests and type-check must pass on Node 20.x *and* 22.x before merge";
-  // ASSURANCE_CASE §G-process listed Sign-off, Review and CI gate as process controls.
-  // None of the three was enforced by anything: there is no DCO check in
-  // .github/workflows/ and no DCO app, `main` carries no branch protection and no
-  // rulesets (both verified against the GitHub API), and most commits carry no
-  // Signed-off-by trailer — sign-off was adopted in the Silver push and then lapsed.
-  // What the docs described as mechanisms are conventions the founding maintainer chooses to
-  // follow, which is a materially weaker claim than the one an auditor reading an
-  // assurance case takes away. Same class as R26-I: a control asserted as enforced,
-  // never revisited after the reality moved.
+  // ── R27-A. Process controls must be documented exactly as enforced. ──
+  // Each process control is described at the strength something actually enforces it.
+  // DCO sign-off: there is no DCO check in .github/workflows/ and no DCO app, and most
+  // commits carry no Signed-off-by trailer, so sign-off is a documented policy, not an
+  // enforced control. Review: no review is required by the repository settings while
+  // the project has a single maintainer. CI: since 2026-11-25, branch protection on
+  // `main` requires the status checks `build (20.x)`, `build (22.x)` and `reuse` and
+  // blocks force-pushes and deletion, but it is not enforced for administrators (read
+  // back from the GitHub API: gh api repos/SAIHM-Admin/saihm-mcp/branches/main/protection).
   //
   // Tested at the granularity of the CLAIM rather than the file, and tied to repo
   // reality rather than to a word blocklist: an automated-DCO claim is legal exactly
   // when a workflow exists that could enforce it, so adding one re-permits the claim
-  // with no test edit. Merge-gating is different — branch protection is a repository
-  // setting with no in-tree artifact, so a doc cannot evidence it and must not assert
-  // it; if it is ever enabled, land a ruleset-as-code file and extend this check.
+  // with no test edit. Branch protection is a repository setting with no in-tree
+  // artifact, so the docs state it with its limits (admins not enforced, no required
+  // review), and the check names they give must match the jobs ci.yml defines, so a
+  // renamed job cannot leave the docs naming a check that no longer runs.
   const workflowDir = fileURLToPath(new URL('../.github/workflows', import.meta.url));
   const workflowText = readdirSync(workflowDir)
     .map((f) => readFileSync(`${workflowDir}/${f}`, 'utf8'))
@@ -4111,7 +4109,10 @@ async function main() {
   }
   for (const [legal, why] of [
     ['a pull request without sign-off is asked to rebase', 'manual remedy'],
-    ['Not a merge gate — no required status check is configured.', 'corrected disclosure'],
+    [
+      'Branch protection on `main` requires the `build (20.x)`, `build (22.x)` and `reuse` status checks to pass.',
+      'branch-protection disclosure',
+    ],
     [
       'PRs whose commits lack it are asked to rebase with sign-off before merge.',
       'GOVERNANCE policy',
@@ -4133,12 +4134,39 @@ async function main() {
     }
   }
 
-  // And the gaps must be disclosed, not merely un-overclaimed. Silence would pass
-  // every check above while still leaving a reader to assume the controls are gates.
+  // And the limits must be disclosed, not merely un-overclaimed. Silence would pass
+  // every check above while still leaving a reader to assume every control is a gate.
+  //
+  // The required checks the docs name must be jobs ci.yml really defines: a `build` job
+  // whose matrix yields `build (20.x)` and `build (22.x)`, and a `reuse` job.
+  const ciYml = readFileSync(`${workflowDir}/ci.yml`, 'utf8');
   assert(
-    /no branch protection and\s+no rulesets/i.test(repoFile('HARDENING.md').replace(/\s+/g, ' ')),
-    'R27-A HARDENING discloses that CI is not a required status check',
+    /^ {2}build:\s*$/m.test(ciYml) &&
+      /node-version:\s*\[\s*'20\.x',\s*'22\.x'\s*\]/.test(ciYml) &&
+      /^ {2}reuse:\s*$/m.test(ciYml),
+    'R27-A ci.yml defines the jobs behind the required checks build (20.x), build (22.x) and reuse',
   );
+  const REQUIRED_CHECKS = /`?build \(20\.x\)`?, `?build \(22\.x\)`? and `?reuse`?/;
+  for (const doc of ['HARDENING.md', 'ASSURANCE_CASE.md', 'GOVERNANCE.md', '.bestpractices.json']) {
+    const flat = repoFile(doc).replace(/\s+/g, ' ');
+    assert(REQUIRED_CHECKS.test(flat), `R27-A ${doc} names the required status checks on main`);
+    assert(
+      /not enforced for administrators/i.test(flat),
+      `R27-A ${doc} discloses that branch protection is not enforced for administrators`,
+    );
+    assert(
+      !/no branch protection/i.test(flat),
+      `R27-A ${doc} no longer says main has no branch protection`,
+    );
+  }
+  for (const doc of ['HARDENING.md', 'ASSURANCE_CASE.md', 'GOVERNANCE.md']) {
+    assert(
+      /requires? no review|no (?:pull-request )?review is required|GitHub requires no review/i.test(
+        repoFile(doc).replace(/\s+/g, ' '),
+      ),
+      `R27-A ${doc} discloses that no review is required while there is one maintainer`,
+    );
+  }
   assert(
     /not an enforced control/i.test(repoFile('HARDENING.md')),
     'R27-A HARDENING records DCO sign-off as a gap rather than a control',
@@ -4149,10 +4177,10 @@ async function main() {
     'R27-A ASSURANCE_CASE marks the sign-off and review rows as gaps',
   );
   assert(
-    /no branch protection and no rulesets/i.test(
+    /conventions the maintainer follows rather than mechanisms/i.test(
       repoFile('ASSURANCE_CASE.md').replace(/\s+/g, ' '),
     ),
-    'R27-A ASSURANCE_CASE residual risk states the controls are conventions, not mechanisms',
+    'R27-A ASSURANCE_CASE residual risk states the sign-off and review controls are conventions',
   );
   {
     const bp = JSON.parse(repoFile('.bestpractices.json')) as Record<string, string>;

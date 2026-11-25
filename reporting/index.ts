@@ -174,20 +174,18 @@ import type { BespokeReportTemplate, ReportReceipt, ValidationResult } from './t
 /**
  * Deterministic JSON with keys sorted at EVERY level.
  *
- * The template hash was computed as `JSON.stringify(template, Object.keys(template).sort())`.
- * An array second argument to JSON.stringify is not a key ORDER — it is a property
- * ALLOWLIST applied at every nesting depth. Only the top-level key names were in it, so
- * `scope` and `filters` both serialized as `{}` and the hash committed to neither.
- * Two templates differing only in customerIdHashes, timeRange and filters produced the
- * SAME templateHash, and that hash is the durable identity of the registration — it is
- * what `template_registered` records and what both halves of `template_superseded`
- * reference. The audit ledger could not distinguish a template scoped to one customer
- * for one day from one scoped to 10,000 customers for a year, nor show that a supersede
- * had widened the scope. Committing to the whole structure is the point of hashing it.
- *
- * It also made the hashed shape depend on fields nobody validated: an unrelated extra
- * top-level key happening to be named `customerIdHashes` would put that name in the
- * allowlist and un-strip the nested one.
+ * `JSON.stringify(template, Object.keys(template).sort())` would not do: an array second
+ * argument to JSON.stringify is not a key ORDER — it is a property ALLOWLIST applied at
+ * every nesting depth. With only the top-level key names in it, `scope` and `filters`
+ * would both serialize as `{}`, and two templates differing only in customerIdHashes,
+ * timeRange and filters would share a templateHash. That hash is the durable identity
+ * of the registration — it is what `template_registered` records and what both halves
+ * of `template_superseded` reference — so the audit ledger must be able to tell a
+ * template scoped to one customer for one day from one scoped to 10,000 customers for a
+ * year, and to show that a supersede widened the scope. Committing to the whole
+ * structure is the point of hashing it. Unlike an allowlist built from the top-level
+ * key names, it also never lets one key's name decide whether a different, nested
+ * field is hashed.
  */
 function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
@@ -210,21 +208,19 @@ export async function registerTemplate(
     return { ok: false, errors: v.errors };
   }
   // The hash commits to the VALIDATED projection, not to the raw argument. A zod object
-  // parse strips unknown keys, so validation ran against a narrower shape than the one
-  // being hashed: a template carrying arbitrary extra keys validated clean and still
-  // changed templateHash. That hash is the durable identity of the registration — what
-  // `template_registered` records and what both halves of `template_superseded`
-  // reference — so it was committing to content that nothing validated, capped or read,
-  // while every field that IS validated is capped. It also forked identity on data that
-  // is not part of the template, which is the same invariant the suite already pins for
-  // an explicitly-undefined optional: something that is not part of what was registered
-  // must not change what the registration is called.
+  // parse strips unknown keys, so hashing the raw argument would let a template carrying
+  // arbitrary extra keys validate clean and still change templateHash. That hash is the
+  // durable identity of the registration — what `template_registered` records and what
+  // both halves of `template_superseded` reference — so it commits only to content that
+  // is validated and capped. Something that is not part of what was registered must not
+  // change what the registration is called; the suite pins the same invariant for an
+  // explicitly-undefined optional.
   //
   // Re-parsing, rather than threading the value out of validateBespokeTemplate, leaves
   // that function's exported ValidationResult contract alone. It cannot throw here —
   // `valid` is only returned after the same safeParse has already succeeded — and a
-  // template that was already conformant hashes to exactly what it did before, because
-  // canonicalJson sorts keys at every level and drops undefined either way.
+  // conformant template hashes the same either way, because canonicalJson sorts keys at
+  // every level and drops undefined.
   const canonical = canonicalJson(_Schema.parse(template));
   const digest = sha256(new TextEncoder().encode(canonical));
   const templateHash = Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');

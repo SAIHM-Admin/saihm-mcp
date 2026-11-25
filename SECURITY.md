@@ -6,7 +6,14 @@ If you believe you have found a security vulnerability in the SAIHM MCP server
 (`@saihm/mcp-server`), please report it privately so that we can investigate
 and remediate before public disclosure.
 
-**Private channel:** security@saihm.net
+**Private channels** (use either one):
+
+- **Email:** security@saihm.net
+- **GitHub private vulnerability reporting:** open a private advisory from
+  this repository's Security tab ("Report a vulnerability", or
+  <https://github.com/SAIHM-Admin/saihm-mcp/security/advisories/new>).
+
+Reports through either channel follow the same process and targets.
 
 Please include, where possible:
 
@@ -50,11 +57,12 @@ available we will:
 1. Release a patched version of `@saihm/mcp-server` to npm
 2. Publish a security advisory on the GitHub repository
 3. Credit the reporter (with permission) in the advisory and release notes
-4. Notify known SAIHM operator deployments via the same private channel
+4. Notify known SAIHM operator deployments privately by email
 
-If a reporter has urgent operational concerns, use the same private channel and
-mark the subject line `[URGENT]`. Urgent reports follow the acknowledgment and
-assessment targets above. This project is maintained by SAIHM, Inc. (see
+If a reporter has urgent operational concerns, use either private channel and
+mark the subject line or advisory title `[URGENT]`. Urgent reports follow the
+acknowledgment and assessment targets above. This project is maintained by
+SAIHM, Inc. (see
 [`GOVERNANCE.md`](GOVERNANCE.md)).
 
 ## Cryptographic and protocol-level concerns
@@ -70,7 +78,7 @@ SAIHM operator endpoint. The protocol stack uses:
 
 If a vulnerability is in the protocol specification itself rather than a
 specific implementation, please indicate that in your report. Specification
-issues are handled through the same private channel above and are carried
+issues are handled through the same private channels above and are carried
 into the next revision of the Internet-Draft
 `draft-saihm-memory-protocol`. (The draft was submitted to the IETF
 Independent Submission Stream; the ISE concluded its consideration on

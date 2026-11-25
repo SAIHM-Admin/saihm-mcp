@@ -9,16 +9,16 @@ implementation for the SAIHM (Sovereign AI Horizontal Memory) protocol.
   https://github.com/SAIHM-Admin/saihm-mcp/issues. Include version, MCP
   client, configuration (with secrets redacted), and reproduction steps.
 - **Security vulnerabilities.** Please **do not** open a public issue. See
-  [`SECURITY.md`](SECURITY.md) for the private reporting channel.
+  [`SECURITY.md`](SECURITY.md) for the private reporting channels.
 - **Documentation fixes.** Pull requests against `README.md` are welcome.
 - **Feature ideas.** Open an issue first to discuss scope, especially around
   the eight-tool MCP cap, which is an invariant of the protocol.
 - **Standards-level feedback.** The protocol itself is published as the
-  Internet-Draft `draft-saihm-memory-protocol-01`. It was submitted to the
-  IETF Independent Submission Stream; on 2026-07-25 the ISE concluded its
-  consideration and released it from the queue, so the draft is on no IETF
-  stream today and is not an Internet Standard. Standards-level comments
-  are welcome via an issue here.
+  Internet-Draft `draft-saihm-memory-protocol` (current revision `-03`). It
+  was submitted to the IETF Independent Submission Stream; on 2026-07-25 the
+  ISE concluded its consideration and released it from the queue, so the
+  draft is on no IETF stream today and is not an Internet Standard.
+  Standards-level comments are welcome via an issue here.
 
 ## Pull-request process
 
@@ -33,9 +33,9 @@ implementation for the SAIHM (Sovereign AI Horizontal Memory) protocol.
    asked to add one before merge. Documentation-only or
    metadata-only fixes are exempt.
 5. **Types.** Run `npm run typecheck`. TypeScript strict mode is enabled.
-6. **Build.** Run `npm run build` to verify the published artefact still
+6. **Build.** Run `npm run build` to verify the published artifact still
    compiles.
-7. Update `README.md` if you change tool behaviour, configuration, or the
+7. Update `README.md` if you change tool behavior, configuration, or the
    externally-visible interface.
 8. Open a pull request. Describe what changed and why. Link any related
    issues.
