@@ -211,7 +211,7 @@
   "dynamic_analysis_fixed_justification": "All issues uncovered by dynamic testing are fixed before commits land in main.",
 
   "access_continuity_status": "Met",
-  "access_continuity_justification": "GOVERNANCE.md describes maintainer add/remove/inactivity-emeritus (12-month inactivity) and removal-for-cause processes. SAIHM, Inc. owns and stewards the project and its trademarks, so ownership and the legal rights to continue the project stay with the company if any individual maintainer becomes unavailable. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md",
+  "access_continuity_justification": "GOVERNANCE.md describes maintainer add/remove/inactivity-emeritus (12-month inactivity) and removal-for-cause processes. SAIHM, Inc. owns and stewards the project and its trademarks, so ownership and the legal rights to continue the project stay with the company if any individual maintainer becomes unavailable. Recovery access to the project's repository and package-registry accounts is held under SAIHM, Inc. arrangements. https://github.com/SAIHM-Admin/saihm-mcp/blob/main/GOVERNANCE.md",
 
   "accessibility_best_practices_status": "N/A",
   "accessibility_best_practices_justification": "MCP server is a stdio-spoken JSON-RPC interface with no human-facing UI; WCAG / ARIA standards do not apply. Tool inputs/outputs are consumed by an AI agent, not by humans directly.",
