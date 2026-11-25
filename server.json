@@ -17,7 +17,7 @@
       "environmentVariables": [
         {
           "name": "SAIHM_ENDPOINT_URL",
-          "description": "Endpoint URL of the custodial SAIHM operator you run or subscribe to. Not the hosted service at https://saihm.net, which is non-custodial: use @saihm/mcp-server-pro for that.",
+          "description": "Endpoint URL of the custodial SAIHM operator you run. For the hosted service at https://saihm.net, use @saihm/mcp-server-pro.",
           "isRequired": true,
           "format": "string"
         },
