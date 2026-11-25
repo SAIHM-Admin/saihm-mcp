@@ -121,7 +121,7 @@
   "test_policy_justification": "CONTRIBUTING.md: 'New non-trivial functionality must include a test.' Reviewers enforce this on pull requests.",
 
   "tests_are_added_status": "Met",
-  "tests_are_added_justification": "The test policy in CONTRIBUTING.md applies to every release: a behavior change lands with tests. In 0.3.18 the new saihm_share input bounds come with regression tests (R32-A in tests/integration.test.ts); documentation- and metadata-only changes add no functional code path that needs one.",
+  "tests_are_added_justification": "The test policy in CONTRIBUTING.md applies to every release: a behavior change lands with tests. In 0.3.18 the new saihm_share input bounds come with regression tests (R32-A and R33-B in tests/integration.test.ts), and the refusal of credentials that Node's fetch would quote in its own errors comes with R33-A; documentation- and metadata-only changes add no functional code path that needs one.",
 
   "tests_documented_added_status": "Met",
   "tests_documented_added_justification": "Test policy documented in CONTRIBUTING.md ('Pull-request process' section).",
@@ -181,7 +181,7 @@
   "delivery_unsigned_justification": "npm publish flow signs releases via sigstore provenance attestation. Users can verify with `npm audit signatures` and `npm view @saihm/mcp-server --json`.",
 
   "vulnerabilities_fixed_60_days_status": "Met",
-  "vulnerabilities_fixed_60_days_justification": "No known unfixed vulnerabilities in @saihm/mcp-server to date.",
+  "vulnerabilities_fixed_60_days_justification": "Advisories against runtime dependencies are fixed within 60 days of publication: zod GHSA-mrhx-c7xc-m3w5, published 2026-10-01, is fixed in 0.3.18, and CHANGELOG.md 0.3.18 §Security lists every advisory fixed there. The alerts that remain open are in development tools the package does not ship.",
 
   "vulnerabilities_critical_fixed_status": "Met",
   "vulnerabilities_critical_fixed_justification": "No known publicly-disclosed critical vulnerabilities in @saihm/mcp-server to date.",
@@ -241,7 +241,7 @@
   "code_of_conduct_justification": "Project adopts the Contributor Covenant v2.1 verbatim text at https://github.com/SAIHM-Admin/saihm-mcp/blob/main/CODE_OF_CONDUCT.md. Enforcement contact: ops@saihm.net.",
 
   "crypto_algorithm_agility_status": "Met",
-  "crypto_algorithm_agility_justification": "Algorithm choices live at the operator: a cell does not name its AEAD or key-wrap algorithm, and key-encryption keys rotate by generation (kekVersion field on every cell). The MCP server uses the Node.js TLS defaults and SHA-256 content digests only.",
+  "crypto_algorithm_agility_justification": "Each operator selects and documents its AEAD and key-wrap algorithms (draft -03 §2.4), and key-encryption keys rotate by generation (kekVersion field on every cell), so an operator can change algorithms without a client change. The MCP server uses the Node.js TLS defaults and SHA-256 content digests only.",
 
   "crypto_certificate_verification_status": "Met",
   "crypto_certificate_verification_justification": "Server enforces HTTPS-only operator endpoints; certificate verification is performed by Node.js's default TLS handler, which validates against the system trust store. No insecure-cert bypass is exposed. Leave NODE_TLS_REJECT_UNAUTHORIZED unset: setting it to 0 disables verification for the whole Node.js process.",
@@ -277,7 +277,7 @@
   "implement_secure_design_justification": "Secure-design defaults documented in README §Security: HTTPS-only operator endpoints, per-call 30s abort window, 16 MB Content-Length cap, no Authorization-header echo on errors, no configuration, credential or user data read from disk and nothing written to disk (the only file read is a package.json, once at startup, so serverInfo.version matches the published version: the package's own package.json, or the one in the current working directory if that cannot be read; only its version field is used, with 0.0.0-dev as the fallback), zero EVM tooling. CONTRIBUTING.md disallows introducing new cryptographic primitives in the MCP-server repo (protocol-stack-only).",
 
   "input_validation_status": "Met",
-  "input_validation_justification": "Server validates every tool's arguments with zod schemas before forwarding, and bounds the saihm_share lists (at most 1,024 grantee ids and 1,024 shard ids, each at most 256 characters, refused on the size check before any entry is read); it validates SAIHM_ENDPOINT_URL at construction (HTTPS-only enforcement except 127.0.0.1/localhost dev exception); response size is capped at 16 MB, enforced both on a declared Content-Length and on the streamed body itself; Authorization header is never echoed in error messages. TypeScript strict mode adds compile-time validation across the call surface.",
+  "input_validation_justification": "Server validates every tool's arguments with zod schemas before forwarding, and bounds the saihm_share inputs (at most 1,024 grantee ids and 1,024 shard ids, each at most 256 characters, refused on the size check before any entry is read, and an expiryEpoch of at most 20 characters); it validates SAIHM_ENDPOINT_URL at construction (HTTPS-only enforcement except 127.0.0.1/localhost dev exception, and no user name or password in the URL) and refuses a SAIHM_AUTH_HEADER value that cannot be sent as an HTTP header, with fixed messages that quote neither value; response size is capped at 16 MB, enforced both on a declared Content-Length and on the streamed body itself; Authorization header is never echoed in error messages. TypeScript strict mode adds compile-time validation across the call surface.",
 
   "installation_common_status": "Met",
   "installation_common_justification": "Standard npm install: `npm install @saihm/mcp-server` or `npx @saihm/mcp-server`. Documented in README §Install.",
@@ -349,5 +349,5 @@
   "coding_standards_enforced_justification": "ESLint (typescript-eslint recommended rules) and Prettier are configured at the repository root (eslint.config.js + .prettierrc.json + .prettierignore). The CI workflow at .github/workflows/ci.yml runs `npm run lint` and `npm run format:check` on every push to main and every pull request, against Node 20.x and 22.x. CI fails if any source file fails lint or formatting. npm scripts: `lint`, `lint:fix`, `format`, `format:check`. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/eslint.config.js and https://github.com/SAIHM-Admin/saihm-mcp/blob/main/.github/workflows/ci.yml",
 
   "test_statement_coverage80_status": "Met",
-  "test_statement_coverage80_justification": "Statement coverage is measured via c8 (https://www.npmjs.com/package/c8) wrapping the integration test suite (`c8 tsx tests/integration.test.ts`). c8 configuration in package.json enables `check-coverage: true` with `statements: 90, branches: 80, lines: 80, functions: 80`. Measured on 2026-11-25: 98.4% of statements and 94.6% of branches. The suite imports saihm_mcp_server.ts (96.6% of statements). CI fails if statement coverage drops below 90% or branch coverage below 80%. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/package.json (c8 section)."
+  "test_statement_coverage80_justification": "Statement coverage is measured via c8 (https://www.npmjs.com/package/c8) wrapping the integration test suite (`c8 tsx tests/integration.test.ts`). c8 configuration in package.json enables `check-coverage: true` with `statements: 90, branches: 80, lines: 80, functions: 80`. Measured on 2026-11-25: 98.5% of statements and 94.8% of branches. The suite imports saihm_mcp_server.ts (96.7% of statements). CI fails if statement coverage drops below 90% or branch coverage below 80%. See https://github.com/SAIHM-Admin/saihm-mcp/blob/main/package.json (c8 section)."
 }

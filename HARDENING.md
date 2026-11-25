@@ -69,6 +69,12 @@ Out of scope for this server (these belong to other layers):
   `Error.message`, stdout, or stderr. The integration test
   (`tests/integration.test.ts`) asserts this with a sentinel token
   (`"Bearer SECRET-TOKEN-DO-NOT-LEAK"`) and a forced server 500.
+  Node's `fetch` quotes a header value with a line break or other
+  control character inside it in its own error, so the client refuses
+  any value `fetch` cannot send when it is constructed, with a fixed
+  message that quotes no part of it, and replaces any other error
+  `fetch` raises while building a request. The R33-A tests plant a
+  sentinel in each shape and search every error for it.
 - **No on-disk persistence.** The server never writes to the
   filesystem, and reads no configuration, credential, or user data
   from it — configuration flows entirely through environment
@@ -99,20 +105,23 @@ Out of scope for this server (these belong to other layers):
 
 - **URL validation.** `SAIHM_ENDPOINT_URL` is parsed with the WHATWG
   `URL` constructor when the runtime client is constructed, and a
-  malformed or non-HTTPS URL throws there. That construction is
-  **lazy** — it happens on the first tool call, not at process start,
-  so the server starts and answers `tools/list` with no configuration
-  at all (registry introspection depends on this). A misconfigured
-  endpoint therefore surfaces on the first tool call rather than at
-  boot, and the thrown message does not include the Authorization header.
+  malformed or non-HTTPS URL throws there, as does a URL with a user
+  name or password in it, which `fetch` would quote in full in its own
+  error. That construction is **lazy** — it happens on the first tool
+  call, not at process start, so the server starts and answers
+  `tools/list` with no configuration at all (registry introspection
+  depends on this). A misconfigured endpoint therefore surfaces on the
+  first tool call rather than at boot, and the thrown message quotes
+  neither the URL's credentials nor the Authorization header.
 - **Tool-input bounds.** Every tool's arguments pass a zod schema
   before anything is forwarded. `saihm_share` accepts at most 1,024
   grantee ids and 1,024 shard ids per call, each at most 256
   characters, and zod (`^4.6.6`) refuses an over-long list on its size
-  check before it reads any entry. The MCP SDK's stdio transport also
-  caps each incoming message at 10 MB. The integration test asserts
-  that a 1,000,000-entry list is refused with a single `too_big` issue
-  and never reaches the operator.
+  check before it reads any entry. Its `expiryEpoch` accepts at most
+  20 characters, enough for any 64-bit epoch. The MCP SDK's stdio
+  transport also caps each incoming message at 10 MB. The integration
+  test asserts that a 1,000,000-entry list is refused with a single
+  `too_big` issue and never reaches the operator.
 - **Type checking.** TypeScript strict mode (`"strict": true` in
   `tsconfig.json`) is enabled, catching common classes of error at
   compile time. `npm run typecheck` runs on every CI build and covers
@@ -188,8 +197,8 @@ Out of scope for this server (these belong to other layers):
   blocks force-pushes to `main` and deletion of `main`. The protection
   is not enforced for administrators, and no pull-request review is
   required while the project has one maintainer; both settings can be
-  tightened as maintainers are added. Branch protection is a repository setting rather than a
-  file in this tree; `gh api
+  tightened as maintainers are added. Branch protection is a
+  repository setting rather than a file in this tree; `gh api
   repos/SAIHM-Admin/saihm-mcp/branches/main/protection` shows it.
 - **Dependabot enabled.** `.github/dependabot.yml` opens weekly PRs
   for npm-ecosystem updates and security advisories on dependencies.
@@ -239,7 +248,8 @@ To verify the hardening choices above in the shipped artifact:
 2. **Integration test:** clone, `npm install && npm test`. The test
    asserts the HTTPS-only enforcement, both halves of the 16 MB cap
    (declared `Content-Length` and streamed body), the header-no-echo
-   behavior, and the `saihm_share` list bounds.
+   behavior, including Node's own `fetch` errors, and the `saihm_share`
+   input bounds.
 3. **CI green check:** <https://github.com/SAIHM-Admin/saihm-mcp/actions>
 4. **npm provenance:** `npm view @saihm/mcp-server --json | jq .dist`
    then `npm audit signatures`.

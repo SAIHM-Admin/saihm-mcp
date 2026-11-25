@@ -3,7 +3,7 @@
 This document describes the high-level architecture of
 `@saihm/mcp-server` and its place in the SAIHM (Sovereign AI
 Horizontal Memory) protocol stack. It is intended for contributors,
-reviewers, and security reviewers who need a mental model of *where
+code reviewers and security reviewers who need a mental model of *where
 things live* before reading the code.
 
 ## Project scope, restated
@@ -84,8 +84,8 @@ stdio server. Each tool definition specifies:
 - An input schema (JSON Schema via zod).
 - A handler that constructs the JSON-RPC request and calls
   `SaihmRuntimeClient` (see below).
-- A response that returns the operator's reply verbatim — no
-  transformation, no caching, no enrichment.
+- A response that reports the operator's result after shape checks;
+  no caching and no enrichment.
 
 The eight tools are a **protocol invariant** (the "eight-tool MCP
 cap"; see `CONTRIBUTING.md` and `GOVERNANCE.md`):
@@ -108,18 +108,24 @@ and to keep the protocol surface auditable.
 
 ### `saihm_runtime_client.ts` — operator-endpoint client
 
-The thin HTTPS client that talks to the operator endpoint:
+The HTTPS client that talks to the operator endpoint:
 
 - **URL validation** at construction. The endpoint URL must be HTTPS,
   with the exceptions of `127.0.0.1` and `localhost` (for local
-  development). Plain `http://` to any other host is rejected.
+  development). Plain `http://` to any other host is rejected, and so is
+  a URL with a user name or password in it.
 - **Redirects refused.** Every request sets `redirect: 'error'`. The URL
   check covers the configured endpoint and nothing past it, so a followed
   redirect would move the call to an unvalidated host, carrying the request
   body with it on `307`/`308`.
 - **Authorization header forwarding.** The `SAIHM_AUTH_HEADER` env var
   (typically `Bearer <token>`) is included on every request. The
-  header value is **never** echoed in thrown error messages.
+  header value is **never** echoed in thrown error messages. Node's
+  `fetch` quotes a header value with a line break or other control
+  character inside it, and an endpoint URL with userinfo, in its own
+  errors, so the constructor refuses both with fixed messages, and
+  `call()` replaces any other error `fetch` raises while building the
+  request.
 - **Per-call abort window.** Each request runs under an
   `AbortController` that aborts after 30 seconds. A hung operator
   endpoint cannot starve the MCP server.
@@ -133,8 +139,9 @@ The thin HTTPS client that talks to the operator endpoint:
   duplicate `saihm_forget` requests).
 
 The client does **not** read from disk, does **not** maintain any
-session or cookie state, and does **not** transform operator
-responses.
+session or cookie state, and does **not** cache or enrich operator
+responses; the server reports the operator's result after shape
+checks.
 
 ### `types.ts` — protocol type definitions
 
@@ -284,16 +291,16 @@ holder has supplied `M` outside the protocol binding.
   MCP server does not vouch for any particular operator. Operator
   selection (and the trust judgment that comes with it) is the user's
   responsibility.
-- **The agent trusts the operator's response verbatim.** Cell IDs,
-  audit anchors, and report receipts returned from the operator are
-  surfaced to the agent without modification. Verifying receipts
-  against COTI V2 mainnet anchors is out of scope for the MCP server
-  — that's a consumer-side responsibility.
-- **The MCP server does not trust the operator with secrets in
-  transit.** It refuses plain HTTP (except for localhost dev) so that
-  the `Authorization` header can never be sniffed, and it refuses
-  redirects so that the endpoint cannot move the call — or the request
-  body — to a host the URL check never saw.
+- **The agent trusts well-formed operator replies.** The server shape-checks
+  each reply; the values in a well-formed reply, such as cell IDs,
+  audit anchors and report receipts, are the operator's word. Verifying
+  receipts against COTI V2 mainnet anchors is out of scope for the MCP
+  server — that's a consumer-side responsibility.
+- **Secrets are protected in transit.** The MCP server refuses plain
+  HTTP (except for localhost dev) so that the `Authorization` header
+  can never be sniffed, and it refuses redirects so that the endpoint
+  cannot move the call — or the request body — to a host the URL check
+  never saw.
 - **The client holds no key material.** In the custodial profile the
   operator holds the holder's keys and signs on the holder's behalf; the
   client treats the Authorization value as opaque. Rotating the Bearer

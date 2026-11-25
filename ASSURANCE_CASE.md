@@ -49,9 +49,9 @@ project addresses each.
 |---|---|---|
 | In-transit | HTTPS-only enforcement at `SaihmRuntimeClient` construction; plain `http://` rejected except for `127.0.0.1`/`localhost` (dev). Construction validates the configured URL only, so every request also sets `redirect: 'error'` — a redirect is refused, keeping the validated scheme and host as the ones actually used. | `tests/integration.test.ts` test cases "ctor rejects http:// non-localhost endpoint", "ctor allows http://127.0.0.1 (dev)", and the R26-A cases asserting a `307` is refused and its body never reaches the redirect target. Code: `saihm_runtime_client.ts` constructor URL check and the `redirect: 'error'` fetch option. |
 | At-rest (filesystem) | Nothing is written to disk, and no configuration, credential, or user data is read from it — configuration is exclusively via env vars. The server's only file read is a `package.json`, for the version it reports as `serverInfo.version`: its own packaged `package.json`, or `package.json` in the current working directory if that cannot be read. Only the `version` field is used. | Source review over every `node:fs` call in shipped source, not only the client: the sole reader is `readPackageVersion()` in `saihm_mcp_server.ts`, which tries the packaged `package.json` and then the working directory's, uses only `version`, and falls back to `0.0.0-dev`. `saihm_runtime_client.ts` reads no files at all. `HARDENING.md` §"No on-disk persistence". |
-| Via-error | Error messages explicitly do not include the header value. | `tests/integration.test.ts` test "error message does not echo Authorization header" — uses sentinel `Bearer SECRET-TOKEN-DO-NOT-LEAK` and asserts the token does not appear in any thrown error's `.message`. |
+| Via-error | Error messages are built without the header value. Node's `fetch` quotes a header value with a line break or other control character inside it, and an endpoint URL with userinfo, in its own errors, so the constructor refuses both with fixed messages that quote neither, and `call()` replaces any other error `fetch` raises while building a request. | `tests/integration.test.ts` test "error message does not echo Authorization header" — uses sentinel `Bearer SECRET-TOKEN-DO-NOT-LEAK` and asserts the token does not appear in any thrown error's `.message`. The R33-A cases plant a sentinel in seven header shapes and four userinfo shapes, at construction, from the environment and past the constructor into `call()`, and search each error's message, stack and cause for it; a positive control shows that `fetch` itself quotes both shapes. |
 | Via-logging | Nothing is written to stdout or stderr except one line: `saihm_mcp_server.ts` writes a fatal startup error to stderr before exiting. The header is never part of it. | Source review over **every** write path, not just `console.*`: the only match for `console.` / `process.stdout` / `process.stderr` in shipped source is that single `process.stderr.write(String(e))`. A reviewer grepping for `console.log` alone would find nothing and conclude clean without having checked the path that actually writes. |
-| Via-third-party reflection | The MCP server forwards operator responses verbatim, with no enrichment that could echo header content. | Source review: `SaihmRuntimeClient.call()` returns parsed JSON; no header is folded into the returned object. |
+| Via-third-party reflection | The MCP server reports the operator's result after shape checks, with no caching and no enrichment that could echo header content. | Source review: `SaihmRuntimeClient.call()` returns parsed JSON; no header is folded into the returned object. |
 
 ### Residual risk
 
@@ -82,7 +82,7 @@ paths). The project caps each.
 |---|---|---|
 | Time | 30-second per-call abort via `AbortController` | `saihm_runtime_client.ts` abort wiring. `tests/integration.test.ts` R26-B cases: a server that accepts the request and never answers, against a client constructed with a 60 ms window, throws "timed out after 60ms" in well under a second; further cases assert the message does not echo the header, states the outcome is unknown rather than implying failure, and that the shipped default is still 30 s. The abort window is a constructor parameter defaulting to `REQUEST_TIMEOUT_MS`, so the test can exercise it with a short window. |
 | Memory | 16 MB cap, enforced twice: a declared `Content-Length` over the cap is rejected before the body is read, and independently the body is measured while it streams and the read is aborted on exceeding the cap — so the cap does not depend on the sender declaring an honest `Content-Length`, or any at all | `tests/integration.test.ts` tests "Content-Length over 16 MB rejected" (server advertises 20 MB; call throws "response too large") and "R14-A chunked response over 16 MB rejected (no Content-Length)" (17x1 MB chunked reply with no header; call throws "while still streaming"). |
-| Tool input | zod schemas on every tool. `saihm_share` accepts at most 1,024 grantee ids and 1,024 shard ids, each at most 256 characters, and an over-long list is refused on its size check before any entry is read (zod `^4.6.6`). The MCP SDK's stdio transport caps each message at 10 MB. | `tests/integration.test.ts` R32-A cases: `tools/list` advertises both bounds; a 1,025-entry and a 1,000,000-entry list are each refused with a single `too_big` issue and no per-entry issues, in milliseconds; no over-limit list reaches the operator; a call at both limits succeeds. |
+| Tool input | zod schemas on every tool. `saihm_share` accepts at most 1,024 grantee ids and 1,024 shard ids, each at most 256 characters, and an over-long list is refused on its size check before any entry is read (zod `^4.6.6`); its `expiryEpoch` accepts at most 20 characters. The MCP SDK's stdio transport caps each message at 10 MB. | `tests/integration.test.ts` R32-A cases: `tools/list` advertises both bounds; a 1,025-entry and a 1,000,000-entry list are each refused with a single `too_big` issue and no per-entry issues, in milliseconds; no over-limit list reaches the operator; a call at both limits succeeds. R33-B cases: a 21-digit and a 4,000,000-character `expiryEpoch` are refused in milliseconds without being quoted, and a 20-digit one is forwarded exactly. |
 | Surface | Eight-tool protocol invariant — no ninth tool without a breaking-change process | `GOVERNANCE.md` §"Decision process" + `CONTRIBUTING.md` §"Coding conventions" both restate the cap. |
 
 ### Residual risk
@@ -124,12 +124,12 @@ published by hand and carry none. Verified per version with
 ### Residual risk
 
 Supply-chain security rests on the security of the project's GitHub
-account. Publishing uses no long-lived npm token:
+and npm accounts. Publishing uses no long-lived npm token:
 `.github/workflows/release.yml` is the only publish path and it
-authenticates by GitHub Actions OIDC, so there is no npm credential to
-steal or replay. SAIHM, Inc. owns the project and secures that account
-with two-factor authentication, and branch protection on `main` adds a
-further control.
+authenticates by GitHub Actions OIDC, so there is no npm token to
+steal or replay. SAIHM, Inc. owns the project and is accountable for
+securing both accounts; the GitHub account uses two-factor
+authentication, and branch protection on `main` adds a further control.
 
 ## G4 — Cryptographic primitives are publicly-validated and current
 
